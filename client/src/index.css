@@ -1,0 +1,90 @@
+:root {
+  --background: #f4efe6;
+  --panel: rgba(255, 251, 245, 0.86);
+  --card-soft: rgba(255, 248, 238, 0.9);
+  --chip: rgba(104, 84, 58, 0.08);
+  --dropzone: rgba(255, 250, 243, 0.96);
+  --dropzone-active: rgba(243, 226, 205, 0.85);
+  --selected: rgba(239, 223, 205, 0.58);
+  --text: #1f1b16;
+  --muted: #746b5c;
+  --border: rgba(92, 73, 47, 0.16);
+  --border-strong: rgba(92, 73, 47, 0.28);
+  --accent: #87532b;
+  --shadow: 0 24px 80px rgba(62, 45, 24, 0.09);
+  --sans: 'Segoe UI', Arial, sans-serif;
+  --serif: Georgia, 'Times New Roman', serif;
+
+  color: var(--text);
+  background: var(--background);
+  font: 18px/1.6 var(--sans);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100vh;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.88), transparent 28%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.38), transparent 45%),
+    var(--background);
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+h1 {
+  margin-bottom: 20px;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  font-family: var(--serif);
+}
+
+h2 {
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-family: var(--serif);
+}
+
+h3 {
+  font-size: 1.1rem;
+  line-height: 1.2;
+}
+
+h4 {
+  font-size: 0.95rem;
+  margin-bottom: 6px;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  appearance: none;
+}
+
+strong {
+  font-weight: 700;
+}
