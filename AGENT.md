@@ -57,7 +57,7 @@ The system operates in two distinct transformation modes. The AI acts as the "Le
 
 1.  **Auth:** Login/Sign-Up (Cognito) to access the S3 "Resume Drive."
 2.  **Ingestion:** Upload a `.docx` (data extraction only) or select a saved version from S3.
-3.  **Targeting:** Select **Polisher** or **Sniper** mode (and paste JD if Sniper).
+3.  **Targeting:** Select **Polisher** or **Sniper** mode.
 4.  **The Diff Editor:** A side-by-side React view where AI-generated metrics are highlighted. Users **must** be able to click and edit these numbers directly.
 5.  **Template Selection:** A gallery of 5 thumbnails for the user to choose their final layout.
 6.  **Export:** Render to `.docx` via `docxtpl` and provide a download + "Save to Cloud" (S3) option.

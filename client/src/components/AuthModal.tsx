@@ -1,4 +1,13 @@
-type AuthView = 'signIn' | 'signUp'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+  faEnvelope,
+  faTimes,
+} from '@fortawesome/free-solid-svg-icons'
+import {
+  faGoogle,
+  faLinkedinIn,
+} from '@fortawesome/free-brands-svg-icons'
+import type { AuthView } from '../context/AuthContext'
 
 type AuthModalProps = {
   authView: AuthView
@@ -24,10 +33,12 @@ function AuthModal({
         <div className="auth-modal__header">
           <div>
             <p className="eyebrow">Secure access</p>
-            <h2>{authView === 'signIn' ? 'Welcome back' : 'Create your account'}</h2>
+            <h2 className="auth-modal__title">
+              {authView === 'signIn' ? 'Welcome back' : 'Create your account'}
+            </h2>
           </div>
           <button className="icon-button" onClick={onClose} type="button">
-            x
+            <FontAwesomeIcon icon={faTimes} />
           </button>
         </div>
 
@@ -54,6 +65,10 @@ function AuthModal({
             onClick={() => onCompleteAuth('Google')}
             type="button"
           >
+            <span className="social-button__meta">
+              <FontAwesomeIcon icon={faGoogle} />
+              OAuth
+            </span>
             Continue with Google
           </button>
           <button
@@ -61,6 +76,10 @@ function AuthModal({
             onClick={() => onCompleteAuth('LinkedIn')}
             type="button"
           >
+            <span className="social-button__meta">
+              <FontAwesomeIcon icon={faLinkedinIn} />
+              Federated
+            </span>
             Continue with LinkedIn
           </button>
           <button
@@ -68,14 +87,17 @@ function AuthModal({
             onClick={() => onCompleteAuth('Email')}
             type="button"
           >
+            <span className="social-button__meta">
+              <FontAwesomeIcon icon={faEnvelope} />
+              Email
+            </span>
             {authView === 'signIn' ? 'Continue with email' : 'Sign up with email'}
           </button>
         </div>
 
         <div className="auth-note">
-          Designed as a Cognito-style hosted auth entry point with email and
-          federated providers. Wiring can be swapped to real Cognito flows once
-          auth is configured.
+          Designed as a Cognito-style hosted auth entry point with email and federated
+          providers. Wiring can be swapped to real Cognito flows once auth is configured.
         </div>
       </section>
     </div>

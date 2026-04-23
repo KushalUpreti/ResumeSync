@@ -1,185 +1,214 @@
-import { type DragEvent, type RefObject } from 'react'
-
-type Mode = 'polisher' | 'sniper'
-
-type ResumeItem = {
-  id: number
-  name: string
-  updatedAt: string
-  status: string
-}
+import { useRef, useState, type DragEvent } from 'react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+  faCircleInfo,
+  faFileArrowUp,
+  faFileLines,
+  faTimeline,
+  faWandMagicSparkles,
+  faXmark,
+} from '@fortawesome/free-solid-svg-icons'
+import { Link, useLocation } from 'react-router-dom'
+import FlowStepper from '../components/FlowStepper'
+import SectionCard from '../components/SectionCard'
+import { flowSteps, queuedFiles } from '../data/mockData'
 
 type IngestionPageProps = {
-  details: string
-  dragActive: boolean
-  fileInputRef: RefObject<HTMLInputElement | null>
-  isLoggedIn: boolean
-  mode: Mode
-  savedResumes: ResumeItem[]
-  selectedFile: File | null
-  selectedResumeId: number | null
-  onDetailsChange: (value: string) => void
-  onDrop: (event: DragEvent<HTMLLabelElement>) => void
-  onDragActiveChange: (isActive: boolean) => void
-  onFilePick: (fileList: FileList | null) => void
   onOpenLogin: () => void
-  onResumeSelect: (resumeId: number) => void
-  onModeSelect: (mode: Mode) => void
 }
 
-function IngestionPage({
-  details,
-  dragActive,
-  fileInputRef,
-  isLoggedIn,
-  mode,
-  savedResumes,
-  selectedFile,
-  selectedResumeId,
-  onDetailsChange,
-  onDrop,
-  onDragActiveChange,
-  onFilePick,
-  onOpenLogin,
-  onResumeSelect,
-  onModeSelect,
-}: IngestionPageProps) {
-  const selectedResume = savedResumes.find((resume) => resume.id === selectedResumeId)
+const savedModes = [
+  {
+    value: 'general',
+    label: 'General',
+    description: 'General mode analyzes your entire history.',
+  },
+  {
+    value: 'job-targeting',
+    label: 'Job-Targeting',
+    description: 'Job-Targeting prioritizes relevance for a specific role.',
+  },
+]
+
+function IngestionPage({ onOpenLogin }: IngestionPageProps) {
+  const location = useLocation()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [dragActive, setDragActive] = useState(false)
+  const [selectedMode, setSelectedMode] = useState('general')
+  const [details, setDetails] = useState('')
+  const [selectedFileName, setSelectedFileName] = useState('main_resume_2024_v2.pdf')
+
+  function handleFilePick(fileList: FileList | null) {
+    const nextFile = fileList?.[0]
+    if (!nextFile) {
+      return
+    }
+
+    setSelectedFileName(nextFile.name)
+  }
+
+  function handleDrop(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault()
+    setDragActive(false)
+    handleFilePick(event.dataTransfer.files)
+  }
+
+  const selectedModeData = savedModes.find((mode) => mode.value === selectedMode)
 
   return (
-    <main className="workspace-page">
-      <section className="workspace-intro">
-        <p className="eyebrow">Ingestion and Targeting</p>
-        <h2>Start with a file, then tell the AI how aggressive to be.</h2>
-        <p className="workspace-copy">
-          Upload a fresh resume or select one from your saved history if you are
-          signed in.
+    <div className="page-stack">
+      <FlowStepper currentPath={location.pathname} steps={flowSteps} />
+
+      <section className="page-intro">
+        <p className="eyebrow">Knowledge Ingestion</p>
+        <h1 className="page-title">Knowledge Ingestion</h1>
+        <p className="page-copy">
+          Feed your AI persona with raw professional data for hyper-personalized resume
+          generation.
         </p>
       </section>
 
-      <section className="workspace-grid">
-        <div className="panel">
-          <div className="panel__header">
-            <h3>Resume source</h3>
-            <p>Use drag and drop for a new file or pick an existing draft.</p>
+      <div className="dashboard-grid">
+        <div className="stack-column">
+          <SectionCard>
+            <div className="section-card__header section-card__header--inline">
+              <h2 className="section-card__title">Ingestion Mode</h2>
+              <span className="info-dot">
+                <FontAwesomeIcon icon={faCircleInfo} />
+              </span>
+            </div>
+            <div className="segmented-control" role="tablist" aria-label="Ingestion mode">
+              {savedModes.map((mode) => (
+                <button
+                  className={
+                    selectedMode === mode.value
+                      ? 'segmented-control__item is-active'
+                      : 'segmented-control__item'
+                  }
+                  key={mode.value}
+                  onClick={() => setSelectedMode(mode.value)}
+                  type="button"
+                >
+                  {mode.label}
+                </button>
+              ))}
+            </div>
+            <p className="section-copy">{selectedModeData?.description}</p>
+          </SectionCard>
+
+          <SectionCard>
+            <div className="section-card__header section-card__header--inline">
+              <h2 className="section-card__title">Experience Vault</h2>
+              <span className="tag tag--neutral">Markdown Supported</span>
+            </div>
+            <p className="section-copy">
+              Paste unformatted job descriptions, project notes, or raw performance reviews
+              here.
+            </p>
+            <textarea
+              className="text-area"
+              placeholder="e.g., Led the migration of legacy CRM to cloud-based architecture. Managed a team of 12 engineers. Achieved 20% reduction in latency..."
+              value={details}
+              onChange={(event) => setDetails(event.target.value)}
+            />
+            <div className="text-area__actions">
+              <button className="icon-action" type="button">
+                <FontAwesomeIcon icon={faWandMagicSparkles} />
+              </button>
+            </div>
+          </SectionCard>
+        </div>
+
+        <SectionCard>
+          <div className="section-card__header">
+            <h2 className="section-card__title">Primary Source Upload</h2>
+            <p className="section-copy">
+              Upload your latest PDF/DOCX resume for structural analysis.
+            </p>
           </div>
 
           <label
-            className={`dropzone ${dragActive ? 'dropzone--active' : ''}`}
-            onDragEnter={() => onDragActiveChange(true)}
-            onDragLeave={() => onDragActiveChange(false)}
+            className={dragActive ? 'upload-panel is-active' : 'upload-panel'}
+            onDragEnter={() => setDragActive(true)}
+            onDragLeave={() => setDragActive(false)}
             onDragOver={(event) => event.preventDefault()}
-            onDrop={onDrop}
+            onDrop={handleDrop}
           >
             <input
               ref={fileInputRef}
               className="sr-only"
               type="file"
-              accept=".doc,.docx,.pdf"
-              onChange={(event) => onFilePick(event.target.files)}
+              accept=".doc,.docx,.pdf,.txt"
+              onChange={(event) => handleFilePick(event.target.files)}
             />
-            <strong>Drop your resume here</strong>
-            <span>DOC, DOCX, or PDF</span>
+            <div className="upload-panel__icon">
+              <FontAwesomeIcon icon={faFileArrowUp} />
+            </div>
+            <strong>Drag and drop files</strong>
+            <span>Support for PDF, DOCX, and TXT files up to 10MB.</span>
             <button
-              className="secondary-button"
+              className="button button--primary"
               onClick={() => fileInputRef.current?.click()}
               type="button"
             >
-              Browse files
+              Select from Computer
             </button>
           </label>
 
-          <div className="selection-card">
-            <h4>Current selection</h4>
-            <p>{selectedFile?.name ?? selectedResume?.name ?? 'No file selected yet.'}</p>
-          </div>
-
-          {isLoggedIn ? (
-            <div className="saved-list">
-              <div className="panel__header">
-                <h3>Saved resumes</h3>
-                <p>Pick one stored in your private resume drive.</p>
-              </div>
-              {savedResumes.map((resume) => (
-                <button
-                  key={resume.id}
-                  className={`saved-item ${
-                    selectedResumeId === resume.id ? 'saved-item--selected' : ''
-                  }`}
-                  onClick={() => onResumeSelect(resume.id)}
-                  type="button"
-                >
-                  <span>{resume.name}</span>
-                  <small>
-                    {resume.updatedAt} | {resume.status}
-                  </small>
-                </button>
+          <div className="queue-block">
+            <p className="section-label">Queued for Analysis</p>
+            <div className="queue-list">
+              {queuedFiles.map((file) => (
+                <article className="queue-item" key={file.id}>
+                  <div className="queue-item__meta">
+                    <div className="queue-item__icon">
+                      <FontAwesomeIcon icon={file.id === 'resume-primary' ? faFileLines : faTimeline} />
+                    </div>
+                    <div>
+                      <h3>{file.id === 'resume-primary' ? selectedFileName : file.name}</h3>
+                      <p>{file.meta} / {file.status}</p>
+                    </div>
+                  </div>
+                  <div className="queue-item__status">
+                    {file.progress < 100 ? (
+                      <div className="progress-bar">
+                        <span style={{ width: `${file.progress}%` }} />
+                      </div>
+                    ) : (
+                      <button className="queue-item__remove" type="button">
+                        <FontAwesomeIcon icon={faXmark} />
+                      </button>
+                    )}
+                  </div>
+                </article>
               ))}
             </div>
-          ) : (
-            <div className="selection-card selection-card--muted">
-              <h4>Saved history</h4>
-              <p>Log in to access resumes you have uploaded before.</p>
-              <button className="ghost-button" onClick={onOpenLogin} type="button">
-                Log in to view saved resumes
-              </button>
-            </div>
-          )}
+          </div>
+        </SectionCard>
+      </div>
+
+      <section className="bottom-toolbar">
+        <div className="bottom-toolbar__summary">
+          <div className="bottom-toolbar__icon">AI</div>
+          <div>
+            <strong>Engine: ResumeSync-Llama-70b</strong>
+            <p>Context depth: 4,000 tokens active</p>
+          </div>
         </div>
-
-        <div className="panel">
-          <div className="panel__header">
-            <h3>Targeting mode</h3>
-            <p>Choose the level of tailoring you want from the AI.</p>
-          </div>
-
-          <div className="mode-grid">
-            <button
-              className={`mode-card ${mode === 'polisher' ? 'mode-card--selected' : ''}`}
-              onClick={() => onModeSelect('polisher')}
-              type="button"
-            >
-              <strong>Polisher</strong>
-              <span>Grounded rewrites, clean phrasing, and believable metrics.</span>
-            </button>
-            <button
-              className={`mode-card ${mode === 'sniper' ? 'mode-card--selected' : ''}`}
-              onClick={() => onModeSelect('sniper')}
-              type="button"
-            >
-              <strong>Sniper</strong>
-              <span>Aggressive job targeting with stronger keyword alignment.</span>
-            </button>
-          </div>
-
-          <div className="panel__header panel__header--spaced">
-            <h3>Additional details</h3>
-            <p>Paste a job description, role goals, or notes for tone.</p>
-          </div>
-
-          <textarea
-            className="details-input"
-            placeholder="Paste a job description, must-have keywords, or guidance for the rewrite..."
-            value={details}
-            onChange={(event) => onDetailsChange(event.target.value)}
-          />
-
-          <div className="selection-card">
-            <h4>Ready to continue</h4>
-            <p>
-              Mode: {mode === 'polisher' ? 'Polisher' : 'Sniper'}
-              <br />
-              Source:{' '}
-              {selectedFile?.name ??
-                selectedResume?.name ??
-                'Choose a file or saved resume'}
-            </p>
-          </div>
+        <div className="bottom-toolbar__actions">
+          <button className="button button--ghost" type="button">
+            Cancel
+          </button>
+          <button className="button button--ghost" onClick={onOpenLogin} type="button">
+            Save to Account
+          </button>
+          <Link className="button button--primary" to="/config">
+            Proceed to Configuration
+          </Link>
         </div>
       </section>
-    </main>
+    </div>
   )
 }
 
-export type { Mode, ResumeItem }
 export default IngestionPage

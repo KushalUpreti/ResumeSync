@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-primary": "#bec6e0",
+                        "surface-bright": "#f7f9fb",
+                        "secondary-fixed": "#d5e3fd",
+                        "on-tertiary-fixed-variant": "#38485d",
+                        "on-surface": "#0F172A",
+                        "on-primary": "#ffffff",
+                        "surface-tint": "#0F172A",
+                        "primary": "#0F172A",
+                        "secondary-container": "#f1f5f9",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "surface-container-high": "#e6e8ea",
+                        "primary-container": "#0F172A",
+                        "surface-container-highest": "#e0e3e5",
+                        "surface-variant": "#e2e8f0",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed-variant": "#3a485c",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#f8fafc",
+                        "on-surface-variant": "#475569",
+                        "primary-fixed": "#dae2fd",
+                        "on-secondary-container": "#334155",
+                        "on-tertiary-fixed": "#0b1c30",
+                        "surface-dim": "#f1f5f9",
+                        "secondary": "#64748b",
+                        "on-secondary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "primary-fixed-dim": "#bec6e0",
+                        "tertiary": "#0F172A",
+                        "background": "#ffffff",
+                        "error": "#ef4444",
+                        "tertiary-container": "#f1f5f9",
+                        "secondary-fixed-dim": "#b9c7e0",
+                        "outline": "#cbd5e1",
+                        "inverse-surface": "#0F172A",
+                        "tertiary-fixed": "#d3e4fe",
+                        "on-background": "#0F172A",
+                        "on-secondary-fixed": "#0d1c2f",
+                        "surface-container": "#f1f5f9",
+                        "on-primary-container": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed-dim": "#b7c8e1",
+                        "on-error": "#ffffff",
+                        "inverse-on-surface": "#f8fafc",
+                        "on-primary-fixed": "#0F172A",
+                        "surface": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "lg": "1.5rem",
+                        "xl": "2rem",
+                        "md": "1rem",
+                        "gutter": "1.5rem",
+                        "xs": "0.25rem",
+                        "3xl": "4rem",
+                        "2xl": "3rem",
+                        "margin": "2rem",
+                        "base": "4px",
+                        "sm": "0.5rem"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "display-xl": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "display-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            backdrop-filter: blur(8px);
+            background: rgba(255, 255, 255, 0.7);
+        }
+        .particle-bg {
+            background-image: radial-gradient(circle at 2px 2px, rgba(15, 23, 42, 0.05) 1px, transparent 0);
+            background-size: 40px 40px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background selection:bg-primary-container selection:text-white">
+<!-- TopNavBar Implementation -->
+<header class="fixed top-0 w-full z-50 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
+<div class="max-w-7xl mx-auto px-6 lg:px-8 flex justify-between items-center h-16">
+<div class="flex items-center gap-8">
+<a class="text-xl font-black tracking-tighter text-primary" href="#">ResumeSync AI</a>
+<nav class="hidden md:flex items-center gap-6">
+<a class="font-inter text-sm font-semibold border-b-2 border-primary pb-1 text-primary" href="#">Home</a>
+<a class="font-inter text-sm font-medium tracking-tight text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">How it Works</a>
+<a class="font-inter text-sm font-medium tracking-tight text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Pricing</a>
+<a class="font-inter text-sm font-medium tracking-tight text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Templates</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="font-inter text-sm font-medium text-on-surface-variant hover:text-primary active:scale-95 transition-all duration-150">Login</button>
+<button class="bg-primary text-on-primary px-5 py-2 rounded font-inter text-sm font-semibold active:scale-95 transition-all duration-150">Get Started</button>
+</div>
+</div>
+</header>
+<main class="pt-16">
+<!-- Hero Section -->
+<section class="relative overflow-hidden pt-24 pb-32">
+<div class="max-w-7xl mx-auto px-6 lg:px-8">
+<div class="grid lg:grid-cols-2 gap-16 items-center">
+<div class="flex flex-col space-y-8">
+<div class="inline-flex items-center gap-2 px-3 py-1 bg-surface-container-low border border-outline rounded w-fit">
+<span class="material-symbols-outlined text-[16px] text-primary" data-icon="terminal">terminal</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest">Version 2.4.0 Live</span>
+</div>
+<div class="space-y-4">
+<h1 class="font-display-xl text-display-xl text-on-surface leading-tight">
+                                Engineered Resumes for <span class="text-primary underline decoration-slate-200 underline-offset-8">Elite Career Results</span>
+</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-xl">
+                                Precision-engineered career documentation powered by Fargate processing. Optimize for high-stakes ATS algorithms while maintaining technical authority through our BYOK architecture.
+                            </p>
+</div>
+<div class="flex flex-wrap gap-4 pt-4">
+<button class="bg-primary text-on-primary px-8 py-4 rounded font-label-md text-label-md flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-lg active:scale-95">
+                                Get Started
+                                <span class="material-symbols-outlined text-[18px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<button class="border border-outline text-on-surface px-8 py-4 rounded font-label-md text-label-md hover:bg-surface-container-low transition-colors active:scale-95">
+                                How it Works
+                            </button>
+</div>
+<!-- Trust Bar -->
+<div class="pt-12 border-t border-slate-200">
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-6 uppercase tracking-wider">Enterprise-Grade Infrastructure</p>
+<div class="grid grid-cols-3 gap-6">
+<div class="flex flex-col gap-1">
+<span class="font-label-md text-label-md text-on-surface">BYOK Security</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Client-managed encryption.</span>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-label-md text-label-md text-on-surface">S3 Persistence</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Triple-redundant storage.</span>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-label-md text-label-md text-on-surface">Fargate Compute</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Isolated serverless processing.</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Visual Representation -->
+<div class="relative lg:h-[600px] flex items-center justify-center">
+<div class="relative z-10 w-full max-w-lg bg-white border border-outline p-8 shadow-2xl rounded">
+<div class="flex items-center justify-between mb-8 pb-4 border-b border-slate-100">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-white" data-icon="sync_alt">sync_alt</span>
+</div>
+<div>
+<div class="font-label-md text-label-md text-on-surface">ResumeSync_v2_Final</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant italic">Last synced: 2m ago</div>
+</div>
+</div>
+<div class="flex gap-1">
+<div class="w-2 h-2 rounded-full bg-primary/20"></div>
+<div class="w-2 h-2 rounded-full bg-primary/40"></div>
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+</div>
+</div>
+<div class="space-y-6">
+<div class="space-y-2">
+<div class="flex justify-between text-label-sm font-label-sm text-on-surface-variant">
+<span>ATS OPTIMIZATION SCORE</span>
+<span class="text-primary font-bold">98%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[98%]"></div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="p-4 bg-surface-container-low rounded border border-outline">
+<div class="text-on-surface-variant font-label-sm text-label-sm mb-1 uppercase">Parsing Depth</div>
+<div class="text-on-surface font-headline-md text-headline-md">High</div>
+</div>
+<div class="p-4 bg-surface-container-low rounded border border-outline">
+<div class="text-on-surface-variant font-label-sm text-label-sm mb-1 uppercase">Latency</div>
+<div class="text-on-surface font-headline-md text-headline-md">14ms</div>
+</div>
+</div>
+<div class="p-4 border border-primary/10 bg-slate-50 rounded">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-[18px] text-primary" data-icon="security" data-weight="fill" style="font-variation-settings: 'FILL' 1;">security</span>
+<span class="font-label-md text-label-md text-primary">AES-256 Encryption Active</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Secure tunnel established for BYOK data stream. Fargate instance running in VPC isolation.</p>
+</div>
+</div>
+</div>
+<!-- Background Elements -->
+<div class="absolute inset-0 -z-10 flex items-center justify-center opacity-5">
+<div class="w-[500px] h-[500px] border border-primary rounded-full animate-pulse"></div>
+<div class="absolute w-[400px] h-[400px] border border-primary rounded-full"></div>
+<div class="absolute w-[300px] h-[300px] border border-primary rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Feature Narrative: Professional Polish -->
+<div class="bg-surface-container-low relative overflow-hidden border-y border-slate-200">
+<div class="particle-bg absolute inset-0 pointer-events-none opacity-60 z-0"></div>
+<section class="relative z-10 max-w-7xl mx-auto px-6 py-32">
+<div class="text-center mb-16 space-y-4">
+<h2 class="font-inter text-4xl lg:text-5xl font-bold text-on-surface tracking-tight">Defeating the ATS Black Hole</h2>
+<p class="font-inter text-lg text-on-surface-variant max-w-2xl mx-auto">
+                        Modern recruiters don't read resumes. Their algorithms do. If your syntax isn't engineered for parsing, your expertise never reaches a human eye.
+                    </p>
+</div>
+<div class="grid md:grid-cols-3 gap-8">
+<div class="bg-white p-8 rounded border border-outline hover:border-primary/20 transition-all shadow-sm">
+<span class="material-symbols-outlined text-primary text-4xl mb-4" data-icon="data_exploration">data_exploration</span>
+<h3 class="font-inter text-2xl font-bold text-on-surface mb-2">Semantic Extraction</h3>
+<p class="font-inter text-on-surface-variant">Our engine maps your experience to industry-standard taxonomies used by Workday and Greenhouse.</p>
+</div>
+<div class="bg-white p-8 rounded border border-outline hover:border-primary/20 transition-all shadow-sm">
+<span class="material-symbols-outlined text-primary text-4xl mb-4" data-icon="psychology">psychology</span>
+<h3 class="font-inter text-2xl font-bold text-on-surface mb-2">Bias Neutralization</h3>
+<p class="font-inter text-on-surface-variant">AI-driven auditing identifies and corrects subtle patterns that might trigger algorithmic filtering.</p>
+</div>
+<div class="bg-white p-8 rounded border border-outline hover:border-primary/20 transition-all shadow-sm">
+<span class="material-symbols-outlined text-primary text-4xl mb-4" data-icon="rocket_launch">rocket_launch</span>
+<h3 class="font-inter text-2xl font-bold text-on-surface mb-2">Impact Quantifier</h3>
+<p class="font-inter text-on-surface-variant">Automatically translates vague tasks into data-backed metrics that grab attention instantly.</p>
+</div>
+</div>
+</section>
+<!-- Dual-Mode Spotlight -->
+<section class="relative z-10 max-w-7xl mx-auto px-6 pb-32">
+<div class="flex flex-col md:flex-row gap-8">
+<!-- The Polisher -->
+<div class="flex-1 group">
+<div class="h-full bg-white border border-outline rounded overflow-hidden relative transition-all duration-500 group-hover:shadow-xl">
+<div class="p-8 space-y-6">
+<div class="flex justify-between items-start">
+<div>
+<span class="font-inter text-xs font-bold text-primary tracking-widest uppercase">Mode 01</span>
+<h3 class="font-inter text-3xl font-bold text-on-surface mt-2">The Polisher</h3>
+</div>
+<div class="p-4 bg-slate-100 rounded-full">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="shield">shield</span>
+</div>
+</div>
+<p class="font-inter text-on-surface-variant">
+                                    The Grounded choice. Refines your existing content for maximum clarity, tone consistency, and grammatical perfection without changing your core narrative.
+                                </p>
+<ul class="space-y-4">
+<li class="flex items-center gap-3 text-sm text-on-surface">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="done_all">done_all</span>
+                                        Precision tone adjustment
+                                    </li>
+<li class="flex items-center gap-3 text-sm text-on-surface">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="done_all">done_all</span>
+                                        Grammar &amp; Syntax scrubbing
+                                    </li>
+<li class="flex items-center gap-3 text-sm text-on-surface">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="done_all">done_all</span>
+                                        Clarity &amp; Conciseness focus
+                                    </li>
+</ul>
+<button class="w-full py-3 rounded border border-primary text-primary font-bold hover:bg-primary hover:text-white transition-all">Select Polisher</button>
+</div>
+</div>
+</div>
+<!-- The Sniper -->
+<div class="flex-1 group">
+<div class="h-full bg-white border-2 border-primary/20 rounded overflow-hidden relative transition-all duration-500 group-hover:shadow-xl">
+<div class="absolute top-0 right-0 bg-primary px-6 py-1 rounded-bl">
+<span class="text-[10px] font-black text-white tracking-widest uppercase">Popular</span>
+</div>
+<div class="p-8 space-y-6">
+<div class="flex justify-between items-start">
+<div>
+<span class="font-inter text-xs font-bold text-primary tracking-widest uppercase">Mode 02</span>
+<h3 class="font-inter text-3xl font-bold text-on-surface mt-2">The Sniper</h3>
+</div>
+<div class="p-4 bg-slate-100 rounded-full">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="my_location">my_location</span>
+</div>
+</div>
+<p class="font-inter text-on-surface-variant">
+                                    The FAANG-Ready choice. Heavy-duty job targeting. We rewrite your bullets based on specific job descriptions to force-align with company values.
+                                </p>
+<ul class="space-y-4">
+<li class="flex items-center gap-3 text-sm text-on-surface">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="target">target</span>
+                                        Job-specific keyword injection
+                                    </li>
+<li class="flex items-center gap-3 text-sm text-on-surface">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="target">target</span>
+                                        Metric-focused bullet generation
+                                    </li>
+<li class="flex items-center gap-3 text-sm text-on-surface">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="target">target</span>
+                                        Company culture alignment
+                                    </li>
+</ul>
+<button class="w-full py-3 rounded bg-primary text-on-primary font-bold hover:brightness-110 transition-all">Select Sniper</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Technical Credibility Bento Grid -->
+<section class="relative z-10 max-w-7xl mx-auto px-6 pb-32">
+<div class="grid grid-cols-1 md:grid-cols-4 grid-rows-2 gap-6 h-auto md:h-[600px]">
+<div class="md:col-span-2 md:row-span-2 bg-white border border-outline rounded p-8 flex flex-col justify-end relative overflow-hidden min-h-[300px]">
+<div class="absolute inset-0 grayscale opacity-10 bg-[url('https://images.unsplash.com/photo-1558494949-ef010cbdcc51?q=80&amp;w=2000&amp;auto=format&amp;fit=crop')] bg-cover bg-center"></div>
+<div class="relative z-10">
+<h4 class="font-inter text-2xl font-bold text-on-surface mb-2">Enterprise Grade Infrastructure</h4>
+<p class="font-inter text-on-surface-variant">Built on AWS Fargate for ephemeral, isolated execution environments. Your data never touches a persistent disk.</p>
+</div>
+</div>
+<div class="md:col-span-2 bg-white border border-outline rounded p-8 flex items-center justify-between">
+<div class="space-y-2">
+<h4 class="font-inter text-2xl font-bold text-on-surface">LLM Agnostic</h4>
+<p class="font-inter text-on-surface-variant">Switch between GPT-4o, Claude 3.5, and Gemini Pro.</p>
+</div>
+<div class="flex -space-x-4">
+<div class="w-12 h-12 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center font-bold text-xs text-primary shadow-sm">GPT</div>
+<div class="w-12 h-12 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center font-bold text-xs text-primary shadow-sm">CLD</div>
+<div class="w-12 h-12 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center font-bold text-xs text-primary shadow-sm">GEM</div>
+</div>
+</div>
+<div class="bg-white border border-outline rounded p-6 flex flex-col justify-center items-center text-center">
+<span class="material-symbols-outlined text-primary text-4xl mb-2" data-icon="lock">lock</span>
+<div class="font-inter text-2xl font-bold text-on-surface">AES-256</div>
+<div class="font-inter text-xs text-on-surface-variant uppercase tracking-widest">Encryption</div>
+</div>
+<div class="bg-white border border-outline rounded p-6 flex flex-col justify-center items-center text-center">
+<span class="material-symbols-outlined text-primary text-4xl mb-2" data-icon="bolt">bolt</span>
+<div class="font-inter text-2xl font-bold text-on-surface">&lt; 200ms</div>
+<div class="font-inter text-xs text-on-surface-variant uppercase tracking-widest">Latency</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Final CTA -->
+<section class="max-w-7xl mx-auto px-6 py-32">
+<div class="bg-primary p-12 rounded text-center space-y-6 relative overflow-hidden shadow-2xl">
+<div class="absolute inset-0 opacity-5 particle-bg"></div>
+<h2 class="font-display-xl text-white relative z-10">Ready to Sync?</h2>
+<p class="font-body-lg text-white/80 relative z-10 max-w-2xl mx-auto">Join 15,000+ engineers who have upgraded their careers with ResumeSync AI. Deploy your career 2.0 today.</p>
+<div class="flex justify-center gap-4 relative z-10 pt-4">
+<button class="bg-white text-primary px-10 py-4 rounded font-bold hover:bg-slate-100 transition-all shadow-xl active:scale-95">Get Started Now</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer Implementation -->
+<footer class="w-full border-t border-slate-200 bg-white">
+<div class="max-w-7xl mx-auto px-6 py-12 flex flex-col md:flex-row justify-between items-center gap-6">
+<div class="flex flex-col gap-2">
+<span class="text-lg font-bold text-primary">ResumeSync AI</span>
+<p class="font-inter text-xs tracking-wide text-on-surface-variant">© 2024 ResumeSync AI. Precision Career Engineering.</p>
+</div>
+<div class="flex items-center gap-8">
+<a class="font-inter text-xs tracking-wide text-on-surface-variant hover:text-primary underline-offset-4 hover:underline cursor-pointer transition-all duration-150" href="#">Privacy Policy</a>
+<a class="font-inter text-xs tracking-wide text-on-surface-variant hover:text-primary underline-offset-4 hover:underline cursor-pointer transition-all duration-150" href="#">Terms of Service</a>
+<a class="font-inter text-xs tracking-wide text-on-surface-variant hover:text-primary underline-offset-4 hover:underline cursor-pointer transition-all duration-150" href="#">Documentation</a>
+</div>
+</div>
+</footer>
+</body></html>
