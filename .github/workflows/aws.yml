@@ -1,11 +1,12 @@
 name: Deploy Backend to ECS
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
       - "server/**"
-      - ".github/workflows/deploy-ecs.yml"
+      - ".github/workflows/aws.yml"
 
 permissions:
   id-token: write
