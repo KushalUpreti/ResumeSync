@@ -1,0 +1,28 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ResumeSyncApiS3Access",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::<s3-bucket-name>/jobs/*",
+        "arn:aws:s3:::<s3-bucket-name>/temp/*",
+        "arn:aws:s3:::<s3-bucket-name>/users/*"
+      ]
+    },
+    {
+      "Sid": "ResumeSyncApiSqsSend",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:GetQueueUrl",
+        "sqs:GetQueueAttributes",
+        "sqs:SendMessage"
+      ],
+      "Resource": "arn:aws:sqs:us-east-1:405827713989:resumesync-jobs"
+    }
+  ]
+}

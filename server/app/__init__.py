@@ -1,0 +1,1 @@
+"""ResumeSync backend package."""

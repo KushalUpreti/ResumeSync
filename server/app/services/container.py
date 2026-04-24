@@ -1,0 +1,40 @@
+from __future__ import annotations
+
+from functools import lru_cache
+
+from app.core.config import Settings, get_settings
+from app.services.aws_adapters import S3ObjectStore, SQSQueueService
+from app.services.cognito import CognitoTokenVerifier
+from app.services.local_adapters import (
+    LocalDocumentRenderer,
+    LocalObjectStore,
+    LocalQueueService,
+    LocalResumeParser,
+    LocalResumeTailor,
+    S3BackedJobStateStore,
+)
+
+
+class ServiceContainer:
+    def __init__(self, settings: Settings | None = None) -> None:
+        settings = settings or get_settings()
+        self.settings = settings
+
+        if settings.use_aws_services:
+            self.object_store = S3ObjectStore(settings)
+            self.queue = SQSQueueService(settings)
+            self.token_verifier = CognitoTokenVerifier.from_settings(settings)
+        else:
+            self.object_store = LocalObjectStore(settings.data_root)
+            self.queue = LocalQueueService(settings.data_root)
+            self.token_verifier = None
+
+        self.job_states = S3BackedJobStateStore(self.object_store)
+        self.parser = LocalResumeParser()
+        self.tailor = LocalResumeTailor()
+        self.renderer = LocalDocumentRenderer()
+
+
+@lru_cache(maxsize=1)
+def get_container() -> ServiceContainer:
+    return ServiceContainer()

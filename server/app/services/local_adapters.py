@@ -1,0 +1,161 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from app.core.exceptions import NotFoundError
+from app.domain.storage_keys import job_state_key
+from app.models.jobs import JobEnvelope, JobState, QueuedJob
+from app.models.resume import ExperienceEntry, ResumeDocument, RewriteTarget
+from app.services.interfaces import DocumentRenderer, JobStateStore, ObjectStore, PresignedUpload, QueueService, ResumeParser, ResumeTailor
+
+
+class LocalObjectStore(ObjectStore):
+    def __init__(self, root: Path) -> None:
+        self.root = root / "object_store"
+        self.root.mkdir(parents=True, exist_ok=True)
+
+    def _path(self, object_key: str) -> Path:
+        return self.root / Path(object_key)
+
+    def create_presigned_upload(self, object_key: str, content_type: str) -> PresignedUpload:
+        return PresignedUpload(
+            upload_url=f"local://{object_key}",
+            object_key=object_key,
+            headers={"content-type": content_type},
+        )
+
+    def put_json(self, object_key: str, data: dict) -> None:
+        path = self._path(object_key)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data, indent=2, default=str), encoding="utf-8")
+
+    def get_json(self, object_key: str) -> dict:
+        path = self._path(object_key)
+        if not path.exists():
+            raise NotFoundError(f"Object not found: {object_key}")
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    def put_bytes(self, object_key: str, content: bytes) -> None:
+        path = self._path(object_key)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+
+    def get_bytes(self, object_key: str) -> bytes:
+        path = self._path(object_key)
+        if not path.exists():
+            raise NotFoundError(f"Object not found: {object_key}")
+        return path.read_bytes()
+
+    def exists(self, object_key: str) -> bool:
+        return self._path(object_key).exists()
+
+    def delete(self, object_key: str) -> None:
+        path = self._path(object_key)
+        if path.exists():
+            path.unlink()
+
+
+class LocalQueueService(QueueService):
+    def __init__(self, root: Path) -> None:
+        self.root = root / "queue"
+        self.root.mkdir(parents=True, exist_ok=True)
+
+    def send(self, envelope: JobEnvelope) -> None:
+        queue_file = self.root / f"{envelope.job_id}.json"
+        queue_file.write_text(envelope.model_dump_json(indent=2), encoding="utf-8")
+
+    def receive(self, max_messages: int = 1) -> list[QueuedJob]:
+        messages: list[QueuedJob] = []
+        for queue_file in sorted(self.root.glob("*.json"))[:max_messages]:
+            envelope = JobEnvelope.model_validate_json(queue_file.read_text(encoding="utf-8"))
+            messages.append(QueuedJob(envelope=envelope, receipt_handle=queue_file.stem))
+        return messages
+
+    def acknowledge(self, job: QueuedJob) -> None:
+        queue_file = self.root / f"{job.envelope.job_id}.json"
+        if queue_file.exists():
+            queue_file.unlink()
+
+
+class S3BackedJobStateStore(JobStateStore):
+    def __init__(self, object_store: ObjectStore) -> None:
+        self.object_store = object_store
+
+    def create(self, state: JobState) -> None:
+        self.save(state)
+
+    def get(self, job_id: str) -> JobState:
+        return JobState.model_validate(self.object_store.get_json(job_state_key(job_id)))
+
+    def save(self, state: JobState) -> None:
+        self.object_store.put_json(job_state_key(state.job_id), state.model_dump(mode="json"))
+
+
+class LocalResumeParser(ResumeParser):
+    def parse(self, source_bytes: bytes) -> ResumeDocument:
+        text = source_bytes.decode("utf-8", errors="ignore").strip()
+        summary = text.splitlines()[0] if text else "Imported resume"
+        bullets = [line.strip("- ").strip() for line in text.splitlines()[1:4] if line.strip()]
+        return ResumeDocument(
+            summary=summary,
+            experience=[
+                ExperienceEntry(
+                    company="Imported Company",
+                    role="Imported Role",
+                    bullets=bullets or ["Review imported content and replace with parsed experience bullets."],
+                )
+            ],
+            skills=["Communication", "Execution"],
+            metadata={"source": "local_parser"},
+        )
+
+
+class LocalResumeTailor(ResumeTailor):
+    def tailor(self, document: ResumeDocument, *, mode: str, context: dict[str, str | None]) -> ResumeDocument:
+        updated = document.model_copy(deep=True)
+        mode_prefix = "Elite" if mode == "sniper" else "Polished"
+        role = context.get("target_role") or "target role"
+        company = context.get("target_company") or "target company"
+        updated.summary = f"{mode_prefix} summary tailored for {role} at {company}. {document.summary}".strip()
+        updated.skills = sorted(set(updated.skills + ["ATS Optimization", "Stakeholder Management"]))
+        updated.metadata |= {k: v for k, v in context.items() if v}
+        return updated
+
+    def rewrite_text(self, text: str, *, instruction: str, mode: str) -> str:
+        prefix = "Sniper rewrite" if mode == "sniper" else "Polisher rewrite"
+        return f"{prefix}: {instruction}. {text}".strip()
+
+    def apply_rewrites(self, document: ResumeDocument, targets: list[RewriteTarget]) -> ResumeDocument:
+        updated = document.model_copy(deep=True)
+        for target in targets:
+            if target.path.startswith("summary"):
+                updated.summary = self.rewrite_text(updated.summary, instruction=target.instruction, mode="polisher")
+                continue
+            if target.path.startswith("experience["):
+                try:
+                    exp_index = int(target.path.split("[", 1)[1].split("]", 1)[0])
+                    bullet_index = int(target.path.rsplit("[", 1)[1].split("]", 1)[0])
+                    bullet = updated.experience[exp_index].bullets[bullet_index]
+                    updated.experience[exp_index].bullets[bullet_index] = self.rewrite_text(
+                        bullet,
+                        instruction=target.instruction,
+                        mode="polisher",
+                    )
+                except (IndexError, ValueError):
+                    continue
+        return updated
+
+
+class LocalDocumentRenderer(DocumentRenderer):
+    def render(self, document: ResumeDocument, *, template_id: str) -> bytes:
+        lines = [
+            f"Template: {template_id}",
+            f"Resume ID: {document.resume_id}",
+            f"Summary: {document.summary}",
+            "Skills: " + ", ".join(document.skills),
+        ]
+        for entry in document.experience:
+            lines.append(f"{entry.role} @ {entry.company}")
+            lines.extend(f"- {bullet}" for bullet in entry.bullets)
+        return "\n".join(lines).encode("utf-8")

@@ -1,0 +1,31 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ResumeSyncWorkerS3Access",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::<s3-bucket-name>/jobs/*",
+        "arn:aws:s3:::<s3-bucket-name>/temp/*",
+        "arn:aws:s3:::<s3-bucket-name>/users/*"
+      ]
+    },
+    {
+      "Sid": "ResumeSyncWorkerSqsConsume",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:GetQueueUrl",
+        "sqs:GetQueueAttributes",
+        "sqs:ReceiveMessage",
+        "sqs:DeleteMessage",
+        "sqs:ChangeMessageVisibility"
+      ],
+      "Resource": "arn:aws:sqs:us-east-1:405827713989:resumesync-jobs"
+    }
+  ]
+}
