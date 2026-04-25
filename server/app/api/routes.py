@@ -54,19 +54,19 @@ def create_generate_job(
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
     x_ai_provider: str | None = Header(None, alias="X-AI-Provider"),
+    x_ai_model: str | None = Header(None, alias="X-AI-Model"),
     x_ai_api_key: str | None = Header(None, alias="X-AI-API-Key"),
 ) -> CreateJobResponse:
     actor_id = user.user_id or user.session_id
-    if not actor_id:
-        raise HTTPException(status_code=400, detail="A user or session identity is required")
-
+    is_session = not bool(user.user_id)
+    
     new_resume_id = str(uuid4())
     payload = GenerateJobPayload(
         mode=request.mode,
         source_type=request.source_type,
         source_json_key=request.source_json_key,
         input_s3_key=request.input_s3_key,
-        output_json_key=resume_json_key(user.actor_id, new_resume_id),
+        output_json_key=resume_json_key(actor_id, new_resume_id, is_session),
         template_id=request.template_id,
         user_id=user.user_id,
         session_id=user.session_id,
@@ -74,7 +74,7 @@ def create_generate_job(
         target_company=request.target_company,
         job_description=request.job_description,
     )
-    envelope = JobEnvelope(payload=payload, ai_provider=x_ai_provider, ai_api_key=x_ai_api_key)
+    envelope = JobEnvelope(payload=payload, ai_provider=x_ai_provider, ai_model=x_ai_model, ai_api_key=x_ai_api_key)
     state = JobState(job_id=envelope.job_id, status="pending")
     services.job_states.create(state)
     services.queue.send(envelope)
@@ -94,6 +94,7 @@ def rewrite_preview(
     request: RewritePreviewRequest,
     services: ServiceContainer = Depends(get_services),
     x_ai_provider: str | None = Header(None, alias="X-AI-Provider"),
+    x_ai_model: str | None = Header(None, alias="X-AI-Model"),
     x_ai_api_key: str | None = Header(None, alias="X-AI-API-Key"),
 ) -> RewritePreviewResponse:
     rewritten = services.tailor.rewrite_text(
@@ -101,6 +102,7 @@ def rewrite_preview(
         instruction=request.instruction,
         mode=request.mode,
         ai_provider=x_ai_provider,
+        ai_model=x_ai_model,
         ai_api_key=x_ai_api_key,
     )
     return RewritePreviewResponse(rewritten_text=rewritten)
@@ -113,13 +115,14 @@ def commit_resume(
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
 ) -> CreateJobResponse:
-    if not user.user_id:
-        raise HTTPException(status_code=400, detail="Authenticated user_id is required for commit")
+    actor_id = user.user_id or user.session_id
+    is_session = not bool(user.user_id)
 
     payload = CommitJobPayload(
         resume_id=resume_id,
-        resume_json_key=resume_json_key(user.user_id, resume_id),
+        resume_json_key=resume_json_key(actor_id, resume_id, is_session),
         user_id=user.user_id,
+        session_id=user.session_id,
         document=request.document.model_copy(update={"resume_id": resume_id}),
     )
     envelope = JobEnvelope(payload=payload)
@@ -136,14 +139,15 @@ def render_resume(
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
 ) -> CreateJobResponse:
-    if not user.user_id:
-        raise HTTPException(status_code=400, detail="Authenticated user_id is required for render")
+    actor_id = user.user_id or user.session_id
+    is_session = not bool(user.user_id)
 
     payload = RenderJobPayload(
         resume_id=resume_id,
-        resume_json_key=resume_json_key(user.user_id, resume_id),
+        resume_json_key=resume_json_key(actor_id, resume_id, is_session),
         template_id=request.template_id,
         user_id=user.user_id,
+        session_id=user.session_id,
     )
     envelope = JobEnvelope(payload=payload)
     state = JobState(job_id=envelope.job_id, status="pending")
@@ -159,18 +163,20 @@ def rewrite_resume(
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
     x_ai_provider: str | None = Header(None, alias="X-AI-Provider"),
+    x_ai_model: str | None = Header(None, alias="X-AI-Model"),
     x_ai_api_key: str | None = Header(None, alias="X-AI-API-Key"),
 ) -> CreateJobResponse:
-    if not user.user_id:
-        raise HTTPException(status_code=400, detail="Authenticated user_id is required for rewrite")
+    actor_id = user.user_id or user.session_id
+    is_session = not bool(user.user_id)
 
     payload = RewriteJobPayload(
         resume_id=resume_id,
-        resume_json_key=resume_json_key(user.user_id, resume_id),
+        resume_json_key=resume_json_key(actor_id, resume_id, is_session),
         user_id=user.user_id,
+        session_id=user.session_id,
         targets=request.targets,
     )
-    envelope = JobEnvelope(payload=payload, ai_provider=x_ai_provider, ai_api_key=x_ai_api_key)
+    envelope = JobEnvelope(payload=payload, ai_provider=x_ai_provider, ai_model=x_ai_model, ai_api_key=x_ai_api_key)
     state = JobState(job_id=envelope.job_id, status="pending")
     services.job_states.create(state)
     services.queue.send(envelope)
@@ -183,16 +189,18 @@ def upload_master_resume(
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
     x_ai_provider: str | None = Header(None, alias="X-AI-Provider"),
+    x_ai_model: str | None = Header(None, alias="X-AI-Model"),
     x_ai_api_key: str | None = Header(None, alias="X-AI-API-Key"),
 ) -> CreateJobResponse:
-    if not user.user_id:
-        raise HTTPException(status_code=400, detail="Authenticated user_id is required for master resume")
+    actor_id = user.user_id or user.session_id
+    is_session = not bool(user.user_id)
 
     payload = ParseMasterJobPayload(
         user_id=user.user_id,
+        session_id=user.session_id,
         input_s3_key=request.input_s3_key,
     )
-    envelope = JobEnvelope(payload=payload, ai_provider=x_ai_provider, ai_api_key=x_ai_api_key)
+    envelope = JobEnvelope(payload=payload, ai_provider=x_ai_provider, ai_model=x_ai_model, ai_api_key=x_ai_api_key)
     state = JobState(job_id=envelope.job_id, status="pending")
     services.job_states.create(state)
     services.queue.send(envelope)
@@ -204,10 +212,10 @@ def get_master_resume(
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
 ) -> MasterResumeResponse:
-    if not user.user_id:
-        raise HTTPException(status_code=400, detail="Authenticated user_id is required for master resume")
+    actor_id = user.user_id or user.session_id
+    is_session = not bool(user.user_id)
 
-    key = master_resume_key(user.user_id)
+    key = master_resume_key(actor_id, is_session)
     if not services.object_store.exists(key):
         return MasterResumeResponse(exists=False)
     document = services.object_store.get_json(key)

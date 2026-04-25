@@ -68,7 +68,7 @@ function LandingPage({ isLoggedIn, onOpenSignUp }: LandingPageProps) {
             technical authority throughout your BYOK architecture.
           </p>
           <div className="hero-actions">
-            <Link className="button button--primary" to="/ingest">
+            <Link className="button button--primary" to="/process">
               {isLoggedIn ? 'Open Workspace' : 'Get Started'}
               <FontAwesomeIcon icon={faArrowRight} />
             </Link>
@@ -183,7 +183,7 @@ function LandingPage({ isLoggedIn, onOpenSignUp }: LandingPageProps) {
                   ? 'button button--primary button--full'
                   : 'button button--ghost button--full'
               }
-              to="/ingest"
+              to="/process"
             >
               <FontAwesomeIcon icon={mode.icon} />
               {mode.cta}
@@ -224,7 +224,7 @@ function LandingPage({ isLoggedIn, onOpenSignUp }: LandingPageProps) {
         <p className="section-label">Ready to Sync?</p>
         <h2>Join 15,000+ engineers who have upgraded their careers with ResumeSync AI.</h2>
         <div className="cta-band__actions">
-          <Link className="button button--light" to="/ingest">
+          <Link className="button button--light" to="/process">
             Get Started Now
           </Link>
         </div>

@@ -54,7 +54,8 @@ class RewriteJobPayload(BaseModel):
     job_type: Literal["rewrite"] = "rewrite"
     resume_id: str
     resume_json_key: str
-    user_id: str
+    user_id: str | None = None
+    session_id: str | None = None
     targets: list[RewriteTarget] = Field(default_factory=list)
 
 
@@ -63,12 +64,14 @@ class RenderJobPayload(BaseModel):
     resume_id: str
     resume_json_key: str
     template_id: str
-    user_id: str
+    user_id: str | None = None
+    session_id: str | None = None
 
 
 class ParseMasterJobPayload(BaseModel):
     job_type: Literal["parse_master"] = "parse_master"
-    user_id: str
+    user_id: str | None = None
+    session_id: str | None = None
     input_s3_key: str
 
 
@@ -76,7 +79,8 @@ class CommitJobPayload(BaseModel):
     job_type: Literal["commit"] = "commit"
     resume_id: str
     resume_json_key: str
-    user_id: str
+    user_id: str | None = None
+    session_id: str | None = None
     document: ResumeDocument
 
 
@@ -87,6 +91,7 @@ class JobEnvelope(BaseModel):
     job_id: str = Field(default_factory=lambda: str(uuid4()))
     payload: JobPayload = Field(discriminator="job_type")
     ai_provider: str | None = None
+    ai_model: str | None = None
     ai_api_key: str | None = None
 
 

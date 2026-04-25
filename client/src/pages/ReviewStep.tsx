@@ -7,14 +7,18 @@ import {
   faSpinner,
   faWandMagicSparkles,
 } from '@fortawesome/free-solid-svg-icons'
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { commitResume, rewritePreview } from '../api/resumeSync'
-import FlowStepper from '../components/FlowStepper'
 import SectionCard from '../components/SectionCard'
 import { useWorkspace } from '../context/useWorkspace'
 import { flowSteps, strategicKeywords } from '../data/mockData'
 
-function ReviewPage() {
+type ReviewStepProps = {
+  onNext: () => void
+  onBack: () => void
+}
+
+function ReviewStep({ onNext, onBack }: ReviewStepProps) {
   const location = useLocation()
   const {
     draftResume,
@@ -83,15 +87,15 @@ function ReviewPage() {
   return (
     <div className="page-stack">
       <div className="page-toolbar">
-        <FlowStepper currentPath={location.pathname} steps={flowSteps} />
+
         <div className="page-toolbar__actions">
           <button className="button button--ghost" onClick={() => void handleCommitDraft()} type="button">
             {isSaving ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faFloppyDisk} />}
             Save Draft
           </button>
-          <Link className="button button--primary" to="/export">
+          <button className="button button--primary" onClick={onNext} type="button">
             Approve & Continue
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -212,4 +216,4 @@ function ReviewPage() {
   )
 }
 
-export default ReviewPage
+export default ReviewStep

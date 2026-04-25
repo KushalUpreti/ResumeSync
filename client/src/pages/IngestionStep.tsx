@@ -9,13 +9,12 @@ import {
   faWandMagicSparkles,
   faXmark,
 } from '@fortawesome/free-solid-svg-icons'
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { getMasterResume, requestUploadUrl, uploadFileToPresignedUrl, uploadMasterResume, waitForJob } from '../api/resumeSync'
-import FlowStepper from '../components/FlowStepper'
 import SectionCard from '../components/SectionCard'
 import { useAuth } from '../context/useAuth'
 import { useWorkspace } from '../context/useWorkspace'
-import { flowSteps, queuedFiles } from '../data/mockData'
+import { flowSteps } from '../data/mockData'
 
 type IngestionPageProps = {
   onOpenLogin: () => void
@@ -34,7 +33,7 @@ const savedModes = [
   },
 ]
 
-function IngestionPage({ onOpenLogin }: IngestionPageProps) {
+function IngestionStep({ onNext }: IngestionStepProps) {
   const location = useLocation()
   const { auth } = useAuth()
   const { masterResume, setDraftResume, setMasterResume } = useWorkspace()
@@ -43,7 +42,7 @@ function IngestionPage({ onOpenLogin }: IngestionPageProps) {
   const [selectedMode, setSelectedMode] = useState('general')
   const [details, setDetails] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [selectedFileName, setSelectedFileName] = useState('main_resume_2024_v2.pdf')
+  const [selectedFileName, setSelectedFileName] = useState('')
   const [statusMessage, setStatusMessage] = useState('Upload your master resume to unlock authenticated backend flows.')
   const [isSaving, setIsSaving] = useState(false)
 
@@ -84,14 +83,9 @@ function IngestionPage({ onOpenLogin }: IngestionPageProps) {
 
   const selectedModeData = savedModes.find((mode) => mode.value === selectedMode)
 
-  async function handleSaveToAccount() {
-    if (auth.status !== 'authenticated') {
-      onOpenLogin()
-      return
-    }
-
+  async function handleProceed() {
     if (!selectedFile) {
-      setStatusMessage('Choose a DOCX, PDF, or TXT file before saving it to your account.')
+      setStatusMessage('Choose a DOCX, PDF, or TXT file before proceeding.')
       return
     }
 
@@ -106,7 +100,7 @@ function IngestionPage({ onOpenLogin }: IngestionPageProps) {
       })
 
       await uploadFileToPresignedUrl(upload.upload_url, selectedFile, upload.headers)
-      setStatusMessage('Upload complete. Asking the worker to parse your master resume...')
+      setStatusMessage('Upload complete. Parsing your master resume...')
 
       const parseJob = await uploadMasterResume(upload.object_key)
       const job = await waitForJob(parseJob.job_id)
@@ -121,7 +115,8 @@ function IngestionPage({ onOpenLogin }: IngestionPageProps) {
 
       setMasterResume(master.document)
       setDraftResume(master.document)
-      setStatusMessage('Master resume saved. You can move on to configuration.')
+      setStatusMessage('Success! Moving to configuration.')
+      navigate('/config')
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : 'Unable to upload the master resume.')
     } finally {
@@ -131,11 +126,10 @@ function IngestionPage({ onOpenLogin }: IngestionPageProps) {
 
   return (
     <div className="page-stack">
-      <FlowStepper currentPath={location.pathname} steps={flowSteps} />
+
 
       <section className="page-intro">
-        <p className="eyebrow">Knowledge Ingestion</p>
-        <h1 className="page-title">Knowledge Ingestion</h1>
+        <h1 className="page-title page-title--hero">Knowledge Ingestion</h1>
         <p className="page-copy">
           Feed your AI persona with raw professional data for hyper-personalized resume
           generation.
@@ -147,9 +141,7 @@ function IngestionPage({ onOpenLogin }: IngestionPageProps) {
           <SectionCard>
             <div className="section-card__header section-card__header--inline">
               <h2 className="section-card__title">Ingestion Mode</h2>
-              <span className="info-dot">
-                <FontAwesomeIcon icon={faCircleInfo} />
-              </span>
+
             </div>
             <div className="segmented-control" role="tablist" aria-label="Ingestion mode">
               {savedModes.map((mode) => (
@@ -173,20 +165,15 @@ function IngestionPage({ onOpenLogin }: IngestionPageProps) {
           <SectionCard>
             <div className="section-card__header section-card__header--inline">
               <h2 className="section-card__title">Experience Vault</h2>
-              <span className="tag tag--neutral">Markdown Supported</span>
             </div>
-            <p className="section-copy">
-              Paste unformatted job descriptions, project notes, or raw performance reviews
-              here.
-            </p>
-            <textarea
-              className="text-area"
-              placeholder="e.g., Led the migration of legacy CRM to cloud-based architecture. Managed a team of 12 engineers. Achieved 20% reduction in latency..."
-              value={details}
-              onChange={(event) => setDetails(event.target.value)}
-            />
-            <div className="text-area__actions">
-              <button className="icon-action" type="button">
+            <div className="vault-container">
+              <textarea
+                className="text-area vault-input"
+                placeholder="e.g., Led the migration of legacy CRM to cloud-based architecture. Managed a team of 12 engineers. Achieved 20% reduction in latency..."
+                value={details}
+                onChange={(event) => setDetails(event.target.value)}
+              />
+              <button className="vault-action" type="button">
                 <FontAwesomeIcon icon={faWandMagicSparkles} />
               </button>
             </div>
@@ -230,32 +217,28 @@ function IngestionPage({ onOpenLogin }: IngestionPageProps) {
           </label>
 
           <div className="queue-block">
-            <p className="section-label">Queued for Analysis</p>
+            <p className="section-label">Selected for Analysis</p>
             <div className="queue-list">
-              {queuedFiles.map((file) => (
-                <article className="queue-item" key={file.id}>
+              {selectedFile ? (
+                <article className="queue-item">
                   <div className="queue-item__meta">
                     <div className="queue-item__icon">
-                      <FontAwesomeIcon icon={file.id === 'resume-primary' ? faFileLines : faTimeline} />
+                      <FontAwesomeIcon icon={faFileLines} />
                     </div>
                     <div>
-                      <h3>{file.id === 'resume-primary' ? selectedFileName : file.name}</h3>
-                      <p>{file.meta} / {file.status}</p>
+                      <h3>{selectedFile.name}</h3>
+                      <p>{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB / Ready</p>
                     </div>
                   </div>
                   <div className="queue-item__status">
-                    {file.progress < 100 ? (
-                      <div className="progress-bar">
-                        <span style={{ width: `${file.progress}%` }} />
-                      </div>
-                    ) : (
-                      <button className="queue-item__remove" type="button">
-                        <FontAwesomeIcon icon={faXmark} />
-                      </button>
-                    )}
+                    <button className="queue-item__remove" onClick={() => setSelectedFile(null)} type="button">
+                      <FontAwesomeIcon icon={faXmark} />
+                    </button>
                   </div>
                 </article>
-              ))}
+              ) : (
+                <p className="section-copy text-muted">No file selected yet.</p>
+              )}
             </div>
           </div>
 
@@ -271,25 +254,27 @@ function IngestionPage({ onOpenLogin }: IngestionPageProps) {
         <div className="bottom-toolbar__summary">
           <div className="bottom-toolbar__icon">AI</div>
           <div>
-            <strong>Engine: ResumeSync-Llama-70b</strong>
-            <p>Context depth: 4,000 tokens active</p>
+            <strong>Engine: {localStorage.getItem('ai_provider_display') || 'Not Selected'}</strong>
+            <p>Ready for high-precision tailoring</p>
           </div>
         </div>
         <div className="bottom-toolbar__actions">
-          <button className="button button--ghost" type="button">
+          <button className="button button--ghost" onClick={() => setSelectedFile(null)} type="button">
             Cancel
           </button>
-          <button className="button button--ghost" onClick={() => void handleSaveToAccount()} type="button">
+          <button
+            className="button button--primary"
+            disabled={!selectedFile || isSaving}
+            onClick={() => void handleProceed()}
+            type="button"
+          >
             {isSaving ? <FontAwesomeIcon icon={faSpinner} spin /> : null}
-            Save to Account
+            Proceed to Configuration &rarr;
           </button>
-          <Link className="button button--primary" to="/config">
-            Proceed to Configuration
-          </Link>
         </div>
       </section>
     </div>
   )
 }
 
-export default IngestionPage
+export default IngestionStep

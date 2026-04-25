@@ -7,12 +7,15 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { useLocation } from 'react-router-dom'
 import { renderResume, waitForJob } from '../api/resumeSync'
-import FlowStepper from '../components/FlowStepper'
 import TemplateCard from '../components/TemplateCard'
 import { useWorkspace } from '../context/useWorkspace'
 import { flowSteps, templates } from '../data/mockData'
 
-function ExportPage() {
+type ExportStepProps = {
+  onBack: () => void
+}
+
+function ExportStep({ onBack }: ExportStepProps) {
   const location = useLocation()
   const {
     generatedResumeId,
@@ -52,7 +55,7 @@ function ExportPage() {
 
   return (
     <div className="page-stack">
-      <FlowStepper currentPath={location.pathname} steps={flowSteps} />
+
 
       <section className="page-intro page-intro--split">
         <div>
@@ -118,4 +121,4 @@ function ExportPage() {
   )
 }
 
-export default ExportPage
+export default ExportStep

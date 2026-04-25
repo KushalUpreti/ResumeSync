@@ -1,17 +1,12 @@
 import { Route, Routes } from 'react-router-dom'
 import AuthModal from './components/AuthModal'
-import { AIConfigModal } from './components/AIConfigModal'
-import { useState } from 'react'
 import AppFooter from './components/AppFooter'
 import AppHeader from './components/AppHeader'
 import './App.css'
 import { useAuth } from './context/useAuth'
 import AuthCallbackPage from './pages/AuthCallbackPage'
-import ConfigPage from './pages/ConfigPage'
-import ExportPage from './pages/ExportPage'
-import IngestionPage from './pages/IngestionPage'
 import LandingPage from './pages/LandingPage'
-import ReviewPage from './pages/ReviewPage'
+import ProcessPage from './pages/ProcessPage'
 
 function App() {
   const {
@@ -27,7 +22,6 @@ function App() {
     startEmailSignUp,
     startGoogleSignIn,
   } = useAuth()
-  const [isAIConfigOpen, setIsAIConfigOpen] = useState(false)
   const isLoggedIn = auth.status === 'authenticated'
 
   return (
@@ -35,7 +29,6 @@ function App() {
       <AppHeader
         auth={auth}
         onOpenAuthModal={openAuthModal}
-        onOpenAIConfig={() => setIsAIConfigOpen(true)}
         onSignOut={signOut}
       />
       <main className="app-shell__main">
@@ -50,13 +43,7 @@ function App() {
             }
           />
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
-          <Route
-            path="/ingest"
-            element={<IngestionPage onOpenLogin={() => openAuthModal('signIn')} />}
-          />
-          <Route path="/config" element={<ConfigPage />} />
-          <Route path="/review" element={<ReviewPage />} />
-          <Route path="/export" element={<ExportPage />} />
+          <Route path="/process" element={<ProcessPage />} />
         </Routes>
       </main>
       <AppFooter />
@@ -72,11 +59,6 @@ function App() {
           onStartGoogleSignIn={startGoogleSignIn}
         />
       ) : null}
-
-      <AIConfigModal
-        isOpen={isAIConfigOpen}
-        onClose={() => setIsAIConfigOpen(false)}
-      />
     </div>
   )
 }

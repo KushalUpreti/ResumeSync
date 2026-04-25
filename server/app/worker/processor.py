@@ -41,22 +41,23 @@ class JobProcessor:
     def _dispatch(self, envelope: JobEnvelope) -> str | None:
         payload = envelope.payload
         ai_provider = envelope.ai_provider
+        ai_model = envelope.ai_model
         ai_api_key = envelope.ai_api_key
         
         if isinstance(payload, GenerateJobPayload):
-            return self._handle_generate(payload, ai_provider, ai_api_key)
+            return self._handle_generate(payload, ai_provider, ai_model, ai_api_key)
         if isinstance(payload, ParseMasterJobPayload):
-            return self._handle_parse_master(payload, ai_provider, ai_api_key)
+            return self._handle_parse_master(payload, ai_provider, ai_model, ai_api_key)
         if isinstance(payload, CommitJobPayload):
             return self._handle_commit(payload)
         if isinstance(payload, RenderJobPayload):
             return self._handle_render(payload)
         if isinstance(payload, RewriteJobPayload):
-            return self._handle_rewrite(payload, ai_provider, ai_api_key)
+            return self._handle_rewrite(payload, ai_provider, ai_model, ai_api_key)
         raise InvalidStateError(f"Unsupported job type: {payload.job_type}")
 
-    def _handle_generate(self, payload: GenerateJobPayload, ai_provider: str | None, ai_api_key: str | None) -> str:
-        base_document = self._load_generate_source(payload, ai_provider, ai_api_key)
+    def _handle_generate(self, payload: GenerateJobPayload, ai_provider: str | None, ai_model: str | None, ai_api_key: str | None) -> str:
+        base_document = self._load_generate_source(payload, ai_provider, ai_model, ai_api_key)
         tailored = self.services.tailor.tailor(
             base_document,
             mode=payload.mode,
@@ -67,24 +68,31 @@ class JobProcessor:
                 "template_id": payload.template_id,
             },
             ai_provider=ai_provider,
+            ai_model=ai_model,
             ai_api_key=ai_api_key,
         )
         self.services.object_store.put_json(payload.output_json_key, tailored.model_dump(mode="json"))
         return payload.output_json_key
 
-    def _load_generate_source(self, payload: GenerateJobPayload, ai_provider: str | None, ai_api_key: str | None) -> ResumeDocument:
+    def _get_actor(self, payload: Any) -> tuple[str, bool]:
+        if getattr(payload, "user_id", None):
+            return payload.user_id, False
+        if getattr(payload, "session_id", None):
+            return payload.session_id, True
+        raise InvalidStateError("Payload must have user_id or session_id")
+
+    def _load_generate_source(self, payload: GenerateJobPayload, ai_provider: str | None, ai_model: str | None, ai_api_key: str | None) -> ResumeDocument:
         if payload.source_type == "new_upload":
             if not payload.input_s3_key:
                 raise InvalidStateError("New upload jobs require input_s3_key")
             source_bytes = self.services.object_store.get_bytes(payload.input_s3_key)
-            document = self.services.parser.parse(source_bytes, ai_provider=ai_provider, ai_api_key=ai_api_key)
+            document = self.services.parser.parse(source_bytes, ai_provider=ai_provider, ai_model=ai_model, ai_api_key=ai_api_key)
             self.services.object_store.delete(payload.input_s3_key)
             return document
 
         if payload.source_type == "master":
-            if not payload.user_id:
-                raise InvalidStateError("Master resume jobs require user_id")
-            document_json = self.services.object_store.get_json(master_resume_key(payload.user_id))
+            actor_id, is_session = self._get_actor(payload)
+            document_json = self.services.object_store.get_json(master_resume_key(actor_id, is_session))
             return ResumeDocument.model_validate(document_json)
 
         if payload.source_type == "previous":
@@ -95,10 +103,11 @@ class JobProcessor:
 
         raise InvalidStateError(f"Unknown source_type: {payload.source_type}")
 
-    def _handle_parse_master(self, payload: ParseMasterJobPayload, ai_provider: str | None, ai_api_key: str | None) -> str:
+    def _handle_parse_master(self, payload: ParseMasterJobPayload, ai_provider: str | None, ai_model: str | None, ai_api_key: str | None) -> str:
         source_bytes = self.services.object_store.get_bytes(payload.input_s3_key)
-        document = self.services.parser.parse(source_bytes, ai_provider=ai_provider, ai_api_key=ai_api_key)
-        key = master_resume_key(payload.user_id)
+        document = self.services.parser.parse(source_bytes, ai_provider=ai_provider, ai_model=ai_model, ai_api_key=ai_api_key)
+        actor_id, is_session = self._get_actor(payload)
+        key = master_resume_key(actor_id, is_session)
         self.services.object_store.put_json(key, document.model_dump(mode="json"))
         self.services.object_store.delete(payload.input_s3_key)
         return key
@@ -112,13 +121,14 @@ class JobProcessor:
         document_json = self.services.object_store.get_json(payload.resume_json_key)
         document = ResumeDocument.model_validate(document_json)
         rendered = self.services.renderer.render(document, template_id=payload.template_id)
-        output_key = output_docx_key(payload.user_id, payload.resume_id)
+        actor_id, is_session = self._get_actor(payload)
+        output_key = output_docx_key(actor_id, payload.resume_id, is_session)
         self.services.object_store.put_bytes(output_key, rendered)
         return output_key
 
-    def _handle_rewrite(self, payload: RewriteJobPayload, ai_provider: str | None, ai_api_key: str | None) -> str:
+    def _handle_rewrite(self, payload: RewriteJobPayload, ai_provider: str | None, ai_model: str | None, ai_api_key: str | None) -> str:
         document_json = self.services.object_store.get_json(payload.resume_json_key)
         document = ResumeDocument.model_validate(document_json)
-        updated = self.services.tailor.apply_rewrites(document, payload.targets, ai_provider=ai_provider, ai_api_key=ai_api_key)
+        updated = self.services.tailor.apply_rewrites(document, payload.targets, ai_provider=ai_provider, ai_model=ai_model, ai_api_key=ai_api_key)
         self.services.object_store.put_json(payload.resume_json_key, updated.model_dump(mode="json"))
         return payload.resume_json_key

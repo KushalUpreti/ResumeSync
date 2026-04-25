@@ -13,10 +13,14 @@ apiClient.interceptors.request.use((config) => {
   }
 
   const aiProvider = localStorage.getItem('ai_provider')
+  const aiModel = localStorage.getItem('ai_model')
   const aiApiKey = localStorage.getItem('ai_api_key')
 
   if (aiProvider) {
     config.headers['X-AI-Provider'] = aiProvider
+  }
+  if (aiModel) {
+    config.headers['X-AI-Model'] = aiModel
   }
   if (aiApiKey) {
     config.headers['X-AI-API-Key'] = aiApiKey

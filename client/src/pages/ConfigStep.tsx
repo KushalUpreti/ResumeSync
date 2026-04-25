@@ -1,18 +1,17 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faBrain,
   faCheckCircle,
-  faCirclePlus,
   faEye,
   faEyeSlash,
   faMemory,
   faMicrochip,
+  faPlus,
   faSpinner,
 } from '@fortawesome/free-solid-svg-icons'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { createGenerateJob, waitForJob } from '../api/resumeSync'
-import FlowStepper from '../components/FlowStepper'
 import SectionCard from '../components/SectionCard'
 import { useAuth } from '../context/useAuth'
 import { useWorkspace } from '../context/useWorkspace'
@@ -25,9 +24,30 @@ const providerIconMap = {
   'Google Gemini': faMemory,
 } as const
 
-function ConfigPage() {
+const modelMappings: Record<string, { label: string; value: string }[]> = {
+  OpenAI: [
+    { label: 'gpt-4o (Standard)', value: 'gpt-4o' },
+    { label: 'gpt-4o-mini (Cost Optimized)', value: 'gpt-4o-mini' },
+    { label: 'gpt-3.5-turbo (Legacy)', value: 'gpt-3.5-turbo' },
+  ],
+  Anthropic: [
+    { label: 'Claude 3.5 Sonnet (Powerful)', value: 'anthropic/claude-3-5-sonnet-20240620' },
+    { label: 'Claude 3 Haiku (Fast)', value: 'anthropic/claude-3-haiku-20240307' },
+    { label: 'Claude 3 Opus (Creative)', value: 'anthropic/claude-3-opus-20240229' },
+  ],
+  'Google Gemini': [
+    { label: 'Gemini 1.5 Pro (Advanced)', value: 'gemini/gemini-1.5-pro' },
+    { label: 'Gemini 1.5 Flash (Instant)', value: 'gemini/gemini-1.5-flash' },
+  ],
+}
+
+type ConfigStepProps = {
+  onNext: () => void
+  onBack: () => void
+}
+
+function ConfigStep({ onNext, onBack }: ConfigStepProps) {
   const location = useLocation()
-  const navigate = useNavigate()
   const { auth, openAuthModal } = useAuth()
   const {
     masterResume,
@@ -46,10 +66,45 @@ function ConfigPage() {
   } = useWorkspace()
   const [showApiKey, setShowApiKey] = useState(false)
   const [selectedProvider, setSelectedProvider] = useState('OpenAI')
-  const [selectedModel, setSelectedModel] = useState('gpt-4o (Standard)')
+  const [apiKey, setApiKey] = useState('')
+  const [selectedModel, setSelectedModel] = useState('gpt-4o')
   const [temperature, setTemperature] = useState(0.7)
   const [jobStatus, setJobStatus] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
+
+  useEffect(() => {
+    const savedProvider = localStorage.getItem('ai_provider_display') || 'OpenAI'
+    const savedKey = localStorage.getItem('ai_api_key') || ''
+    const savedModel = localStorage.getItem('ai_model') || modelMappings[savedProvider][0].value
+    setSelectedProvider(savedProvider)
+    setApiKey(savedKey)
+    setSelectedModel(savedModel)
+  }, [])
+
+  const handleProviderChange = (providerName: string) => {
+    setSelectedProvider(providerName)
+    localStorage.setItem('ai_provider_display', providerName)
+
+    const defaultModel = modelMappings[providerName][0].value
+    setSelectedModel(defaultModel)
+    localStorage.setItem('ai_model', defaultModel)
+
+    // Map display name to backend slug
+    let slug = 'openai'
+    if (providerName === 'Anthropic') slug = 'anthropic'
+    if (providerName === 'Google Gemini') slug = 'google'
+    localStorage.setItem('ai_provider', slug)
+  }
+
+  const handleModelChange = (value: string) => {
+    setSelectedModel(value)
+    localStorage.setItem('ai_model', value)
+  }
+
+  const handleApiKeyChange = (value: string) => {
+    setApiKey(value)
+    localStorage.setItem('ai_api_key', value)
+  }
 
   function deriveResumeIdFromJsonKey(jsonKey: string | null) {
     if (!jsonKey) {
@@ -76,11 +131,6 @@ function ConfigPage() {
   }
 
   async function handleGenerateDraft() {
-    if (auth.status !== 'authenticated') {
-      openAuthModal('signIn')
-      return
-    }
-
     if (!masterResume) {
       setJobStatus('Upload a master resume first so the backend has a source document to tailor.')
       return
@@ -111,10 +161,10 @@ function ConfigPage() {
         throw new Error('The backend completed the job but did not return a usable resume key.')
       }
 
-      setGeneratedResume(generatedResumeId, finalJob.output_s3_key)
+      setGeneratedResume(generatedResumeId, finalJob.output_json_key)
       setDraftResume(buildDraftFromMaster(masterResume, generatedResumeId))
       setJobStatus('Generate job complete. Moving you into review.')
-      navigate('/review')
+      onNext()
     } catch (error) {
       setJobStatus(error instanceof Error ? error.message : 'Unable to create the generate job.')
     } finally {
@@ -124,7 +174,7 @@ function ConfigPage() {
 
   return (
     <div className="page-stack">
-      <FlowStepper currentPath={location.pathname} steps={flowSteps} />
+
 
       <section className="page-intro">
         <p className="eyebrow">Engine Configuration</p>
@@ -136,31 +186,6 @@ function ConfigPage() {
 
       <div className="dashboard-grid dashboard-grid--config">
         <div className="provider-grid">
-          <SectionCard className="provider-card">
-            <div className="section-card__header">
-              <p className="section-label">Tailoring Mode</p>
-            </div>
-            <div className="segmented-control" role="tablist" aria-label="Tailoring mode">
-              <button
-                className={tailoringMode === 'polisher' ? 'segmented-control__item is-active' : 'segmented-control__item'}
-                onClick={() => setTailoringMode('polisher')}
-                type="button"
-              >
-                Polisher
-              </button>
-              <button
-                className={tailoringMode === 'sniper' ? 'segmented-control__item is-active' : 'segmented-control__item'}
-                onClick={() => setTailoringMode('sniper')}
-                type="button"
-              >
-                Sniper
-              </button>
-            </div>
-            <p className="section-copy">
-              The backend generate job is wired today for the two documented tailoring modes.
-            </p>
-          </SectionCard>
-
           {providerCards.map((provider) => {
             const isSelected = selectedProvider === provider.name
 
@@ -169,7 +194,7 @@ function ConfigPage() {
                 aria-pressed={isSelected}
                 className={isSelected ? 'section-card provider-card is-selected' : 'section-card provider-card'}
                 key={provider.name}
-                onClick={() => setSelectedProvider(provider.name)}
+                onClick={() => handleProviderChange(provider.name)}
                 type="button"
               >
                 <div className="provider-card__top">
@@ -198,12 +223,12 @@ function ConfigPage() {
             )
           })}
 
-          <button className="section-card provider-card provider-card--empty" type="button">
+          <div className="provider-card provider-card--empty">
             <div className="provider-card__empty-icon">
-              <FontAwesomeIcon icon={faCirclePlus} />
+              <FontAwesomeIcon icon={faPlus} />
             </div>
             <h3>Custom Provider (BYOK)</h3>
-          </button>
+          </div>
         </div>
 
         <SectionCard className="config-panel">
@@ -212,45 +237,15 @@ function ConfigPage() {
           </div>
 
           <div className="form-stack">
-            <label className="field">
-              <span>Target Role</span>
-              <input
-                className="field__control"
-                onChange={(event) => setTargetRole(event.target.value)}
-                placeholder="Senior Product Designer"
-                type="text"
-                value={targetRole}
-              />
-            </label>
 
             <label className="field">
-              <span>Target Company</span>
-              <input
-                className="field__control"
-                onChange={(event) => setTargetCompany(event.target.value)}
-                placeholder="OpenAI"
-                type="text"
-                value={targetCompany}
-              />
-            </label>
-
-            <label className="field">
-              <span>Job Description / Notes</span>
-              <textarea
-                className="text-area"
-                onChange={(event) => setJobDescription(event.target.value)}
-                placeholder="Paste the job description or key notes the tailoring engine should target."
-                value={jobDescription}
-              />
-            </label>
-
-            <label className="field">
-              <span>OpenAI API Key</span>
+              <span>{selectedProvider} API Key</span>
               <div className="field__input">
                 <input
-                  readOnly
                   type={showApiKey ? 'text' : 'password'}
-                  value="sk-live-demo-validated-key"
+                  value={apiKey}
+                  onChange={(e) => handleApiKeyChange(e.target.value)}
+                  placeholder={`Enter your ${selectedProvider} API key`}
                 />
                 <button
                   aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
@@ -261,7 +256,9 @@ function ConfigPage() {
                   <FontAwesomeIcon icon={showApiKey ? faEyeSlash : faEye} />
                 </button>
               </div>
-              <small className="field__hint field__hint--success">Key validated</small>
+              <div className="field__hint field__hint--success">
+                <span className="dot dot--success"></span> {apiKey ? 'KEY VALIDATED' : 'NO KEY PROVIDED'}
+              </div>
             </label>
 
             <label className="field">
@@ -269,11 +266,13 @@ function ConfigPage() {
               <select
                 className="field__control"
                 value={selectedModel}
-                onChange={(event) => setSelectedModel(event.target.value)}
+                onChange={(event) => handleModelChange(event.target.value)}
               >
-                <option>gpt-4o (Standard)</option>
-                <option>gpt-4o-mini (Cost Optimized)</option>
-                <option>gpt-3.5-turbo (Legacy)</option>
+                {modelMappings[selectedProvider]?.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
               </select>
             </label>
 
@@ -297,20 +296,11 @@ function ConfigPage() {
             </div>
           </div>
 
-          <div className="auth-note">
-            {jobStatus || (masterResume ? 'Master resume is loaded and ready for generation.' : 'No master resume loaded yet. Upload one on the ingest page first.')}
-          </div>
 
           <div className="action-stack">
             <button className="button button--primary button--full" onClick={() => void handleGenerateDraft()} type="button">
               {isGenerating ? <FontAwesomeIcon icon={faSpinner} spin /> : null}
-              Generate Draft
-            </button>
-            <Link className="button button--ghost button--full" to="/review">
-              Open Review Workspace
-            </Link>
-            <button className="button button--ghost button--full" type="button">
-              Test Connection
+              Save & Continue &rarr;
             </button>
           </div>
         </SectionCard>
@@ -319,4 +309,4 @@ function ConfigPage() {
   )
 }
 
-export default ConfigPage
+export default ConfigStep

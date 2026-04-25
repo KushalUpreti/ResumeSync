@@ -5,16 +5,22 @@ def temp_upload_key(session_id: str, filename: str) -> str:
     return f"temp/{session_id}/{filename}"
 
 
-def master_resume_key(user_id: str) -> str:
-    return f"users/{user_id}/master/master.json"
+def _actor_prefix(actor_id: str, is_session: bool = False) -> str:
+    if is_session:
+        return f"temp/{actor_id}"
+    return f"users/{actor_id}"
 
 
-def resume_json_key(user_id: str, resume_id: str) -> str:
-    return f"users/{user_id}/json/{resume_id}.json"
+def master_resume_key(actor_id: str, is_session: bool = False) -> str:
+    return f"{_actor_prefix(actor_id, is_session)}/master/master.json"
 
 
-def output_docx_key(user_id: str, resume_id: str) -> str:
-    return f"users/{user_id}/outputs/{resume_id}.docx"
+def resume_json_key(actor_id: str, resume_id: str, is_session: bool = False) -> str:
+    return f"{_actor_prefix(actor_id, is_session)}/json/{resume_id}.json"
+
+
+def output_docx_key(actor_id: str, resume_id: str, is_session: bool = False) -> str:
+    return f"{_actor_prefix(actor_id, is_session)}/outputs/{resume_id}.docx"
 
 
 def job_state_key(job_id: str) -> str:

@@ -3,28 +3,29 @@ import { Link } from 'react-router-dom'
 export type FlowStep = {
   label: string
   step: number
-  to: string
+  to?: string
 }
 
 type FlowStepperProps = {
-  currentPath: string
+  activeStep: number
   steps: FlowStep[]
+  onStepClick?: (step: number) => void
 }
 
-function FlowStepper({ currentPath, steps }: FlowStepperProps) {
-  const activeIndex = steps.findIndex((step) => step.to === currentPath)
+function FlowStepper({ activeStep, steps, onStepClick }: FlowStepperProps) {
+  const activeIndex = steps.findIndex((step) => step.step === activeStep)
 
   return (
     <div className="flow-stepper" aria-label="Workflow">
       {steps.map((step, index) => {
-        const isComplete = activeIndex > index
-        const isActive = currentPath === step.to
+        const isComplete = index < activeIndex
+        const isActive = step.step === activeStep
         const canNavigate = isComplete || isActive
 
         return (
-          <div className="flow-stepper__item" key={step.to}>
+          <div className="flow-stepper__item" key={step.step}>
             {canNavigate ? (
-              <Link
+              <button
                 className={
                   isActive
                     ? 'flow-stepper__link is-active'
@@ -32,11 +33,13 @@ function FlowStepper({ currentPath, steps }: FlowStepperProps) {
                       ? 'flow-stepper__link is-complete'
                       : 'flow-stepper__link'
                 }
-                to={step.to}
+                onClick={() => onStepClick?.(step.step)}
+                type="button"
+                disabled={!onStepClick && !isComplete}
               >
                 <span className="flow-stepper__count">{step.step}</span>
                 <span>{step.label}</span>
-              </Link>
+              </button>
             ) : (
               <span
                 aria-disabled="true"

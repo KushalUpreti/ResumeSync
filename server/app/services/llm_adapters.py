@@ -10,7 +10,7 @@ from app.models.resume import ResumeDocument, ExperienceEntry, RewriteTarget
 from app.services.interfaces import ResumeParser, ResumeTailor
 
 class LLMResumeParser(ResumeParser):
-    def parse(self, source_bytes: bytes, filename: str = "", *, ai_provider: str | None = None, ai_api_key: str | None = None) -> ResumeDocument:
+    def parse(self, source_bytes: bytes, filename: str = "", *, ai_provider: str | None = None, ai_model: str | None = None, ai_api_key: str | None = None) -> ResumeDocument:
         raw_text = self._extract_text(source_bytes, filename)
         
         prompt = f"""Extract the professional experience, skills, and summary from the following raw resume text and return it strictly as a JSON object matching this schema:
@@ -32,7 +32,7 @@ RAW RESUME TEXT:
 {raw_text}"""
 
         response = litellm.completion(
-            model=self._get_model(ai_provider),
+            model=self._get_model(ai_provider, ai_model),
             messages=[{"role": "user", "content": prompt}],
             api_key=ai_api_key,
             response_format={ "type": "json_object" } if ai_provider == "openai" else None
@@ -75,7 +75,7 @@ RAW RESUME TEXT:
         return json.loads(content.strip())
 
 class LLMResumeTailor(ResumeTailor):
-    def tailor(self, document: ResumeDocument, *, mode: str, context: dict[str, str | None], ai_provider: str | None = None, ai_api_key: str | None = None) -> ResumeDocument:
+    def tailor(self, document: ResumeDocument, *, mode: str, context: dict[str, str | None], ai_provider: str | None = None, ai_model: str | None = None, ai_api_key: str | None = None) -> ResumeDocument:
         job_desc = context.get("job_description", "")
         role = context.get("target_role", "")
         company = context.get("target_company", "")
@@ -100,7 +100,7 @@ RESUME JSON:
 {document.model_dump_json()}"""
 
         response = litellm.completion(
-            model=self._get_model(ai_provider),
+            model=self._get_model(ai_provider, ai_model),
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -118,17 +118,17 @@ RESUME JSON:
             metadata={**document.metadata, "mode": mode, "tailored": "true"}
         )
 
-    def rewrite_text(self, text: str, *, instruction: str, mode: str, ai_provider: str | None = None, ai_api_key: str | None = None) -> str:
+    def rewrite_text(self, text: str, *, instruction: str, mode: str, ai_provider: str | None = None, ai_model: str | None = None, ai_api_key: str | None = None) -> str:
         prompt = f"Rewrite this text based on the instruction. Return ONLY the rewritten text, no quotes or explanation.\nInstruction: {instruction}\nText: {text}"
         
         response = litellm.completion(
-            model=self._get_model(ai_provider),
+            model=self._get_model(ai_provider, ai_model),
             messages=[{"role": "user", "content": prompt}],
             api_key=ai_api_key
         )
         return response.choices[0].message.content.strip()
 
-    def apply_rewrites(self, document: ResumeDocument, targets: list[RewriteTarget], ai_provider: str | None = None, ai_api_key: str | None = None) -> ResumeDocument:
+    def apply_rewrites(self, document: ResumeDocument, targets: list[RewriteTarget], ai_provider: str | None = None, ai_model: str | None = None, ai_api_key: str | None = None) -> ResumeDocument:
         # For now, we can iterate or do it in one shot. One shot is safer for JSON consistency.
         # But interfaces define it as applying targets.
         updated = document.model_copy(deep=True)
@@ -136,11 +136,13 @@ RESUME JSON:
              # This is a bit inefficient for LLM calls, but matches the interface.
              # In a production app, we'd batch these.
              if target.path == "summary":
-                 updated.summary = self.rewrite_text(updated.summary, instruction=target.instruction, mode="polisher", ai_provider=ai_provider, ai_api_key=ai_api_key)
+                 updated.summary = self.rewrite_text(updated.summary, instruction=target.instruction, mode="polisher", ai_provider=ai_provider, ai_model=ai_model, ai_api_key=ai_api_key)
              # ... handle experience paths if needed
         return updated
 
-    def _get_model(self, provider: str | None) -> str:
+    def _get_model(self, provider: str | None, model: str | None = None) -> str:
+        if model:
+            return model
         if provider == "openai":
             return "gpt-4o"
         elif provider == "anthropic":
