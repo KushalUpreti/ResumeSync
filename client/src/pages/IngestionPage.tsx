@@ -1,16 +1,20 @@
-import { useRef, useState, type DragEvent } from 'react'
+import { useEffect, useRef, useState, type DragEvent } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faCircleInfo,
   faFileArrowUp,
   faFileLines,
+  faSpinner,
   faTimeline,
   faWandMagicSparkles,
   faXmark,
 } from '@fortawesome/free-solid-svg-icons'
 import { Link, useLocation } from 'react-router-dom'
+import { getMasterResume, requestUploadUrl, uploadFileToPresignedUrl, uploadMasterResume, waitForJob } from '../api/resumeSync'
 import FlowStepper from '../components/FlowStepper'
 import SectionCard from '../components/SectionCard'
+import { useAuth } from '../context/useAuth'
+import { useWorkspace } from '../context/useWorkspace'
 import { flowSteps, queuedFiles } from '../data/mockData'
 
 type IngestionPageProps = {
@@ -32,11 +36,35 @@ const savedModes = [
 
 function IngestionPage({ onOpenLogin }: IngestionPageProps) {
   const location = useLocation()
+  const { auth } = useAuth()
+  const { masterResume, setDraftResume, setMasterResume } = useWorkspace()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dragActive, setDragActive] = useState(false)
   const [selectedMode, setSelectedMode] = useState('general')
   const [details, setDetails] = useState('')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedFileName, setSelectedFileName] = useState('main_resume_2024_v2.pdf')
+  const [statusMessage, setStatusMessage] = useState('Upload your master resume to unlock authenticated backend flows.')
+  const [isSaving, setIsSaving] = useState(false)
+
+  useEffect(() => {
+    if (auth.status !== 'authenticated') {
+      return
+    }
+
+    void (async () => {
+      try {
+        const response = await getMasterResume()
+        if (response.exists && response.document) {
+          setMasterResume(response.document)
+          setDraftResume(response.document)
+          setStatusMessage('Loaded your existing master resume from the backend.')
+        }
+      } catch {
+        setStatusMessage('Signed in successfully. Upload a master resume to start tailoring.')
+      }
+    })()
+  }, [auth.status, setDraftResume, setMasterResume])
 
   function handleFilePick(fileList: FileList | null) {
     const nextFile = fileList?.[0]
@@ -44,6 +72,7 @@ function IngestionPage({ onOpenLogin }: IngestionPageProps) {
       return
     }
 
+    setSelectedFile(nextFile)
     setSelectedFileName(nextFile.name)
   }
 
@@ -54,6 +83,51 @@ function IngestionPage({ onOpenLogin }: IngestionPageProps) {
   }
 
   const selectedModeData = savedModes.find((mode) => mode.value === selectedMode)
+
+  async function handleSaveToAccount() {
+    if (auth.status !== 'authenticated') {
+      onOpenLogin()
+      return
+    }
+
+    if (!selectedFile) {
+      setStatusMessage('Choose a DOCX, PDF, or TXT file before saving it to your account.')
+      return
+    }
+
+    setIsSaving(true)
+    setStatusMessage('Requesting a secure upload URL from the backend...')
+
+    try {
+      const upload = await requestUploadUrl({
+        upload_type: 'master_resume',
+        filename: selectedFile.name,
+        content_type: selectedFile.type || 'application/octet-stream',
+      })
+
+      await uploadFileToPresignedUrl(upload.upload_url, selectedFile, upload.headers)
+      setStatusMessage('Upload complete. Asking the worker to parse your master resume...')
+
+      const parseJob = await uploadMasterResume(upload.object_key)
+      const job = await waitForJob(parseJob.job_id)
+      if (job.status === 'failed') {
+        throw new Error(job.error || 'The master resume parse job failed.')
+      }
+
+      const master = await getMasterResume()
+      if (!master.exists || !master.document) {
+        throw new Error('The worker completed, but no master resume JSON was returned.')
+      }
+
+      setMasterResume(master.document)
+      setDraftResume(master.document)
+      setStatusMessage('Master resume saved. You can move on to configuration.')
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Unable to upload the master resume.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   return (
     <div className="page-stack">
@@ -184,6 +258,12 @@ function IngestionPage({ onOpenLogin }: IngestionPageProps) {
               ))}
             </div>
           </div>
+
+          <div className="auth-note">
+            {masterResume
+              ? 'Master resume loaded from your account and ready for generation.'
+              : statusMessage}
+          </div>
         </SectionCard>
       </div>
 
@@ -199,7 +279,8 @@ function IngestionPage({ onOpenLogin }: IngestionPageProps) {
           <button className="button button--ghost" type="button">
             Cancel
           </button>
-          <button className="button button--ghost" onClick={onOpenLogin} type="button">
+          <button className="button button--ghost" onClick={() => void handleSaveToAccount()} type="button">
+            {isSaving ? <FontAwesomeIcon icon={faSpinner} spin /> : null}
             Save to Account
           </button>
           <Link className="button button--primary" to="/config">

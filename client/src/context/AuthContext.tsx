@@ -1,114 +1,110 @@
 import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
+  useCallback,
   useState,
   type ReactNode,
 } from 'react'
+import { AuthContext } from './authShared'
+import type { AuthState } from './authTypes'
+import { env, hasCognitoConfig } from '../config/env'
+import {
+  buildLogoutUrl,
+  clearHostedAuthState,
+  exchangeAuthorizationCode,
+  startHostedAuth,
+} from '../lib/cognito'
+import { clearSession, readSession, readUserFromSession } from '../lib/authStorage'
 
-type AuthView = 'signIn' | 'signUp'
+function getInitialAuthState(): AuthState {
+  const session = readSession()
+  if (!session) {
+    return { status: 'unauthenticated', user: null }
+  }
 
-type AuthUser = {
-  id: string
-  name: string
-  provider: string
+  const user = readUserFromSession(session)
+  if (!user) {
+    clearSession()
+    return { status: 'unauthenticated', user: null }
+  }
+
+  return { status: 'authenticated', user }
 }
-
-type AuthState =
-  | { status: 'loading'; user: null }
-  | { status: 'unauthenticated'; user: null }
-  | { status: 'authenticated'; user: AuthUser }
-
-type AuthContextValue = {
-  auth: AuthState
-  authView: AuthView
-  isAuthOpen: boolean
-  closeAuthModal: () => void
-  openAuthModal: (view: AuthView) => void
-  setAuthView: (view: AuthView) => void
-  completeAuth: (provider: string) => void
-  signOut: () => void
-}
-
-const AUTH_STORAGE_KEY = 'resumesync-auth'
-
-const AuthContext = createContext<AuthContextValue | null>(null)
 
 function AuthProvider({ children }: { children: ReactNode }) {
-  const [auth, setAuth] = useState<AuthState>({ status: 'loading', user: null })
+  const [auth, setAuth] = useState<AuthState>(getInitialAuthState)
   const [isAuthOpen, setIsAuthOpen] = useState(false)
-  const [authView, setAuthView] = useState<AuthView>('signUp')
+  const [authView, setAuthView] = useState<'signIn' | 'signUp'>('signUp')
 
-  useEffect(() => {
-    const stored = window.localStorage.getItem(AUTH_STORAGE_KEY)
+  const openAuthModal = useCallback((view: 'signIn' | 'signUp') => {
+    setAuthView(view)
+    setIsAuthOpen(true)
+  }, [])
 
-    if (!stored) {
-      setAuth({ status: 'unauthenticated', user: null })
+  const closeAuthModal = useCallback(() => {
+    setIsAuthOpen(false)
+  }, [])
+
+  const beginAuth = useCallback(async (options?: { google?: boolean; signUp?: boolean }) => {
+    if (!hasCognitoConfig()) {
+      setAuth({
+        status: 'error',
+        user: null,
+        error: `Missing Cognito config: ${env.missingCognitoKeys.join(', ')}`,
+      })
       return
     }
 
-    try {
-      const user = JSON.parse(stored) as AuthUser
-      setAuth({ status: 'authenticated', user })
-    } catch {
-      window.localStorage.removeItem(AUTH_STORAGE_KEY)
-      setAuth({ status: 'unauthenticated', user: null })
-    }
+    await startHostedAuth({
+      identityProvider: options?.google ? 'Google' : undefined,
+      screenHint: options?.signUp ? 'signup' : undefined,
+    })
   }, [])
 
-  function openAuthModal(view: AuthView) {
-    setAuthView(view)
-    setIsAuthOpen(true)
-  }
-
-  function closeAuthModal() {
-    setIsAuthOpen(false)
-  }
-
-  function completeAuth(provider: string) {
-    const user: AuthUser = {
-      id: `${provider.toLowerCase()}-user`,
-      name: provider === 'Email' ? 'Avery' : `${provider} user`,
-      provider,
+  const finishHostedLogin = useCallback(async (code: string, state: string | null) => {
+    const session = await exchangeAuthorizationCode(code, state)
+    const user = readUserFromSession(session)
+    if (!user) {
+      throw new Error('Cognito returned tokens but no usable user profile was found.')
     }
-
-    window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user))
     setAuth({ status: 'authenticated', user })
     setIsAuthOpen(false)
-  }
+  }, [])
 
-  function signOut() {
-    window.localStorage.removeItem(AUTH_STORAGE_KEY)
+  const startEmailSignIn = useCallback(async () => {
+    await beginAuth()
+  }, [beginAuth])
+
+  const startEmailSignUp = useCallback(async () => {
+    await beginAuth({ signUp: true })
+  }, [beginAuth])
+
+  const startGoogleSignIn = useCallback(async () => {
+    await beginAuth({ google: true })
+  }, [beginAuth])
+
+  const signOut = useCallback(() => {
+    clearHostedAuthState()
     setAuth({ status: 'unauthenticated', user: null })
-  }
+    window.location.assign(buildLogoutUrl())
+  }, [])
 
-  const value = useMemo(
-    () => ({
-      auth,
-      authView,
-      isAuthOpen,
-      closeAuthModal,
-      openAuthModal,
-      setAuthView,
-      completeAuth,
-      signOut,
-    }),
-    [auth, authView, isAuthOpen],
-  )
+  const authConfigError = hasCognitoConfig() ? null : `Missing Cognito config: ${env.missingCognitoKeys.join(', ')}`
+
+  const value = {
+    auth,
+    authView,
+    isAuthOpen,
+    closeAuthModal,
+    openAuthModal,
+    setAuthView,
+    startEmailSignIn,
+    startEmailSignUp,
+    startGoogleSignIn,
+    finishHostedLogin,
+    signOut,
+    authConfigError,
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-function useAuth() {
-  const context = useContext(AuthContext)
-
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-
-  return context
-}
-
-export { AuthProvider, useAuth }
-export type { AuthState, AuthUser, AuthView }
+export { AuthProvider }

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import type { AuthState, AuthView } from '../context/AuthContext'
+import type { AuthState, AuthView } from '../context/authTypes'
 
 type AppHeaderProps = {
   auth: AuthState
@@ -9,7 +9,7 @@ type AppHeaderProps = {
 
 function AppHeader({ auth, onOpenAuthModal, onSignOut }: AppHeaderProps) {
   const isLoggedIn = auth.status === 'authenticated'
-  const userName = isLoggedIn ? auth.user.name : null
+  const userName = isLoggedIn ? auth.user.name || auth.user.email : null
 
   return (
     <header className="site-header">
@@ -20,6 +20,8 @@ function AppHeader({ auth, onOpenAuthModal, onSignOut }: AppHeaderProps) {
         <div className="site-header__actions">
           {auth.status === 'loading' ? (
             <span className="status-badge">Loading session...</span>
+          ) : auth.status === 'error' ? (
+            <span className="status-badge">Auth config issue</span>
           ) : isLoggedIn ? (
             <>
               <button className="button button--ghost" type="button">

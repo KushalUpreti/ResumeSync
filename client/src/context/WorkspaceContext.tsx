@@ -1,0 +1,70 @@
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
+import { WorkspaceContext, type WorkspaceContextValue, type WorkspaceState } from './workspaceShared'
+
+const WORKSPACE_STORAGE_KEY = 'resumesync-workspace'
+
+const initialState: WorkspaceState = {
+  masterResume: null,
+  draftResume: null,
+  generatedResumeId: null,
+  generatedJsonKey: null,
+  selectedTemplateId: 'executive',
+  tailoringMode: 'polisher',
+  targetRole: '',
+  targetCompany: '',
+  jobDescription: '',
+  lastGenerateJob: null,
+  lastRenderJob: null,
+}
+
+function WorkspaceProvider({ children }: { children: ReactNode }) {
+  const [state, setState] = useState<WorkspaceState>(() => {
+    const stored = window.sessionStorage.getItem(WORKSPACE_STORAGE_KEY)
+    if (!stored) {
+      return initialState
+    }
+
+    try {
+      return { ...initialState, ...(JSON.parse(stored) as Partial<WorkspaceState>) }
+    } catch {
+      return initialState
+    }
+  })
+
+  useEffect(() => {
+    window.sessionStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(state))
+  }, [state])
+
+  const value = useMemo<WorkspaceContextValue>(
+    () => ({
+      ...state,
+      resetWorkspace: () => setState(initialState),
+      setMasterResume: (document) => setState((current) => ({ ...current, masterResume: document })),
+      setDraftResume: (document) => setState((current) => ({ ...current, draftResume: document })),
+      setGeneratedResume: (resumeId, jsonKey) =>
+        setState((current) => ({
+          ...current,
+          generatedResumeId: resumeId,
+          generatedJsonKey: jsonKey,
+        })),
+      setSelectedTemplateId: (templateId) =>
+        setState((current) => ({ ...current, selectedTemplateId: templateId })),
+      setTailoringMode: (mode) => setState((current) => ({ ...current, tailoringMode: mode })),
+      setTargetRole: (value) => setState((current) => ({ ...current, targetRole: value })),
+      setTargetCompany: (value) => setState((current) => ({ ...current, targetCompany: value })),
+      setJobDescription: (value) => setState((current) => ({ ...current, jobDescription: value })),
+      setLastGenerateJob: (job) => setState((current) => ({ ...current, lastGenerateJob: job })),
+      setLastRenderJob: (job) => setState((current) => ({ ...current, lastRenderJob: job })),
+    }),
+    [state],
+  )
+
+  return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>
+}
+
+export { WorkspaceProvider }

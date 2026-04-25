@@ -8,11 +8,16 @@ import {
   faEyeSlash,
   faMemory,
   faMicrochip,
+  faSpinner,
 } from '@fortawesome/free-solid-svg-icons'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { createGenerateJob, waitForJob } from '../api/resumeSync'
 import FlowStepper from '../components/FlowStepper'
 import SectionCard from '../components/SectionCard'
+import { useAuth } from '../context/useAuth'
+import { useWorkspace } from '../context/useWorkspace'
 import { flowSteps, providerCards } from '../data/mockData'
+import type { ResumeDocument } from '../types/resume'
 
 const providerIconMap = {
   OpenAI: faBrain,
@@ -22,10 +27,100 @@ const providerIconMap = {
 
 function ConfigPage() {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { auth, openAuthModal } = useAuth()
+  const {
+    masterResume,
+    selectedTemplateId,
+    setDraftResume,
+    setGeneratedResume,
+    setLastGenerateJob,
+    setTailoringMode,
+    setTargetCompany,
+    setTargetRole,
+    setJobDescription,
+    tailoringMode,
+    targetCompany,
+    targetRole,
+    jobDescription,
+  } = useWorkspace()
   const [showApiKey, setShowApiKey] = useState(false)
   const [selectedProvider, setSelectedProvider] = useState('OpenAI')
   const [selectedModel, setSelectedModel] = useState('gpt-4o (Standard)')
   const [temperature, setTemperature] = useState(0.7)
+  const [jobStatus, setJobStatus] = useState('')
+  const [isGenerating, setIsGenerating] = useState(false)
+
+  function deriveResumeIdFromJsonKey(jsonKey: string | null) {
+    if (!jsonKey) {
+      return null
+    }
+
+    const match = jsonKey.match(/\/json\/([^/]+)\.json$/)
+    return match?.[1] ?? null
+  }
+
+  function buildDraftFromMaster(document: ResumeDocument, resumeId: string) {
+    return {
+      ...document,
+      resume_id: resumeId,
+      metadata: {
+        ...(document.metadata ?? {}),
+        target_role: targetRole,
+        target_company: targetCompany,
+        job_description: jobDescription,
+        selected_provider: selectedProvider,
+        selected_model: selectedModel,
+      },
+    }
+  }
+
+  async function handleGenerateDraft() {
+    if (auth.status !== 'authenticated') {
+      openAuthModal('signIn')
+      return
+    }
+
+    if (!masterResume) {
+      setJobStatus('Upload a master resume first so the backend has a source document to tailor.')
+      return
+    }
+
+    setIsGenerating(true)
+    setJobStatus('Submitting a generate job to the backend...')
+
+    try {
+      const job = await createGenerateJob({
+        job_type: 'generate',
+        mode: tailoringMode,
+        source_type: 'master',
+        template_id: selectedTemplateId,
+        target_role: targetRole || null,
+        target_company: targetCompany || null,
+        job_description: jobDescription || null,
+      })
+
+      const finalJob = await waitForJob(job.job_id)
+      setLastGenerateJob(finalJob)
+      if (finalJob.status === 'failed') {
+        throw new Error(finalJob.error || 'The generation job failed.')
+      }
+
+      const generatedResumeId = deriveResumeIdFromJsonKey(finalJob.output_s3_key)
+      if (!generatedResumeId) {
+        throw new Error('The backend completed the job but did not return a usable resume key.')
+      }
+
+      setGeneratedResume(generatedResumeId, finalJob.output_s3_key)
+      setDraftResume(buildDraftFromMaster(masterResume, generatedResumeId))
+      setJobStatus('Generate job complete. Moving you into review.')
+      navigate('/review')
+    } catch (error) {
+      setJobStatus(error instanceof Error ? error.message : 'Unable to create the generate job.')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
 
   return (
     <div className="page-stack">
@@ -41,6 +136,31 @@ function ConfigPage() {
 
       <div className="dashboard-grid dashboard-grid--config">
         <div className="provider-grid">
+          <SectionCard className="provider-card">
+            <div className="section-card__header">
+              <p className="section-label">Tailoring Mode</p>
+            </div>
+            <div className="segmented-control" role="tablist" aria-label="Tailoring mode">
+              <button
+                className={tailoringMode === 'polisher' ? 'segmented-control__item is-active' : 'segmented-control__item'}
+                onClick={() => setTailoringMode('polisher')}
+                type="button"
+              >
+                Polisher
+              </button>
+              <button
+                className={tailoringMode === 'sniper' ? 'segmented-control__item is-active' : 'segmented-control__item'}
+                onClick={() => setTailoringMode('sniper')}
+                type="button"
+              >
+                Sniper
+              </button>
+            </div>
+            <p className="section-copy">
+              The backend generate job is wired today for the two documented tailoring modes.
+            </p>
+          </SectionCard>
+
           {providerCards.map((provider) => {
             const isSelected = selectedProvider === provider.name
 
@@ -92,6 +212,38 @@ function ConfigPage() {
           </div>
 
           <div className="form-stack">
+            <label className="field">
+              <span>Target Role</span>
+              <input
+                className="field__control"
+                onChange={(event) => setTargetRole(event.target.value)}
+                placeholder="Senior Product Designer"
+                type="text"
+                value={targetRole}
+              />
+            </label>
+
+            <label className="field">
+              <span>Target Company</span>
+              <input
+                className="field__control"
+                onChange={(event) => setTargetCompany(event.target.value)}
+                placeholder="OpenAI"
+                type="text"
+                value={targetCompany}
+              />
+            </label>
+
+            <label className="field">
+              <span>Job Description / Notes</span>
+              <textarea
+                className="text-area"
+                onChange={(event) => setJobDescription(event.target.value)}
+                placeholder="Paste the job description or key notes the tailoring engine should target."
+                value={jobDescription}
+              />
+            </label>
+
             <label className="field">
               <span>OpenAI API Key</span>
               <div className="field__input">
@@ -145,9 +297,17 @@ function ConfigPage() {
             </div>
           </div>
 
+          <div className="auth-note">
+            {jobStatus || (masterResume ? 'Master resume is loaded and ready for generation.' : 'No master resume loaded yet. Upload one on the ingest page first.')}
+          </div>
+
           <div className="action-stack">
-            <Link className="button button--primary button--full" to="/review">
-              Save & Continue
+            <button className="button button--primary button--full" onClick={() => void handleGenerateDraft()} type="button">
+              {isGenerating ? <FontAwesomeIcon icon={faSpinner} spin /> : null}
+              Generate Draft
+            </button>
+            <Link className="button button--ghost button--full" to="/review">
+              Open Review Workspace
             </Link>
             <button className="button button--ghost button--full" type="button">
               Test Connection

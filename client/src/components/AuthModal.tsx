@@ -5,22 +5,27 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import {
   faGoogle,
-  faLinkedinIn,
 } from '@fortawesome/free-brands-svg-icons'
-import type { AuthView } from '../context/AuthContext'
+import type { AuthView } from '../context/authTypes'
 
 type AuthModalProps = {
   authView: AuthView
+  authConfigError: string | null
   onClose: () => void
   onSwitchView: (view: AuthView) => void
-  onCompleteAuth: (provider: string) => void
+  onStartEmailSignIn: () => Promise<void>
+  onStartEmailSignUp: () => Promise<void>
+  onStartGoogleSignIn: () => Promise<void>
 }
 
 function AuthModal({
   authView,
+  authConfigError,
   onClose,
   onSwitchView,
-  onCompleteAuth,
+  onStartEmailSignIn,
+  onStartEmailSignUp,
+  onStartGoogleSignIn,
 }: AuthModalProps) {
   return (
     <div className="modal-backdrop" onClick={onClose} role="presentation">
@@ -62,7 +67,7 @@ function AuthModal({
         <div className="auth-stack">
           <button
             className="social-button"
-            onClick={() => onCompleteAuth('Google')}
+            onClick={() => void onStartGoogleSignIn()}
             type="button"
           >
             <span className="social-button__meta">
@@ -73,18 +78,20 @@ function AuthModal({
           </button>
           <button
             className="social-button"
-            onClick={() => onCompleteAuth('LinkedIn')}
+            disabled
             type="button"
           >
             <span className="social-button__meta">
-              <FontAwesomeIcon icon={faLinkedinIn} />
-              Federated
+              <FontAwesomeIcon icon={faGoogle} />
+              Soon
             </span>
-            Continue with LinkedIn
+            LinkedIn coming soon
           </button>
           <button
             className="social-button"
-            onClick={() => onCompleteAuth('Email')}
+            onClick={() =>
+              void (authView === 'signIn' ? onStartEmailSignIn() : onStartEmailSignUp())
+            }
             type="button"
           >
             <span className="social-button__meta">
@@ -96,8 +103,8 @@ function AuthModal({
         </div>
 
         <div className="auth-note">
-          Designed as a Cognito-style hosted auth entry point with email and federated
-          providers. Wiring can be swapped to real Cognito flows once auth is configured.
+          {authConfigError ??
+            'Cognito hosted auth is wired for email and Google sign-in. LinkedIn is still a UI placeholder until that identity provider is configured.'}
         </div>
       </section>
     </div>

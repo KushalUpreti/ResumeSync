@@ -3,7 +3,8 @@ import AuthModal from './components/AuthModal'
 import AppFooter from './components/AppFooter'
 import AppHeader from './components/AppHeader'
 import './App.css'
-import { useAuth } from './context/AuthContext'
+import { useAuth } from './context/useAuth'
+import AuthCallbackPage from './pages/AuthCallbackPage'
 import ConfigPage from './pages/ConfigPage'
 import ExportPage from './pages/ExportPage'
 import IngestionPage from './pages/IngestionPage'
@@ -14,12 +15,15 @@ function App() {
   const {
     auth,
     authView,
+    authConfigError,
     closeAuthModal,
-    completeAuth,
     isAuthOpen,
     openAuthModal,
     setAuthView,
     signOut,
+    startEmailSignIn,
+    startEmailSignUp,
+    startGoogleSignIn,
   } = useAuth()
   const isLoggedIn = auth.status === 'authenticated'
 
@@ -41,6 +45,7 @@ function App() {
               />
             }
           />
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route
             path="/ingest"
             element={<IngestionPage onOpenLogin={() => openAuthModal('signIn')} />}
@@ -54,10 +59,13 @@ function App() {
 
       {isAuthOpen ? (
         <AuthModal
+          authConfigError={authConfigError}
           authView={authView}
           onClose={closeAuthModal}
           onSwitchView={setAuthView}
-          onCompleteAuth={completeAuth}
+          onStartEmailSignIn={startEmailSignIn}
+          onStartEmailSignUp={startEmailSignUp}
+          onStartGoogleSignIn={startGoogleSignIn}
         />
       ) : null}
     </div>

@@ -5,6 +5,7 @@ type TemplateCardProps = {
   accent?: string
   description: string
   isSelected?: boolean
+  onSelect?: () => void
   title: string
 }
 
@@ -12,6 +13,7 @@ function TemplateCard({
   accent = 'linear-gradient(145deg, #27485b 0%, #1c2733 100%)',
   description,
   isSelected = false,
+  onSelect,
   title,
 }: TemplateCardProps) {
   return (
@@ -46,7 +48,11 @@ function TemplateCard({
           <h3>{title}</h3>
           <p>{description}</p>
         </div>
-        <button className={isSelected ? 'button button--accent' : 'button button--ghost'} type="button">
+        <button
+          className={isSelected ? 'button button--accent' : 'button button--ghost'}
+          onClick={onSelect}
+          type="button"
+        >
           {isSelected ? 'Selected' : 'Select'}
         </button>
       </div>
