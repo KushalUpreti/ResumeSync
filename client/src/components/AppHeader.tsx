@@ -4,10 +4,11 @@ import type { AuthState, AuthView } from '../context/authTypes'
 type AppHeaderProps = {
   auth: AuthState
   onOpenAuthModal: (view: AuthView) => void
+  onOpenAIConfig: () => void
   onSignOut: () => void
 }
 
-function AppHeader({ auth, onOpenAuthModal, onSignOut }: AppHeaderProps) {
+function AppHeader({ auth, onOpenAuthModal, onOpenAIConfig, onSignOut }: AppHeaderProps) {
   const isLoggedIn = auth.status === 'authenticated'
   const userName = isLoggedIn ? auth.user.name || auth.user.email : null
 
@@ -27,6 +28,9 @@ function AppHeader({ auth, onOpenAuthModal, onSignOut }: AppHeaderProps) {
               <button className="button button--ghost" type="button">
                 {userName}
               </button>
+              <button className="button button--ghost" onClick={onOpenAIConfig} type="button">
+                AI Settings
+              </button>
               <button className="button button--ghost" onClick={onSignOut} type="button">
                 Sign out
               </button>
@@ -39,6 +43,13 @@ function AppHeader({ auth, onOpenAuthModal, onSignOut }: AppHeaderProps) {
                 type="button"
               >
                 Login
+              </button>
+              <button
+                className="button button--ghost"
+                onClick={onOpenAIConfig}
+                type="button"
+              >
+                AI Settings
               </button>
               <button
                 className="button button--primary"

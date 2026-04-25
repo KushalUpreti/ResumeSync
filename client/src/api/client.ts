@@ -11,5 +11,16 @@ apiClient.interceptors.request.use((config) => {
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`
   }
+
+  const aiProvider = localStorage.getItem('ai_provider')
+  const aiApiKey = localStorage.getItem('ai_api_key')
+
+  if (aiProvider) {
+    config.headers['X-AI-Provider'] = aiProvider
+  }
+  if (aiApiKey) {
+    config.headers['X-AI-API-Key'] = aiApiKey
+  }
+
   return config
 })

@@ -6,13 +6,12 @@ from app.core.config import Settings, get_settings
 from app.services.aws_adapters import S3ObjectStore, SQSQueueService
 from app.services.cognito import CognitoTokenVerifier
 from app.services.local_adapters import (
-    LocalDocumentRenderer,
     LocalObjectStore,
     LocalQueueService,
-    LocalResumeParser,
-    LocalResumeTailor,
     S3BackedJobStateStore,
 )
+from app.services.llm_adapters import LLMResumeParser, LLMResumeTailor
+from app.services.document_engine import DocxtplDocumentRenderer
 
 
 class ServiceContainer:
@@ -30,9 +29,9 @@ class ServiceContainer:
             self.token_verifier = None
 
         self.job_states = S3BackedJobStateStore(self.object_store)
-        self.parser = LocalResumeParser()
-        self.tailor = LocalResumeTailor()
-        self.renderer = LocalDocumentRenderer()
+        self.parser = LLMResumeParser()
+        self.tailor = LLMResumeTailor()
+        self.renderer = DocxtplDocumentRenderer()
 
 
 @lru_cache(maxsize=1)

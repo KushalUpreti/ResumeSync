@@ -86,6 +86,8 @@ JobPayload = GenerateJobPayload | RewriteJobPayload | RenderJobPayload | ParseMa
 class JobEnvelope(BaseModel):
     job_id: str = Field(default_factory=lambda: str(uuid4()))
     payload: JobPayload = Field(discriminator="job_type")
+    ai_provider: str | None = None
+    ai_api_key: str | None = None
 
 
 class QueuedJob(BaseModel):

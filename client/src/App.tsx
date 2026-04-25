@@ -1,5 +1,7 @@
 import { Route, Routes } from 'react-router-dom'
 import AuthModal from './components/AuthModal'
+import { AIConfigModal } from './components/AIConfigModal'
+import { useState } from 'react'
 import AppFooter from './components/AppFooter'
 import AppHeader from './components/AppHeader'
 import './App.css'
@@ -25,6 +27,7 @@ function App() {
     startEmailSignUp,
     startGoogleSignIn,
   } = useAuth()
+  const [isAIConfigOpen, setIsAIConfigOpen] = useState(false)
   const isLoggedIn = auth.status === 'authenticated'
 
   return (
@@ -32,6 +35,7 @@ function App() {
       <AppHeader
         auth={auth}
         onOpenAuthModal={openAuthModal}
+        onOpenAIConfig={() => setIsAIConfigOpen(true)}
         onSignOut={signOut}
       />
       <main className="app-shell__main">
@@ -68,6 +72,11 @@ function App() {
           onStartGoogleSignIn={startGoogleSignIn}
         />
       ) : null}
+
+      <AIConfigModal
+        isOpen={isAIConfigOpen}
+        onClose={() => setIsAIConfigOpen(false)}
+      />
     </div>
   )
 }

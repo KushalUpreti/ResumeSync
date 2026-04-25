@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 
 from app.api.deps import get_services, get_user_context
 from app.core.exceptions import NotFoundError
@@ -53,6 +53,8 @@ def create_generate_job(
     request: CreateGenerateJobRequest,
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
+    x_ai_provider: str | None = Header(None, alias="X-AI-Provider"),
+    x_ai_api_key: str | None = Header(None, alias="X-AI-API-Key"),
 ) -> CreateJobResponse:
     actor_id = user.user_id or user.session_id
     if not actor_id:
@@ -72,7 +74,7 @@ def create_generate_job(
         target_company=request.target_company,
         job_description=request.job_description,
     )
-    envelope = JobEnvelope(payload=payload)
+    envelope = JobEnvelope(payload=payload, ai_provider=x_ai_provider, ai_api_key=x_ai_api_key)
     state = JobState(job_id=envelope.job_id, status="pending")
     services.job_states.create(state)
     services.queue.send(envelope)
@@ -91,11 +93,15 @@ def get_job(job_id: str, services: ServiceContainer = Depends(get_services)) -> 
 def rewrite_preview(
     request: RewritePreviewRequest,
     services: ServiceContainer = Depends(get_services),
+    x_ai_provider: str | None = Header(None, alias="X-AI-Provider"),
+    x_ai_api_key: str | None = Header(None, alias="X-AI-API-Key"),
 ) -> RewritePreviewResponse:
     rewritten = services.tailor.rewrite_text(
         request.text,
         instruction=request.instruction,
         mode=request.mode,
+        ai_provider=x_ai_provider,
+        ai_api_key=x_ai_api_key,
     )
     return RewritePreviewResponse(rewritten_text=rewritten)
 
@@ -152,6 +158,8 @@ def rewrite_resume(
     request: RewriteResumeRequest,
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
+    x_ai_provider: str | None = Header(None, alias="X-AI-Provider"),
+    x_ai_api_key: str | None = Header(None, alias="X-AI-API-Key"),
 ) -> CreateJobResponse:
     if not user.user_id:
         raise HTTPException(status_code=400, detail="Authenticated user_id is required for rewrite")
@@ -162,7 +170,7 @@ def rewrite_resume(
         user_id=user.user_id,
         targets=request.targets,
     )
-    envelope = JobEnvelope(payload=payload)
+    envelope = JobEnvelope(payload=payload, ai_provider=x_ai_provider, ai_api_key=x_ai_api_key)
     state = JobState(job_id=envelope.job_id, status="pending")
     services.job_states.create(state)
     services.queue.send(envelope)
@@ -174,6 +182,8 @@ def upload_master_resume(
     request: MasterResumeUploadRequest,
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
+    x_ai_provider: str | None = Header(None, alias="X-AI-Provider"),
+    x_ai_api_key: str | None = Header(None, alias="X-AI-API-Key"),
 ) -> CreateJobResponse:
     if not user.user_id:
         raise HTTPException(status_code=400, detail="Authenticated user_id is required for master resume")
@@ -182,7 +192,7 @@ def upload_master_resume(
         user_id=user.user_id,
         input_s3_key=request.input_s3_key,
     )
-    envelope = JobEnvelope(payload=payload)
+    envelope = JobEnvelope(payload=payload, ai_provider=x_ai_provider, ai_api_key=x_ai_api_key)
     state = JobState(job_id=envelope.job_id, status="pending")
     services.job_states.create(state)
     services.queue.send(envelope)
