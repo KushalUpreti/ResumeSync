@@ -31,10 +31,10 @@ function ProcessPage() {
       </div>
 
       <div className="process-content">
-        {currentStep === 1 && <IngestionStep onNext={handleNext} />}
-        {currentStep === 2 && (
+        {currentStep === 1 && (
           <ConfigStep onNext={handleNext} onBack={handleBack} />
         )}
+        {currentStep === 2 && <IngestionStep onNext={handleNext} />}
         {currentStep === 3 && (
           <ReviewStep onNext={handleNext} onBack={handleBack} />
         )}

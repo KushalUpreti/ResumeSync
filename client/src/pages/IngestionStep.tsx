@@ -269,7 +269,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
             type="button"
           >
             {isSaving ? <FontAwesomeIcon icon={faSpinner} spin /> : null}
-            Proceed to Configuration &rarr;
+            Proceed to Review &rarr;
           </button>
         </div>
       </section>

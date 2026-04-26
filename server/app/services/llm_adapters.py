@@ -59,7 +59,9 @@ RAW RESUME TEXT:
             # Fallback for plain text
             return source_bytes.decode("utf-8", errors="ignore")
 
-    def _get_model(self, provider: str | None) -> str:
+    def _get_model(self, provider: str | None, model: str | None = None) -> str:
+        if model:
+            return model
         if provider == "openai":
             return "gpt-4o"
         elif provider == "anthropic":

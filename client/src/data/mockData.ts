@@ -1,8 +1,8 @@
 import type { FlowStep } from '../components/FlowStepper'
 
 export const flowSteps: FlowStep[] = [
-  { step: 1, label: 'Ingest', to: '/ingest' },
-  { step: 2, label: 'Config', to: '/config' },
+  { step: 1, label: 'Config', to: '/config' },
+  { step: 2, label: 'Ingest', to: '/ingest' },
   { step: 3, label: 'Review', to: '/review' },
   { step: 4, label: 'Export', to: '/export' },
 ]

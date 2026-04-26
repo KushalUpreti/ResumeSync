@@ -20,18 +20,90 @@ type ReviewStepProps = {
 
 function ReviewStep({ onNext, onBack }: ReviewStepProps) {
   const location = useLocation()
+  const [rewriteInstruction, setRewriteInstruction] = useState('make more impactful')
+  const [rewriteStatus, setRewriteStatus] = useState('')
+  const [isRewriting, setIsRewriting] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  
   const {
     draftResume,
     generatedResumeId,
     lastGenerateJob,
     masterResume,
+    selectedTemplateId,
     setDraftResume,
+    setGeneratedResume,
+    setLastGenerateJob,
+    setTailoringMode,
+    setTargetCompany,
+    setTargetRole,
+    setJobDescription,
     tailoringMode,
+    targetCompany,
+    targetRole,
+    jobDescription,
   } = useWorkspace()
-  const [rewriteInstruction, setRewriteInstruction] = useState('make more impactful')
-  const [rewriteStatus, setRewriteStatus] = useState('')
-  const [isRewriting, setIsRewriting] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
+
+  function deriveResumeIdFromJsonKey(jsonKey: string | null) {
+    if (!jsonKey) return null
+    const match = jsonKey.match(/\/json\/([^/]+)\.json$/)
+    return match?.[1] ?? null
+  }
+
+  function buildDraftFromMaster(document: ResumeDocument, resumeId: string) {
+    return {
+      ...document,
+      resume_id: resumeId,
+      metadata: {
+        ...(document.metadata ?? {}),
+        target_role: targetRole,
+        target_company: targetCompany,
+        job_description: jobDescription,
+      },
+    }
+  }
+
+  async function handleGenerateDraft() {
+    if (!masterResume) {
+      setRewriteStatus('Upload a master resume first.')
+      return
+    }
+
+    setIsGenerating(true)
+    setRewriteStatus('Submitting a generate job to the backend...')
+
+    try {
+      const job = await import('../api/resumeSync').then(({ createGenerateJob }) => createGenerateJob({
+        job_type: 'generate',
+        mode: tailoringMode,
+        source_type: 'master',
+        template_id: selectedTemplateId,
+        target_role: targetRole || null,
+        target_company: targetCompany || null,
+        job_description: jobDescription || null,
+      }))
+
+      const finalJob = await import('../api/resumeSync').then(({ waitForJob }) => waitForJob(job.job_id))
+      setLastGenerateJob(finalJob)
+      if (finalJob.status === 'failed') {
+        throw new Error(finalJob.error || 'The generation job failed.')
+      }
+
+      const newResumeId = deriveResumeIdFromJsonKey(finalJob.output_json_key)
+      if (!newResumeId) {
+        throw new Error('Invalid resume key returned.')
+      }
+
+      setGeneratedResume(newResumeId, finalJob.output_json_key)
+      setDraftResume(buildDraftFromMaster(masterResume, newResumeId))
+      setRewriteStatus('Tailoring complete.')
+    } catch (error) {
+      setRewriteStatus(error instanceof Error ? error.message : 'Unable to tailor.')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
 
   async function handleSummaryRewrite() {
     if (!draftResume?.summary) {
@@ -98,6 +170,74 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
           </button>
         </div>
       </div>
+
+      <section className="page-intro">
+        <p className="eyebrow">Step 3 / Tailor & Review</p>
+        <h1 className="page-title page-title--medium">Tailor & Review</h1>
+        <p className="page-copy">
+          Enter the job details to generate a tailored draft, then review it side-by-side with your master data.
+        </p>
+      </section>
+
+      <SectionCard className="tailor-controls">
+        <div className="tailor-grid">
+          <div className="form-stack">
+            <div className="field-row">
+              <label className="field">
+                <span>Target Role</span>
+                <input
+                  className="field__control"
+                  placeholder="e.g. Senior Frontend Engineer"
+                  type="text"
+                  value={targetRole}
+                  onChange={(e) => setTargetRole(e.target.value)}
+                />
+              </label>
+              <label className="field">
+                <span>Company</span>
+                <input
+                  className="field__control"
+                  placeholder="e.g. Google"
+                  type="text"
+                  value={targetCompany}
+                  onChange={(e) => setTargetCompany(e.target.value)}
+                />
+              </label>
+            </div>
+            <label className="field">
+              <span>Job Description</span>
+              <textarea
+                className="text-area"
+                placeholder="Paste the full job post here..."
+                rows={5}
+                value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+              />
+            </label>
+          </div>
+          <div className="tailor-actions">
+            <p className="section-label">Tailoring Mode</p>
+            <div className="segmented-control">
+              <button 
+                className={tailoringMode === 'polisher' ? 'segmented-control__item is-active' : 'segmented-control__item'} 
+                onClick={() => setTailoringMode('polisher')}
+              >
+                Polisher
+              </button>
+              <button 
+                className={tailoringMode === 'sniper' ? 'segmented-control__item is-active' : 'segmented-control__item'} 
+                onClick={() => setTailoringMode('sniper')}
+              >
+                Sniper
+              </button>
+            </div>
+            <button className="button button--primary button--full" onClick={() => void handleGenerateDraft()} disabled={isGenerating}>
+              {isGenerating ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faWandMagicSparkles} />}
+              Generate Tailored Draft
+            </button>
+          </div>
+        </div>
+      </SectionCard>
 
       <div className="review-grid">
         <SectionCard className="review-panel">

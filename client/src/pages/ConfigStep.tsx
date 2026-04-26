@@ -130,46 +130,13 @@ function ConfigStep({ onNext, onBack }: ConfigStepProps) {
     }
   }
 
-  async function handleGenerateDraft() {
-    if (!masterResume) {
-      setJobStatus('Upload a master resume first so the backend has a source document to tailor.')
+  async function handleSaveConfig() {
+    if (!apiKey) {
+      setJobStatus('Please provide an API key to proceed.')
       return
     }
-
-    setIsGenerating(true)
-    setJobStatus('Submitting a generate job to the backend...')
-
-    try {
-      const job = await createGenerateJob({
-        job_type: 'generate',
-        mode: tailoringMode,
-        source_type: 'master',
-        template_id: selectedTemplateId,
-        target_role: targetRole || null,
-        target_company: targetCompany || null,
-        job_description: jobDescription || null,
-      })
-
-      const finalJob = await waitForJob(job.job_id)
-      setLastGenerateJob(finalJob)
-      if (finalJob.status === 'failed') {
-        throw new Error(finalJob.error || 'The generation job failed.')
-      }
-
-      const generatedResumeId = deriveResumeIdFromJsonKey(finalJob.output_s3_key)
-      if (!generatedResumeId) {
-        throw new Error('The backend completed the job but did not return a usable resume key.')
-      }
-
-      setGeneratedResume(generatedResumeId, finalJob.output_json_key)
-      setDraftResume(buildDraftFromMaster(masterResume, generatedResumeId))
-      setJobStatus('Generate job complete. Moving you into review.')
-      onNext()
-    } catch (error) {
-      setJobStatus(error instanceof Error ? error.message : 'Unable to create the generate job.')
-    } finally {
-      setIsGenerating(false)
-    }
+    setJobStatus('Configuration saved.')
+    onNext()
   }
 
   return (
@@ -298,9 +265,8 @@ function ConfigStep({ onNext, onBack }: ConfigStepProps) {
 
 
           <div className="action-stack">
-            <button className="button button--primary button--full" onClick={() => void handleGenerateDraft()} type="button">
-              {isGenerating ? <FontAwesomeIcon icon={faSpinner} spin /> : null}
-              Save & Continue &rarr;
+            <button className="button button--primary button--full" onClick={() => void handleSaveConfig()} type="button">
+              Save & Start Ingestion &rarr;
             </button>
           </div>
         </SectionCard>
