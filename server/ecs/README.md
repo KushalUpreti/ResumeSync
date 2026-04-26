@@ -18,7 +18,7 @@ Both services use the same image and differ only by command:
 Update these values before registering the task definitions:
 
 - `<account-id>`
-- `<s3-bucket-name>`
+- `aws-resume-bucket-kushal-upreti`
 - `<main-sqs-queue-url>`
 
 ## Roles

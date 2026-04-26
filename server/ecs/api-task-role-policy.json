@@ -9,9 +9,9 @@
         "s3:PutObject"
       ],
       "Resource": [
-        "arn:aws:s3:::<s3-bucket-name>/jobs/*",
-        "arn:aws:s3:::<s3-bucket-name>/temp/*",
-        "arn:aws:s3:::<s3-bucket-name>/users/*"
+        "arn:aws:s3:::aws-resume-bucket-kushal-upreti/jobs/*",
+        "arn:aws:s3:::aws-resume-bucket-kushal-upreti/temp/*",
+        "arn:aws:s3:::aws-resume-bucket-kushal-upreti/users/*"
       ]
     },
     {

@@ -113,4 +113,4 @@ docker tag resumesync-server:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com
 docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/resumesync-server:latest
 ```
 
-Before registering the task definitions, replace placeholder values like `<account-id>`, `<s3-bucket-name>`, and `<main-sqs-queue-url>`.
+Before registering the task definitions, replace placeholder values like `<account-id>`, `aws-resume-bucket-kushal-upreti`, and `<main-sqs-queue-url>`.

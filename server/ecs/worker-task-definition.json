@@ -1,7 +1,9 @@
 {
   "family": "resumesync-worker",
   "networkMode": "awsvpc",
-  "requiresCompatibilities": ["FARGATE"],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
   "cpu": "512",
   "memory": "1024",
   "executionRoleArn": "arn:aws:iam::405827713989:role/ecsTaskExecutionRole",
@@ -17,16 +19,46 @@
         "app.worker.runner"
       ],
       "environment": [
-        { "name": "RESUMESYNC_ENV", "value": "production" },
-        { "name": "RESUMESYNC_USE_AWS_SERVICES", "value": "true" },
-        { "name": "RESUMESYNC_AWS_REGION", "value": "us-east-1" },
-        { "name": "RESUMESYNC_STORAGE_BUCKET", "value": "<s3-bucket-name>" },
-        { "name": "RESUMESYNC_QUEUE_NAME", "value": "resumesync-jobs" },
-        { "name": "RESUMESYNC_QUEUE_URL", "value": "https://sqs.us-east-1.amazonaws.com/405827713989/resumesync-jobs" },
-        { "name": "RESUMESYNC_POLL_INTERVAL_SECONDS", "value": "2" },
-        { "name": "RESUMESYNC_COGNITO_REGION", "value": "us-east-1" },
-        { "name": "RESUMESYNC_COGNITO_USER_POOL_ID", "value": "us-east-1_ZNQPnuBYg" },
-        { "name": "RESUMESYNC_COGNITO_APP_CLIENT_ID", "value": "4t01t8aev928ju9vqaj8evl6jg" }
+        {
+          "name": "RESUMESYNC_ENV",
+          "value": "production"
+        },
+        {
+          "name": "RESUMESYNC_USE_AWS_SERVICES",
+          "value": "true"
+        },
+        {
+          "name": "RESUMESYNC_AWS_REGION",
+          "value": "us-east-1"
+        },
+        {
+          "name": "RESUMESYNC_STORAGE_BUCKET",
+          "value": "aws-resume-bucket-kushal-upreti"
+        },
+        {
+          "name": "RESUMESYNC_QUEUE_NAME",
+          "value": "resumesync-jobs"
+        },
+        {
+          "name": "RESUMESYNC_QUEUE_URL",
+          "value": "https://sqs.us-east-1.amazonaws.com/405827713989/resumesync-jobs"
+        },
+        {
+          "name": "RESUMESYNC_POLL_INTERVAL_SECONDS",
+          "value": "2"
+        },
+        {
+          "name": "RESUMESYNC_COGNITO_REGION",
+          "value": "us-east-1"
+        },
+        {
+          "name": "RESUMESYNC_COGNITO_USER_POOL_ID",
+          "value": "us-east-1_ZNQPnuBYg"
+        },
+        {
+          "name": "RESUMESYNC_COGNITO_APP_CLIENT_ID",
+          "value": "4t01t8aev928ju9vqaj8evl6jg"
+        }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
