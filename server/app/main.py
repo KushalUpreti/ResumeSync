@@ -8,11 +8,11 @@ from app.core.config import get_settings
 from fastapi.middleware.cors import CORSMiddleware
 
 settings = get_settings()
-app = FastAPI(title=settings.app_name)
+app = FastAPI(title=settings.app_name, redirect_slashes=True)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
