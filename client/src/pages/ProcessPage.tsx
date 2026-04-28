@@ -21,12 +21,13 @@ function ProcessPage() {
   return (
     <div className="process-container">
       <div className="process-header">
-        <div className="container">
+        <div className="container header-flex">
           <FlowStepper 
             activeStep={currentStep} 
             steps={flowSteps} 
             onStepClick={handleStepClick}
           />
+          <div id="header-actions-portal" />
         </div>
       </div>
 

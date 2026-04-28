@@ -1,8 +1,8 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faFloppyDisk,
-  faPenToSquare,
   faPlus,
   faSpinner,
   faWandMagicSparkles,
@@ -10,8 +10,10 @@ import {
 import { useLocation } from 'react-router-dom'
 import { commitResume, rewritePreview } from '../api/resumeSync'
 import SectionCard from '../components/SectionCard'
+import ResumeSheet from '../components/ResumeSheet'
 import { useWorkspace } from '../context/useWorkspace'
-import { flowSteps, mockDraftResume, mockMasterResume, strategicKeywords } from '../data/mockData'
+import { mockDraftResume, mockMasterResume, strategicKeywords } from '../data/mockData'
+import type { ResumeDocument } from '../types/resume'
 
 type ReviewStepProps = {
   onNext: () => void
@@ -19,7 +21,6 @@ type ReviewStepProps = {
 }
 
 function ReviewStep({ onNext, onBack }: ReviewStepProps) {
-  const location = useLocation()
   const [rewriteInstruction, setRewriteInstruction] = useState('make more impactful')
   const [rewriteStatus, setRewriteStatus] = useState('')
   const [isRewriting, setIsRewriting] = useState(false)
@@ -29,7 +30,6 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
   const {
     draftResume,
     generatedResumeId,
-    lastGenerateJob,
     masterResume,
     selectedTemplateId,
     setDraftResume,
@@ -37,9 +37,6 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
     setGeneratedResume,
     setLastGenerateJob,
     setTailoringMode,
-    setTargetCompany,
-    setTargetRole,
-    setJobDescription,
     tailoringMode,
     targetCompany,
     targetRole,
@@ -166,124 +163,42 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
 
   return (
     <div className="page-stack">
-      <div className="page-toolbar">
-
+      {createPortal(
         <div className="page-toolbar__actions">
-          <button className="button button--ghost" onClick={handleLoadMockData} type="button">
-            Load Mock Data
-          </button>
           <button className="button button--ghost" onClick={() => void handleCommitDraft()} type="button">
             {isSaving ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faFloppyDisk} />}
             Save Draft
           </button>
+          <div style={{ width: '10px' }} />
           <button className="button button--primary" onClick={onNext} type="button">
             Approve & Continue
           </button>
-        </div>
-      </div>
+        </div>,
+        document.getElementById('header-actions-portal')!
+      )}
 
       <div className="review-grid">
         <SectionCard className="review-panel">
-          <div className="section-card__header section-card__header--split">
-            <h2 className="section-card__title">Original Resume Source</h2>
-            <span className="tag tag--neutral">
-              {originalDocument ? 'Master resume JSON loaded' : 'No master resume loaded'}
-            </span>
-          </div>
-
-          <div className="review-section">
-            <p className="section-label">Summary</p>
-            <div className="resume-block">
-              <p className="section-copy">{originalDocument?.summary ?? 'Upload and parse a master resume to populate this review pane.'}</p>
-            </div>
-          </div>
-
-          <div className="review-section">
-            <p className="section-label">Experience</p>
-            {(originalDocument?.experience ?? []).map((entry) => (
-              <div className="resume-block" key={`${entry.company}-${entry.role}`}>
-                <h3>{entry.role} @ {entry.company}</h3>
-                <ul className="clean-list">
-                  {entry.bullets.map((bullet) => (
-                    <li key={bullet}>{bullet}</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-
-          <div className="review-section">
-            <p className="section-label">Skills</p>
-            <div className="tag-row">
-              {(originalDocument?.skills ?? []).map((skill) => (
-                <span className="tag tag--neutral" key={skill}>{skill}</span>
-              ))}
-            </div>
-          </div>
+          <ResumeSheet
+            document={originalDocument}
+            title="Master Resume"
+            subtitle="Uploaded document data"
+          />
         </SectionCard>
 
-        <SectionCard className="review-panel review-panel--dark">
-          <div className="review-scorebar">
-            <div>
-              <div className="review-title-row">
-                <FontAwesomeIcon icon={faWandMagicSparkles} />
-                <h2 className="review-panel__title">AI Optimized Output</h2>
-              </div>
-              <p className="tag tag--success">ATS Optimized</p>
-            </div>
-            <div className="metrics-row">
-              <div>
-                <span>Generate Job</span>
-                <strong>{lastGenerateJob?.status ?? 'idle'}</strong>
-              </div>
-              <div>
-                <span>Resume ID</span>
-                <strong>{generatedResumeId ?? 'n/a'}</strong>
-              </div>
-              <div>
-                <span>Mode</span>
-                <strong>{tailoringMode}</strong>
-              </div>
-            </div>
+        <SectionCard className="review-panel" style={{ border: '1px solid var(--color-success-soft, #dcfce7)' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <p className="tag tag--success" style={{ margin: 0 }}>ATS Optimized</p>
           </div>
 
-          <div className="optimized-card">
-            <div className="optimized-card__header">
-              <p className="section-label">Working Draft Summary</p>
-              <button className="icon-action" onClick={() => void handleSummaryRewrite()} type="button">
-                <FontAwesomeIcon icon={faPenToSquare} />
-              </button>
-            </div>
-            <div className="optimized-card__body">
-              <textarea
-                className="text-area"
-                onChange={(event) =>
-                  workingDocument &&
-                  setDraftResume({
-                    ...workingDocument,
-                    summary: event.target.value,
-                  })
-                }
-                value={workingDocument?.summary ?? ''}
-              />
-              <label className="field">
-                <span>Rewrite instruction</span>
-                <input
-                  className="field__control"
-                  onChange={(event) => setRewriteInstruction(event.target.value)}
-                  type="text"
-                  value={rewriteInstruction}
-                />
-              </label>
-              <button className="button button--ghost" onClick={() => void handleSummaryRewrite()} type="button">
-                {isRewriting ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faWandMagicSparkles} />}
-                Preview Rewrite
-              </button>
-              <div className="review-tooltip">{rewriteStatus || 'Use rewrite preview for fast text iteration, then save the full JSON draft.'}</div>
-            </div>
-          </div>
+          <ResumeSheet
+            document={workingDocument}
+            isLoading={isGenerating}
+            title="Tailored Resume"
+            subtitle="AI enhanced for target role"
+          />
 
-          <div className="review-section">
+          <div className="review-section" style={{ marginTop: 'var(--space-6)' }}>
             <p className="section-label">Strategic Keywords Added</p>
             <div className="tag-row">
               {strategicKeywords.map((keyword) => (
