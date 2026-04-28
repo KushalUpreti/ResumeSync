@@ -1,4 +1,5 @@
 import type { FlowStep } from '../components/FlowStepper'
+import type { ResumeDocument } from '../types/resume'
 
 export const flowSteps: FlowStep[] = [
   { step: 1, label: 'Config', to: '/config' },
@@ -6,6 +7,56 @@ export const flowSteps: FlowStep[] = [
   { step: 3, label: 'Review', to: '/review' },
   { step: 4, label: 'Export', to: '/export' },
 ]
+
+export const mockMasterResume: ResumeDocument = {
+  resume_id: 'master-123',
+  summary: 'Experienced Software Engineer with a focus on React and Node.js. Passionate about building scalable web applications and improving developer experience.',
+  experience: [
+    {
+      company: 'Tech Corp',
+      role: 'Senior Software Engineer',
+      bullets: [
+        'Led a team of 5 developers to build a new dashboard.',
+        'Improved build performance by 40% using Vite.',
+        'Mentored junior engineers and conducted code reviews.',
+      ],
+    },
+    {
+      company: 'StartUp Inc',
+      role: 'Full Stack Developer',
+      bullets: [
+        'Developed features for a high-traffic e-commerce site.',
+        'Integrated third-party payment gateways.',
+      ],
+    },
+  ],
+  skills: ['React', 'TypeScript', 'Node.js', 'PostgreSQL', 'AWS'],
+}
+
+export const mockDraftResume: ResumeDocument = {
+  ...mockMasterResume,
+  resume_id: 'draft-456',
+  summary: 'Senior Frontend Engineer specialized in high-performance React architectures. Expert at optimizing user experiences and streamlining development workflows for enterprise-scale SaaS platforms.',
+  experience: [
+    {
+      company: 'Tech Corp',
+      role: 'Senior Software Engineer',
+      bullets: [
+        'Spearheaded the migration of legacy dashboards to a modern Design System, increasing UI consistency across 12 product modules.',
+        'Optimized frontend build pipelines, reducing CI/CD wait times by 40% and accelerating feature delivery cycles.',
+        'Established rigorous code quality standards and mentorship programs, fostering a high-performance engineering culture.',
+      ],
+    },
+    {
+      company: 'StartUp Inc',
+      role: 'Full Stack Developer',
+      bullets: [
+        'Engineered responsive e-commerce interfaces handling 50k+ daily active users with sub-second load times.',
+        'Architected seamless payment integrations using Stripe and PayPal, reducing checkout friction by 15%.',
+      ],
+    },
+  ],
+}
 
 export const queuedFiles = [
   {

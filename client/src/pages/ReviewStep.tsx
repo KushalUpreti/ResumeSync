@@ -11,7 +11,7 @@ import { useLocation } from 'react-router-dom'
 import { commitResume, rewritePreview } from '../api/resumeSync'
 import SectionCard from '../components/SectionCard'
 import { useWorkspace } from '../context/useWorkspace'
-import { flowSteps, strategicKeywords } from '../data/mockData'
+import { flowSteps, mockDraftResume, mockMasterResume, strategicKeywords } from '../data/mockData'
 
 type ReviewStepProps = {
   onNext: () => void
@@ -25,7 +25,7 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
   const [isRewriting, setIsRewriting] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  
+
   const {
     draftResume,
     generatedResumeId,
@@ -33,6 +33,7 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
     masterResume,
     selectedTemplateId,
     setDraftResume,
+    setMasterResume,
     setGeneratedResume,
     setLastGenerateJob,
     setTailoringMode,
@@ -105,6 +106,13 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
     }
   }
 
+  function handleLoadMockData() {
+    setMasterResume(mockMasterResume)
+    setDraftResume(mockDraftResume)
+    setGeneratedResume('mock-resume-id', 'mock/json/mock-resume-id.json')
+    setRewriteStatus('Loaded mock data for testing.')
+  }
+
   async function handleSummaryRewrite() {
     if (!draftResume?.summary) {
       setRewriteStatus('Load or generate a draft first so there is something to rewrite.')
@@ -161,6 +169,9 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
       <div className="page-toolbar">
 
         <div className="page-toolbar__actions">
+          <button className="button button--ghost" onClick={handleLoadMockData} type="button">
+            Load Mock Data
+          </button>
           <button className="button button--ghost" onClick={() => void handleCommitDraft()} type="button">
             {isSaving ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faFloppyDisk} />}
             Save Draft
@@ -170,74 +181,6 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
           </button>
         </div>
       </div>
-
-      <section className="page-intro">
-        <p className="eyebrow">Step 3 / Tailor & Review</p>
-        <h1 className="page-title page-title--medium">Tailor & Review</h1>
-        <p className="page-copy">
-          Enter the job details to generate a tailored draft, then review it side-by-side with your master data.
-        </p>
-      </section>
-
-      <SectionCard className="tailor-controls">
-        <div className="tailor-grid">
-          <div className="form-stack">
-            <div className="field-row">
-              <label className="field">
-                <span>Target Role</span>
-                <input
-                  className="field__control"
-                  placeholder="e.g. Senior Frontend Engineer"
-                  type="text"
-                  value={targetRole}
-                  onChange={(e) => setTargetRole(e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>Company</span>
-                <input
-                  className="field__control"
-                  placeholder="e.g. Google"
-                  type="text"
-                  value={targetCompany}
-                  onChange={(e) => setTargetCompany(e.target.value)}
-                />
-              </label>
-            </div>
-            <label className="field">
-              <span>Job Description</span>
-              <textarea
-                className="text-area"
-                placeholder="Paste the full job post here..."
-                rows={5}
-                value={jobDescription}
-                onChange={(e) => setJobDescription(e.target.value)}
-              />
-            </label>
-          </div>
-          <div className="tailor-actions">
-            <p className="section-label">Tailoring Mode</p>
-            <div className="segmented-control">
-              <button 
-                className={tailoringMode === 'polisher' ? 'segmented-control__item is-active' : 'segmented-control__item'} 
-                onClick={() => setTailoringMode('polisher')}
-              >
-                Polisher
-              </button>
-              <button 
-                className={tailoringMode === 'sniper' ? 'segmented-control__item is-active' : 'segmented-control__item'} 
-                onClick={() => setTailoringMode('sniper')}
-              >
-                Sniper
-              </button>
-            </div>
-            <button className="button button--primary button--full" onClick={() => void handleGenerateDraft()} disabled={isGenerating}>
-              {isGenerating ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faWandMagicSparkles} />}
-              Generate Tailored Draft
-            </button>
-          </div>
-        </div>
-      </SectionCard>
 
       <div className="review-grid">
         <SectionCard className="review-panel">

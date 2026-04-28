@@ -10,6 +10,15 @@ apiClient.interceptors.request.use((config) => {
   const accessToken = getAccessToken()
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`
+  } else {
+    // Generate/retrieve a session ID for guest mode
+    let sessionId = localStorage.getItem('guest_session_id')
+    if (!sessionId) {
+      sessionId = `sess_${Math.random().toString(36).substring(2, 15)}`
+      localStorage.setItem('guest_session_id', sessionId)
+    }
+    config.headers['X-Session-ID'] = sessionId
+    config.headers['X-Anonymous'] = 'true'
   }
 
   const aiProvider = localStorage.getItem('ai_provider')

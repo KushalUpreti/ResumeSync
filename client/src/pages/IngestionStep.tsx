@@ -14,10 +14,10 @@ import { getMasterResume, requestUploadUrl, uploadFileToPresignedUrl, uploadMast
 import SectionCard from '../components/SectionCard'
 import { useAuth } from '../context/useAuth'
 import { useWorkspace } from '../context/useWorkspace'
-import { flowSteps } from '../data/mockData'
+import { flowSteps, mockDraftResume, mockMasterResume } from '../data/mockData'
 
-type IngestionPageProps = {
-  onOpenLogin: () => void
+type IngestionStepProps = {
+  onNext: () => void
 }
 
 const savedModes = [
@@ -84,39 +84,41 @@ function IngestionStep({ onNext }: IngestionStepProps) {
   const selectedModeData = savedModes.find((mode) => mode.value === selectedMode)
 
   async function handleProceed() {
-    if (!selectedFile) {
-      setStatusMessage('Choose a DOCX, PDF, or TXT file before proceeding.')
-      return
-    }
+    // if (!selectedFile) {
+    //   setStatusMessage('Choose a DOCX, PDF, or TXT file before proceeding.')
+    //   return
+    // }
 
-    setIsSaving(true)
-    setStatusMessage('Requesting a secure upload URL from the backend...')
+    // setIsSaving(true)
+    // setStatusMessage('Requesting a secure upload URL from the backend...')
 
     try {
-      const upload = await requestUploadUrl({
-        upload_type: 'master_resume',
-        filename: selectedFile.name,
-        content_type: selectedFile.type || 'application/octet-stream',
-      })
+      // const upload = await requestUploadUrl({
+      //   upload_type: 'master_resume',
+      //   filename: selectedFile.name,
+      //   content_type: selectedFile.type || 'application/octet-stream',
+      // })
 
-      await uploadFileToPresignedUrl(upload.upload_url, selectedFile, upload.headers)
-      setStatusMessage('Upload complete. Parsing your master resume...')
+      // await uploadFileToPresignedUrl(upload.upload_url, selectedFile, upload.headers)
+      // setStatusMessage('Upload complete. Parsing your master resume...')
 
-      const parseJob = await uploadMasterResume(upload.object_key)
-      const job = await waitForJob(parseJob.job_id)
-      if (job.status === 'failed') {
-        throw new Error(job.error || 'The master resume parse job failed.')
-      }
+      // const parseJob = await uploadMasterResume(upload.object_key)
+      // const job = await waitForJob(parseJob.job_id)
+      // if (job.status === 'failed') {
+      //   throw new Error(job.error || 'The master resume parse job failed.')
+      // }
 
-      const master = await getMasterResume()
-      if (!master.exists || !master.document) {
-        throw new Error('The worker completed, but no master resume JSON was returned.')
-      }
+      // const master = await getMasterResume()
+      // if (!master.exists || !master.document) {
+      //   throw new Error('The worker completed, but no master resume JSON was returned.')
+      // }
 
-      setMasterResume(master.document)
-      setDraftResume(master.document)
-      setStatusMessage('Success! Moving to configuration.')
-      navigate('/config')
+      // setMasterResume(master.document)
+      // setDraftResume(master.document)
+      // setStatusMessage('Success! Moving to configuration.')
+      setMasterResume(mockMasterResume)
+      setDraftResume(mockDraftResume)
+      onNext();
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : 'Unable to upload the master resume.')
     } finally {
@@ -264,7 +266,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
           </button>
           <button
             className="button button--primary"
-            disabled={!selectedFile || isSaving}
+            disabled={isSaving}
             onClick={() => void handleProceed()}
             type="button"
           >
