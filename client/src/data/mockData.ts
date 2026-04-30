@@ -94,10 +94,10 @@ export const providerCards = [
   },
   {
     name: 'Google Gemini',
-    model: 'Gemini 1.5 Pro',
+    model: 'Gemini 3.1 Flash Lite',
     description:
-      'Massive context window ideal for batch processing hundreds of resumes simultaneously.',
-    badges: ['Large context'],
+      'High-throughput engine optimized for speed and parallel resume processing.',
+    badges: ['High Speed', 'Large context'],
     selected: false,
   },
 ]

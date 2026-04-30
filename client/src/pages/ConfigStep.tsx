@@ -36,8 +36,10 @@ const modelMappings: Record<string, { label: string; value: string }[]> = {
     { label: 'Claude 3 Opus (Creative)', value: 'anthropic/claude-3-opus-20240229' },
   ],
   'Google Gemini': [
-    { label: 'Gemini 1.5 Pro (Advanced)', value: 'gemini/gemini-1.5-pro' },
-    { label: 'Gemini 1.5 Flash (Instant)', value: 'gemini/gemini-1.5-flash' },
+    { label: 'Gemini 3.1 Flash Lite (Best throughput + RPM)', value: 'gemini/gemini-3.1-flash-lite' },
+    { label: 'Gemini 2.5 Flash Lite (High TPM, decent RPM)', value: 'gemini/gemini-2.5-flash-lite' },
+    { label: 'Gemini 3 Flash (High TPM bottleneck)', value: 'gemini/gemini-3-flash' },
+    { label: 'Gemini 2.5 Flash (Older version)', value: 'gemini/gemini-2.5-flash' },
   ],
 }
 

@@ -54,16 +54,24 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     void (async () => {
       try {
         const response = await getMasterResume()
+        console.log(response)
         if (response.exists && response.document) {
           setMasterResume(response.document)
           setDraftResume(response.document)
           setStatusMessage('Loaded your existing master resume from the backend.')
+        } else {
+          setMasterResume(null)
+          setDraftResume(null)
+          setStatusMessage('Signed in successfully. Upload a master resume to start tailoring.')
         }
-      } catch {
-        setStatusMessage('Signed in successfully. Upload a master resume to start tailoring.')
+      } catch (error) {
+        setMasterResume(null)
+        setDraftResume(null)
+        setStatusMessage('Failed to connect to backend. Please upload your master resume.')
       }
     })()
-  }, [auth.status, setDraftResume, setMasterResume])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.status])
 
   function handleFilePick(fileList: FileList | null) {
     const nextFile = fileList?.[0]
@@ -84,40 +92,44 @@ function IngestionStep({ onNext }: IngestionStepProps) {
   const selectedModeData = savedModes.find((mode) => mode.value === selectedMode)
 
   async function handleProceed() {
-    // if (!selectedFile) {
-    //   setStatusMessage('Choose a DOCX, PDF, or TXT file before proceeding.')
-    //   return
-    // }
+    // If they already have a master resume and didn't select a new one, just proceed.
+    if (!selectedFile && masterResume) {
+      onNext()
+      return
+    }
 
-    // setIsSaving(true)
-    // setStatusMessage('Requesting a secure upload URL from the backend...')
+    if (!selectedFile) {
+      setStatusMessage('Choose a DOCX, PDF, or TXT file before proceeding.')
+      return
+    }
+
+    setIsSaving(true)
+    setStatusMessage('Requesting a secure upload URL from the backend...')
 
     try {
-      // const upload = await requestUploadUrl({
-      //   upload_type: 'master_resume',
-      //   filename: selectedFile.name,
-      //   content_type: selectedFile.type || 'application/octet-stream',
-      // })
+      const upload = await requestUploadUrl({
+        upload_type: 'master_resume',
+        filename: selectedFile.name,
+        content_type: selectedFile.type || 'application/octet-stream',
+      })
 
-      // await uploadFileToPresignedUrl(upload.upload_url, selectedFile, upload.headers)
-      // setStatusMessage('Upload complete. Parsing your master resume...')
+      await uploadFileToPresignedUrl(upload.upload_url, selectedFile, upload.headers)
+      setStatusMessage('Upload complete. Parsing your master resume...')
 
-      // const parseJob = await uploadMasterResume(upload.object_key)
-      // const job = await waitForJob(parseJob.job_id)
-      // if (job.status === 'failed') {
-      //   throw new Error(job.error || 'The master resume parse job failed.')
-      // }
+      const parseJob = await uploadMasterResume(upload.object_key)
+      const job = await waitForJob(parseJob.job_id)
+      if (job.status === 'failed') {
+        throw new Error(job.error || 'The master resume parse job failed.')
+      }
 
-      // const master = await getMasterResume()
-      // if (!master.exists || !master.document) {
-      //   throw new Error('The worker completed, but no master resume JSON was returned.')
-      // }
+      const master = await getMasterResume()
+      if (!master.exists || !master.document) {
+        throw new Error('The worker completed, but no master resume JSON was returned.')
+      }
 
-      // setMasterResume(master.document)
-      // setDraftResume(master.document)
-      // setStatusMessage('Success! Moving to configuration.')
-      setMasterResume(mockMasterResume)
-      setDraftResume(mockDraftResume)
+      setMasterResume(master.document)
+      setDraftResume(master.document)
+      setStatusMessage('Success! Moving to configuration.')
       onNext();
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : 'Unable to upload the master resume.')
@@ -238,6 +250,18 @@ function IngestionStep({ onNext }: IngestionStepProps) {
                     </button>
                   </div>
                 </article>
+              ) : masterResume ? (
+                <article className="queue-item" style={{ borderColor: 'var(--color-success)', background: 'rgba(15, 157, 108, 0.05)' }}>
+                  <div className="queue-item__meta">
+                    <div className="queue-item__icon" style={{ color: 'var(--color-success)' }}>
+                      <FontAwesomeIcon icon={faFileLines} />
+                    </div>
+                    <div>
+                      <h3>Stored Master Resume</h3>
+                      <p>Loaded from your account / Ready</p>
+                    </div>
+                  </div>
+                </article>
               ) : (
                 <p className="section-copy text-muted">No file selected yet.</p>
               )}
@@ -245,8 +269,8 @@ function IngestionStep({ onNext }: IngestionStepProps) {
           </div>
 
           <div className="auth-note">
-            {masterResume
-              ? 'Master resume loaded from your account and ready for generation.'
+            {masterResume && !selectedFile
+              ? 'Upload a new file above if you wish to overwrite your existing master resume.'
               : statusMessage}
           </div>
         </SectionCard>
