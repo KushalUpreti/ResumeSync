@@ -13,6 +13,8 @@ RUN adduser --disabled-password --gecos "" appuser
 COPY pyproject.toml ./
 COPY app ./app
 
+RUN chown -R appuser:appuser /app
+
 RUN pip install --upgrade pip && pip install .
 
 USER appuser
