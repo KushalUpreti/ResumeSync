@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -8,7 +8,7 @@ import {
   faWandMagicSparkles,
 } from '@fortawesome/free-solid-svg-icons'
 import { useLocation } from 'react-router-dom'
-import { commitResume, rewritePreview } from '../api/resumeSync'
+import { commitResume, createGenerateJob, getResume, rewritePreview, waitForJob } from '../api/resumeSync'
 import SectionCard from '../components/SectionCard'
 import ResumeSheet from '../components/ResumeSheet'
 import { useWorkspace } from '../context/useWorkspace'
@@ -33,10 +33,9 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
     masterResume,
     selectedTemplateId,
     setDraftResume,
-    setMasterResume,
     setGeneratedResume,
     setLastGenerateJob,
-    setTailoringMode,
+    lastGenerateJob,
     tailoringMode,
     targetCompany,
     targetRole,
@@ -49,18 +48,36 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
     return match?.[1] ?? null
   }
 
-  function buildDraftFromMaster(document: ResumeDocument, resumeId: string) {
-    return {
-      ...document,
-      resume_id: resumeId,
-      metadata: {
-        ...(document.metadata ?? {}),
-        target_role: targetRole,
-        target_company: targetCompany,
-        job_description: jobDescription,
-      },
+  // Poll for the generation job if it was started in the previous step
+  useEffect(() => {
+    if (lastGenerateJob && lastGenerateJob.status !== 'complete' && lastGenerateJob.status !== 'failed') {
+      void (async () => {
+        setIsGenerating(true)
+        setRewriteStatus('Finalizing your tailored resume...')
+        try {
+          const finalJob = await waitForJob(lastGenerateJob.job_id)
+          setLastGenerateJob(finalJob)
+
+          if (finalJob.status === 'failed') {
+            throw new Error(finalJob.error || 'The tailoring job failed.')
+          }
+
+          const newResumeId = deriveResumeIdFromJsonKey(finalJob.output_json_key)
+          if (newResumeId) {
+            const tailoredDoc = await getResume(newResumeId)
+            setGeneratedResume(newResumeId, finalJob.output_json_key)
+            setDraftResume(tailoredDoc)
+            setRewriteStatus('Tailoring complete.')
+          }
+        } catch (error) {
+          setRewriteStatus(error instanceof Error ? error.message : 'Unable to load tailored resume.')
+        } finally {
+          setIsGenerating(false)
+        }
+      })()
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastGenerateJob?.job_id, lastGenerateJob?.status])
 
   async function handleGenerateDraft() {
     if (!masterResume) {
@@ -69,10 +86,10 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
     }
 
     setIsGenerating(true)
-    setRewriteStatus('Submitting a generate job to the backend...')
+    setRewriteStatus('Submitting a new tailoring job...')
 
     try {
-      const job = await import('../api/resumeSync').then(({ createGenerateJob }) => createGenerateJob({
+      const job = await createGenerateJob({
         job_type: 'generate',
         mode: tailoringMode,
         source_type: 'master',
@@ -80,9 +97,9 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
         target_role: targetRole || null,
         target_company: targetCompany || null,
         job_description: jobDescription || null,
-      }))
+      })
 
-      const finalJob = await import('../api/resumeSync').then(({ waitForJob }) => waitForJob(job.job_id))
+      const finalJob = await waitForJob(job.job_id)
       setLastGenerateJob(finalJob)
       if (finalJob.status === 'failed') {
         throw new Error(finalJob.error || 'The generation job failed.')
@@ -93,8 +110,9 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
         throw new Error('Invalid resume key returned.')
       }
 
+      const tailoredDoc = await getResume(newResumeId)
       setGeneratedResume(newResumeId, finalJob.output_json_key)
-      setDraftResume(buildDraftFromMaster(masterResume, newResumeId))
+      setDraftResume(tailoredDoc)
       setRewriteStatus('Tailoring complete.')
     } catch (error) {
       setRewriteStatus(error instanceof Error ? error.message : 'Unable to tailor.')

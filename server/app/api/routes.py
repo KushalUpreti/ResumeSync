@@ -108,6 +108,23 @@ def rewrite_preview(
     return RewritePreviewResponse(rewritten_text=rewritten)
 
 
+@router.get("/resume/{resume_id}", response_model=ResumeDocument)
+def get_resume(
+    resume_id: str,
+    user: UserContext = Depends(get_user_context),
+    services: ServiceContainer = Depends(get_services),
+) -> ResumeDocument:
+    actor_id = user.user_id or user.session_id
+    is_session = not bool(user.user_id)
+
+    key = resume_json_key(actor_id, resume_id, is_session)
+    if not services.object_store.exists(key):
+        raise HTTPException(status_code=404, detail="Resume JSON not found.")
+
+    document_data = services.object_store.get_json(key)
+    return ResumeDocument.model_validate(document_data)
+
+
 @router.post("/resume/{resume_id}/commit", response_model=CreateJobResponse, status_code=status.HTTP_202_ACCEPTED)
 def commit_resume(
     resume_id: str,

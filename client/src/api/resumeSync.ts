@@ -56,6 +56,11 @@ export async function getMasterResume() {
   return response.data
 }
 
+export async function getResume(resumeId: string) {
+  const response = await apiClient.get<ResumeDocument>(`/resume/${resumeId}`)
+  return response.data
+}
+
 export async function rewritePreview(payload: RewritePreviewRequest) {
   const response = await apiClient.post<RewritePreviewResponse>('/rewrite/preview', payload)
   return response.data

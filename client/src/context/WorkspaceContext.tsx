@@ -30,14 +30,23 @@ function WorkspaceProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      return { ...initialState, ...(JSON.parse(stored) as Partial<WorkspaceState>) }
+      const parsed = JSON.parse(stored) as Partial<WorkspaceState>
+      return {
+        ...initialState,
+        ...parsed,
+        masterResume: null,
+        draftResume: null
+      }
     } catch {
       return initialState
     }
   })
 
   useEffect(() => {
-    window.sessionStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(state))
+    // We persist the UI state (mode, template, etc.) but NOT the resume documents themselves.
+    // This forces the app to always sync with S3 on a page reload.
+    const { masterResume, draftResume, ...persistentState } = state
+    window.sessionStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(persistentState))
   }, [state])
 
   const value = useMemo<WorkspaceContextValue>(
