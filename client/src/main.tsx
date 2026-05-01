@@ -5,15 +5,20 @@ import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from './context/AuthContext'
 import { WorkspaceProvider } from './context/WorkspaceContext'
+import { NotificationProvider } from './context/NotificationContext'
+import NotificationStack from './components/NotificationStack'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <WorkspaceProvider>
-          <App />
-        </WorkspaceProvider>
-      </AuthProvider>
+      <NotificationProvider>
+        <AuthProvider>
+          <WorkspaceProvider>
+            <NotificationStack />
+            <App />
+          </WorkspaceProvider>
+        </AuthProvider>
+      </NotificationProvider>
     </BrowserRouter>
   </StrictMode>,
 )

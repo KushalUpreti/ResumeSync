@@ -9,6 +9,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { useLocation } from 'react-router-dom'
 import { commitResume, createGenerateJob, getResume, rewritePreview, waitForJob } from '../api/resumeSync'
+import { useNotification } from '../context/useNotification'
 import SectionCard from '../components/SectionCard'
 import ResumeSheet from '../components/ResumeSheet'
 import { useWorkspace } from '../context/useWorkspace'
@@ -21,6 +22,7 @@ type ReviewStepProps = {
 }
 
 function ReviewStep({ onNext, onBack }: ReviewStepProps) {
+  const { addNotification } = useNotification()
   const [rewriteInstruction, setRewriteInstruction] = useState('make more impactful')
   const [rewriteStatus, setRewriteStatus] = useState('')
   const [isRewriting, setIsRewriting] = useState(false)
@@ -70,7 +72,11 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
             setRewriteStatus('Tailoring complete.')
           }
         } catch (error) {
-          setRewriteStatus(error instanceof Error ? error.message : 'Unable to load tailored resume.')
+          addNotification({
+            type: 'error',
+            message: 'Tailoring Failed',
+            description: error instanceof Error ? error.message : 'Unable to load tailored resume.'
+          })
         } finally {
           setIsGenerating(false)
         }
@@ -113,9 +119,17 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
       const tailoredDoc = await getResume(newResumeId)
       setGeneratedResume(newResumeId, finalJob.output_json_key)
       setDraftResume(tailoredDoc)
-      setRewriteStatus('Tailoring complete.')
+      addNotification({
+        type: 'success',
+        message: 'Tailoring Complete',
+        description: 'Your resume has been successfully tailored for the target role.'
+      })
     } catch (error) {
-      setRewriteStatus(error instanceof Error ? error.message : 'Unable to tailor.')
+      addNotification({
+        type: 'error',
+        message: 'Generation Failed',
+        description: error instanceof Error ? error.message : 'Unable to tailor.'
+      })
     } finally {
       setIsGenerating(false)
     }

@@ -14,6 +14,7 @@ import { getMasterResume, requestUploadUrl, uploadFileToPresignedUrl, uploadMast
 import SectionCard from '../components/SectionCard'
 import { useAuth } from '../context/useAuth'
 import { useWorkspace } from '../context/useWorkspace'
+import { useNotification } from '../context/useNotification'
 import { flowSteps, mockDraftResume, mockMasterResume } from '../data/mockData'
 
 type IngestionStepProps = {
@@ -34,6 +35,7 @@ const savedModes = [
 ]
 
 function IngestionStep({ onNext }: IngestionStepProps) {
+  const { addNotification } = useNotification()
   const location = useLocation()
   const { auth } = useAuth()
   const { masterResume, setDraftResume, setMasterResume } = useWorkspace()
@@ -67,7 +69,11 @@ function IngestionStep({ onNext }: IngestionStepProps) {
       } catch (error) {
         setMasterResume(null)
         setDraftResume(null)
-        setStatusMessage('Failed to connect to backend. Please upload your master resume.')
+        addNotification({
+          type: 'error',
+          message: 'Connection Failed',
+          description: 'We couldn\'t fetch your stored resume. Please upload a file to continue.'
+        })
       }
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -99,7 +105,11 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     }
 
     if (!selectedFile) {
-      setStatusMessage('Choose a DOCX, PDF, or TXT file before proceeding.')
+      addNotification({
+        type: 'warning',
+        message: 'No File Selected',
+        description: 'Choose a DOCX, PDF, or TXT file before proceeding to the configuration step.'
+      })
       return
     }
 
@@ -132,7 +142,11 @@ function IngestionStep({ onNext }: IngestionStepProps) {
       setStatusMessage('Success! Moving to configuration.')
       onNext();
     } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : 'Unable to upload the master resume.')
+      addNotification({
+        type: 'error',
+        message: 'Upload Failed',
+        description: error instanceof Error ? error.message : 'Unable to upload the master resume.'
+      })
     } finally {
       setIsSaving(false)
     }
