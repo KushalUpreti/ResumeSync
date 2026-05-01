@@ -63,10 +63,6 @@
         {
           "name": "RESUMESYNC_COGNITO_APP_CLIENT_ID",
           "value": "4t01t8aev928ju9vqaj8evl6jg"
-        },
-        {
-          "name": "RESUMESYNC_DATA_ROOT",
-          "value": "/tmp/resumesync-data"
         }
       ],
       "logConfiguration": {
