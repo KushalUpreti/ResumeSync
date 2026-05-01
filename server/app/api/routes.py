@@ -24,7 +24,7 @@ from app.models.jobs import (
     UploadUrlRequest,
     UploadUrlResponse,
 )
-from app.models.resume import CommitResumeRequest, MasterResumeResponse, RewritePreviewRequest, RewritePreviewResponse, RewriteResumeRequest
+from app.models.resume import CommitResumeRequest, MasterResumeResponse, ResumeDocument, RewritePreviewRequest, RewritePreviewResponse, RewriteResumeRequest
 from app.services.container import ServiceContainer
 
 router = APIRouter()
