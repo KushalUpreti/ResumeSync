@@ -8,3 +8,5 @@ TODO:
 - Add pdf/word support for ingestion.
 - Add error notifications.
 - Add success/failure indicators throughout the app. 
+- Generated resumes should be editable and the user can make changes to them and save them. 
+- 
