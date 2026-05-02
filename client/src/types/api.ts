@@ -39,6 +39,12 @@ export type CreateJobResponse = {
   status: JobState['status']
 }
 
+export type MasterResumeUploadRequest = {
+  input_s3_key: string
+  filename: string
+  content_type?: string | null
+}
+
 export type RewritePreviewRequest = {
   text: string
   instruction: string

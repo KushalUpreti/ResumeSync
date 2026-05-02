@@ -4,7 +4,6 @@ import type { AuthState, AuthView } from '../context/authTypes'
 type AppHeaderProps = {
   auth: AuthState
   onOpenAuthModal: (view: AuthView) => void
-  onOpenAIConfig: () => void
   onSignOut: () => void
 }
 

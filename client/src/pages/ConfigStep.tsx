@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faBrain,
@@ -8,15 +8,10 @@ import {
   faMemory,
   faMicrochip,
   faPlus,
-  faSpinner,
 } from '@fortawesome/free-solid-svg-icons'
-import { useLocation } from 'react-router-dom'
-import { createGenerateJob, waitForJob } from '../api/resumeSync'
 import SectionCard from '../components/SectionCard'
-import { useAuth } from '../context/useAuth'
-import { useWorkspace } from '../context/useWorkspace'
-import { flowSteps, providerCards } from '../data/mockData'
-import type { ResumeDocument } from '../types/resume'
+import { useNotification } from '../context/useNotification'
+import { providerCards } from '../data/mockData'
 
 const providerIconMap = {
   OpenAI: faBrain,
@@ -48,40 +43,16 @@ type ConfigStepProps = {
   onBack: () => void
 }
 
-function ConfigStep({ onNext, onBack }: ConfigStepProps) {
-  const location = useLocation()
-  const { auth, openAuthModal } = useAuth()
-  const {
-    masterResume,
-    selectedTemplateId,
-    setDraftResume,
-    setGeneratedResume,
-    setLastGenerateJob,
-    setTailoringMode,
-    setTargetCompany,
-    setTargetRole,
-    setJobDescription,
-    tailoringMode,
-    targetCompany,
-    targetRole,
-    jobDescription,
-  } = useWorkspace()
+function ConfigStep({ onNext }: ConfigStepProps) {
+  const { addNotification } = useNotification()
   const [showApiKey, setShowApiKey] = useState(false)
-  const [selectedProvider, setSelectedProvider] = useState('OpenAI')
-  const [apiKey, setApiKey] = useState('')
-  const [selectedModel, setSelectedModel] = useState('gpt-4o')
-  const [temperature, setTemperature] = useState(0.7)
-  const [jobStatus, setJobStatus] = useState('')
-  const [isGenerating, setIsGenerating] = useState(false)
-
-  useEffect(() => {
+  const [selectedProvider, setSelectedProvider] = useState(() => localStorage.getItem('ai_provider_display') || 'OpenAI')
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('ai_api_key') || '')
+  const [selectedModel, setSelectedModel] = useState(() => {
     const savedProvider = localStorage.getItem('ai_provider_display') || 'OpenAI'
-    const savedKey = localStorage.getItem('ai_api_key') || ''
-    const savedModel = localStorage.getItem('ai_model') || modelMappings[savedProvider][0].value
-    setSelectedProvider(savedProvider)
-    setApiKey(savedKey)
-    setSelectedModel(savedModel)
-  }, [])
+    return localStorage.getItem('ai_model') || modelMappings[savedProvider][0].value
+  })
+  const [temperature, setTemperature] = useState(0.7)
 
   const handleProviderChange = (providerName: string) => {
     setSelectedProvider(providerName)
@@ -108,42 +79,20 @@ function ConfigStep({ onNext, onBack }: ConfigStepProps) {
     localStorage.setItem('ai_api_key', value)
   }
 
-  function deriveResumeIdFromJsonKey(jsonKey: string | null) {
-    if (!jsonKey) {
-      return null
-    }
-
-    const match = jsonKey.match(/\/json\/([^/]+)\.json$/)
-    return match?.[1] ?? null
-  }
-
-  function buildDraftFromMaster(document: ResumeDocument, resumeId: string) {
-    return {
-      ...document,
-      resume_id: resumeId,
-      metadata: {
-        ...(document.metadata ?? {}),
-        target_role: targetRole,
-        target_company: targetCompany,
-        job_description: jobDescription,
-        selected_provider: selectedProvider,
-        selected_model: selectedModel,
-      },
-    }
-  }
-
   async function handleSaveConfig() {
     if (!apiKey) {
-      setJobStatus('Please provide an API key to proceed.')
+      addNotification({
+        type: 'warning',
+        message: 'Missing API Key',
+        description: 'Please provide an API key to proceed.'
+      })
       return
     }
-    setJobStatus('Configuration saved.')
     onNext()
   }
 
   return (
     <div className="page-stack">
-
 
       <section className="page-intro">
         <p className="eyebrow">Engine Configuration</p>
@@ -265,10 +214,13 @@ function ConfigStep({ onNext, onBack }: ConfigStepProps) {
             </div>
           </div>
 
-
           <div className="action-stack">
-            <button className="button button--primary button--full" onClick={() => void handleSaveConfig()} type="button">
-              Save & Start Ingestion &rarr;
+            <button
+              className="button button--primary button--full"
+              onClick={() => void handleSaveConfig()}
+              type="button"
+            >
+              Save Configuration &amp; Continue &rarr;
             </button>
           </div>
         </SectionCard>

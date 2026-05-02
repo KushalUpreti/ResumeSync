@@ -38,7 +38,7 @@ class JobStateStore(Protocol):
 
 
 class ResumeParser(Protocol):
-    def parse(self, source_bytes: bytes, filename: str = "", *, ai_provider: str | None = None, ai_model: str | None = None, ai_api_key: str | None = None) -> ResumeDocument: ...
+    def parse(self, source_bytes: bytes, filename: str = "", *, content_type: str | None = None, ai_provider: str | None = None, ai_model: str | None = None, ai_api_key: str | None = None) -> ResumeDocument: ...
 
 
 class ResumeTailor(Protocol):

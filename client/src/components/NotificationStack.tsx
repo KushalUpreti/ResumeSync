@@ -8,7 +8,6 @@ import {
   faXmark,
 } from '@fortawesome/free-solid-svg-icons'
 import { useNotification } from '../context/useNotification'
-import { type NotificationType } from '../context/notificationShared'
 
 const iconMap = {
   info: faCircleInfo,

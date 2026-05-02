@@ -73,6 +73,8 @@ class ParseMasterJobPayload(BaseModel):
     user_id: str | None = None
     session_id: str | None = None
     input_s3_key: str
+    filename: str
+    content_type: str | None = None
 
 
 class CommitJobPayload(BaseModel):
@@ -136,3 +138,5 @@ class RenderResumeRequest(BaseModel):
 
 class MasterResumeUploadRequest(BaseModel):
     input_s3_key: str
+    filename: str
+    content_type: str | None = None

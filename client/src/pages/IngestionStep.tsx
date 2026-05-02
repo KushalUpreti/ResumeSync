@@ -1,21 +1,17 @@
 import { useEffect, useRef, useState, type DragEvent } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
-  faCircleInfo,
   faFileArrowUp,
   faFileLines,
   faSpinner,
-  faTimeline,
   faWandMagicSparkles,
   faXmark,
 } from '@fortawesome/free-solid-svg-icons'
-import { useLocation } from 'react-router-dom'
-import { getMasterResume, requestUploadUrl, uploadFileToPresignedUrl, uploadMasterResume, waitForJob } from '../api/resumeSync'
+import { createGenerateJob, getMasterResume, requestUploadUrl, uploadFileToPresignedUrl, uploadMasterResume, waitForJob } from '../api/resumeSync'
 import SectionCard from '../components/SectionCard'
 import { useAuth } from '../context/useAuth'
 import { useWorkspace } from '../context/useWorkspace'
 import { useNotification } from '../context/useNotification'
-import { flowSteps, mockDraftResume, mockMasterResume } from '../data/mockData'
 
 type IngestionStepProps = {
   onNext: () => void
@@ -36,15 +32,13 @@ const savedModes = [
 
 function IngestionStep({ onNext }: IngestionStepProps) {
   const { addNotification } = useNotification()
-  const location = useLocation()
   const { auth } = useAuth()
-  const { masterResume, setDraftResume, setMasterResume } = useWorkspace()
+  const { masterResume, setDraftResume, setMasterResume, setLastGenerateJob, selectedTemplateId, tailoringMode, targetRole, targetCompany, jobDescription } = useWorkspace()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dragActive, setDragActive] = useState(false)
   const [selectedMode, setSelectedMode] = useState('general')
   const [details, setDetails] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [selectedFileName, setSelectedFileName] = useState('')
   const [statusMessage, setStatusMessage] = useState('Upload your master resume to unlock authenticated backend flows.')
   const [isSaving, setIsSaving] = useState(false)
 
@@ -66,7 +60,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
           setDraftResume(null)
           setStatusMessage('Signed in successfully. Upload a master resume to start tailoring.')
         }
-      } catch (error) {
+      } catch {
         setMasterResume(null)
         setDraftResume(null)
         addNotification({
@@ -86,7 +80,6 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     }
 
     setSelectedFile(nextFile)
-    setSelectedFileName(nextFile.name)
   }
 
   function handleDrop(event: DragEvent<HTMLLabelElement>) {
@@ -98,8 +91,27 @@ function IngestionStep({ onNext }: IngestionStepProps) {
   const selectedModeData = savedModes.find((mode) => mode.value === selectedMode)
 
   async function handleProceed() {
-    // If they already have a master resume and didn't select a new one, just proceed.
+    // If they already have a master resume and didn't select a new one, submit the job and proceed.
     if (!selectedFile && masterResume) {
+      try {
+        const job = await createGenerateJob({
+          job_type: 'generate',
+          mode: tailoringMode,
+          source_type: 'master',
+          template_id: selectedTemplateId,
+          target_role: targetRole || null,
+          target_company: targetCompany || null,
+          job_description: jobDescription || null,
+        })
+        setLastGenerateJob(job)
+      } catch (error) {
+        addNotification({
+          type: 'error',
+          message: 'Failed to Start Tailoring',
+          description: error instanceof Error ? error.message : 'Could not submit the generation job.'
+        })
+        return
+      }
       onNext()
       return
     }
@@ -126,7 +138,11 @@ function IngestionStep({ onNext }: IngestionStepProps) {
       await uploadFileToPresignedUrl(upload.upload_url, selectedFile, upload.headers)
       setStatusMessage('Upload complete. Parsing your master resume...')
 
-      const parseJob = await uploadMasterResume(upload.object_key)
+      const parseJob = await uploadMasterResume({
+        input_s3_key: upload.object_key,
+        filename: selectedFile.name,
+        content_type: selectedFile.type || null,
+      })
       const job = await waitForJob(parseJob.job_id)
       if (job.status === 'failed') {
         throw new Error(job.error || 'The master resume parse job failed.')
@@ -139,8 +155,19 @@ function IngestionStep({ onNext }: IngestionStepProps) {
 
       setMasterResume(master.document)
       setDraftResume(master.document)
-      setStatusMessage('Success! Moving to configuration.')
-      onNext();
+      setStatusMessage('Upload complete. Starting tailoring job...')
+
+      const generateJob = await createGenerateJob({
+        job_type: 'generate',
+        mode: tailoringMode,
+        source_type: 'master',
+        template_id: selectedTemplateId,
+        target_role: targetRole || null,
+        target_company: targetCompany || null,
+        job_description: jobDescription || null,
+      })
+      setLastGenerateJob(generateJob)
+      onNext()
     } catch (error) {
       addNotification({
         type: 'error',

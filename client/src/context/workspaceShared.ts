@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import type { JobState } from '../types/api'
+import type { CreateJobResponse, JobState } from '../types/api'
 import type { ResumeDocument } from '../types/resume'
 
 export type TailoringMode = 'polisher' | 'sniper'
@@ -14,7 +14,7 @@ export type WorkspaceState = {
   targetRole: string
   targetCompany: string
   jobDescription: string
-  lastGenerateJob: JobState | null
+  lastGenerateJob: JobState | CreateJobResponse | null
   lastRenderJob: JobState | null
 }
 
@@ -28,7 +28,7 @@ export type WorkspaceContextValue = WorkspaceState & {
   setTargetRole: (value: string) => void
   setTargetCompany: (value: string) => void
   setJobDescription: (value: string) => void
-  setLastGenerateJob: (job: JobState | null) => void
+  setLastGenerateJob: (job: JobState | CreateJobResponse | null) => void
   setLastRenderJob: (job: JobState | null) => void
 }
 

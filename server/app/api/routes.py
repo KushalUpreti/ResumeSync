@@ -216,6 +216,8 @@ def upload_master_resume(
         user_id=user.user_id,
         session_id=user.session_id,
         input_s3_key=request.input_s3_key,
+        filename=request.filename,
+        content_type=request.content_type,
     )
     envelope = JobEnvelope(payload=payload, ai_provider=x_ai_provider, ai_model=x_ai_model, ai_api_key=x_ai_api_key)
     state = JobState(job_id=envelope.job_id, status="pending")

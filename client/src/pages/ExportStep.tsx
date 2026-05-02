@@ -1,22 +1,21 @@
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
+  faArrowLeft,
   faFileArrowDown,
   faFilePdf,
   faSpinner,
 } from '@fortawesome/free-solid-svg-icons'
-import { useLocation } from 'react-router-dom'
 import { renderResume, waitForJob } from '../api/resumeSync'
 import TemplateCard from '../components/TemplateCard'
 import { useWorkspace } from '../context/useWorkspace'
-import { flowSteps, templates } from '../data/mockData'
+import { templates } from '../data/mockData'
 
 type ExportStepProps = {
   onBack: () => void
 }
 
 function ExportStep({ onBack }: ExportStepProps) {
-  const location = useLocation()
   const {
     generatedResumeId,
     lastRenderJob,
@@ -55,8 +54,6 @@ function ExportStep({ onBack }: ExportStepProps) {
 
   return (
     <div className="page-stack">
-
-
       <section className="page-intro page-intro--split">
         <div>
           <p className="eyebrow">Step 4 / Final Export</p>
@@ -67,6 +64,10 @@ function ExportStep({ onBack }: ExportStepProps) {
           </p>
         </div>
         <div className="page-intro__actions">
+          <button className="button button--ghost" onClick={onBack} type="button">
+            <FontAwesomeIcon icon={faArrowLeft} />
+            Back
+          </button>
           <button className="button button--ghost" onClick={() => void handleRender()} type="button">
             {isRendering ? <FontAwesomeIcon icon={faSpinner} spin /> : null}
             <FontAwesomeIcon icon={faFileArrowDown} />

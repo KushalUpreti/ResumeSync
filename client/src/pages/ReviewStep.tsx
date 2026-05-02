@@ -3,29 +3,21 @@ import { createPortal } from 'react-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faFloppyDisk,
-  faPlus,
   faSpinner,
-  faWandMagicSparkles,
 } from '@fortawesome/free-solid-svg-icons'
-import { useLocation } from 'react-router-dom'
-import { commitResume, createGenerateJob, getResume, rewritePreview, waitForJob } from '../api/resumeSync'
+import { commitResume, getResume, waitForJob } from '../api/resumeSync'
 import { useNotification } from '../context/useNotification'
 import SectionCard from '../components/SectionCard'
 import ResumeSheet from '../components/ResumeSheet'
 import { useWorkspace } from '../context/useWorkspace'
-import { mockDraftResume, mockMasterResume, strategicKeywords } from '../data/mockData'
-import type { ResumeDocument } from '../types/resume'
 
 type ReviewStepProps = {
   onNext: () => void
   onBack: () => void
 }
 
-function ReviewStep({ onNext, onBack }: ReviewStepProps) {
+function ReviewStep({ onNext }: ReviewStepProps) {
   const { addNotification } = useNotification()
-  const [rewriteInstruction, setRewriteInstruction] = useState('make more impactful')
-  const [rewriteStatus, setRewriteStatus] = useState('')
-  const [isRewriting, setIsRewriting] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -33,15 +25,10 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
     draftResume,
     generatedResumeId,
     masterResume,
-    selectedTemplateId,
     setDraftResume,
     setGeneratedResume,
     setLastGenerateJob,
     lastGenerateJob,
-    tailoringMode,
-    targetCompany,
-    targetRole,
-    jobDescription,
   } = useWorkspace()
 
   function deriveResumeIdFromJsonKey(jsonKey: string | null) {
@@ -55,7 +42,6 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
     if (lastGenerateJob && lastGenerateJob.status !== 'complete' && lastGenerateJob.status !== 'failed') {
       void (async () => {
         setIsGenerating(true)
-        setRewriteStatus('Finalizing your tailored resume...')
         try {
           const finalJob = await waitForJob(lastGenerateJob.job_id)
           setLastGenerateJob(finalJob)
@@ -64,12 +50,16 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
             throw new Error(finalJob.error || 'The tailoring job failed.')
           }
 
-          const newResumeId = deriveResumeIdFromJsonKey(finalJob.output_json_key)
+          const newResumeId = deriveResumeIdFromJsonKey(finalJob.output_s3_key)
           if (newResumeId) {
             const tailoredDoc = await getResume(newResumeId)
-            setGeneratedResume(newResumeId, finalJob.output_json_key)
+            setGeneratedResume(newResumeId, finalJob.output_s3_key)
             setDraftResume(tailoredDoc)
-            setRewriteStatus('Tailoring complete.')
+            addNotification({
+              type: 'success',
+              message: 'Tailoring Complete',
+              description: 'Your tailored resume is ready for review.'
+            })
           }
         } catch (error) {
           addNotification({
@@ -85,106 +75,34 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastGenerateJob?.job_id, lastGenerateJob?.status])
 
-  async function handleGenerateDraft() {
-    if (!masterResume) {
-      setRewriteStatus('Upload a master resume first.')
-      return
-    }
-
-    setIsGenerating(true)
-    setRewriteStatus('Submitting a new tailoring job...')
-
-    try {
-      const job = await createGenerateJob({
-        job_type: 'generate',
-        mode: tailoringMode,
-        source_type: 'master',
-        template_id: selectedTemplateId,
-        target_role: targetRole || null,
-        target_company: targetCompany || null,
-        job_description: jobDescription || null,
-      })
-
-      const finalJob = await waitForJob(job.job_id)
-      setLastGenerateJob(finalJob)
-      if (finalJob.status === 'failed') {
-        throw new Error(finalJob.error || 'The generation job failed.')
-      }
-
-      const newResumeId = deriveResumeIdFromJsonKey(finalJob.output_json_key)
-      if (!newResumeId) {
-        throw new Error('Invalid resume key returned.')
-      }
-
-      const tailoredDoc = await getResume(newResumeId)
-      setGeneratedResume(newResumeId, finalJob.output_json_key)
-      setDraftResume(tailoredDoc)
-      addNotification({
-        type: 'success',
-        message: 'Tailoring Complete',
-        description: 'Your resume has been successfully tailored for the target role.'
-      })
-    } catch (error) {
-      addNotification({
-        type: 'error',
-        message: 'Generation Failed',
-        description: error instanceof Error ? error.message : 'Unable to tailor.'
-      })
-    } finally {
-      setIsGenerating(false)
-    }
-  }
-
-  function handleLoadMockData() {
-    setMasterResume(mockMasterResume)
-    setDraftResume(mockDraftResume)
-    setGeneratedResume('mock-resume-id', 'mock/json/mock-resume-id.json')
-    setRewriteStatus('Loaded mock data for testing.')
-  }
-
-  async function handleSummaryRewrite() {
-    if (!draftResume?.summary) {
-      setRewriteStatus('Load or generate a draft first so there is something to rewrite.')
-      return
-    }
-
-    setIsRewriting(true)
-    setRewriteStatus('Asking the backend for a real-time rewrite preview...')
-    try {
-      const response = await rewritePreview({
-        text: draftResume.summary,
-        instruction: rewriteInstruction,
-        mode: tailoringMode,
-      })
-      setDraftResume({
-        ...draftResume,
-        summary: response.rewritten_text,
-      })
-      setRewriteStatus('Preview applied locally. Save the draft to persist it.')
-    } catch (error) {
-      setRewriteStatus(error instanceof Error ? error.message : 'Unable to rewrite the summary.')
-    } finally {
-      setIsRewriting(false)
-    }
-  }
-
   async function handleCommitDraft() {
     if (!generatedResumeId || !draftResume) {
-      setRewriteStatus('Generate a draft first so there is a backend resume id to commit to.')
+      addNotification({
+        type: 'warning',
+        message: 'Cannot Save',
+        description: 'You need a generated draft before you can save.'
+      })
       return
     }
 
     setIsSaving(true)
-    setRewriteStatus('Saving the full JSON draft back to the backend...')
     try {
       const commitJob = await commitResume(generatedResumeId, draftResume)
-      const finalJob = await import('../api/resumeSync').then(({ waitForJob }) => waitForJob(commitJob.job_id))
+      const finalJob = await waitForJob(commitJob.job_id)
       if (finalJob.status === 'failed') {
         throw new Error(finalJob.error || 'Commit failed.')
       }
-      setRewriteStatus('Draft committed successfully.')
+      addNotification({
+        type: 'success',
+        message: 'Draft Saved',
+        description: 'Your tailored resume has been committed to the backend.'
+      })
     } catch (error) {
-      setRewriteStatus(error instanceof Error ? error.message : 'Unable to commit the draft.')
+      addNotification({
+        type: 'error',
+        message: 'Save Failed',
+        description: error instanceof Error ? error.message : 'Unable to commit the draft.'
+      })
     } finally {
       setIsSaving(false)
     }
@@ -230,16 +148,6 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
             subtitle="AI enhanced for target role"
           />
 
-          <div className="review-section" style={{ marginTop: 'var(--space-6)' }}>
-            <p className="section-label">Strategic Keywords Added</p>
-            <div className="tag-row">
-              {strategicKeywords.map((keyword) => (
-                <span className="tag tag--soft-blue" key={keyword}>
-                  {keyword} <FontAwesomeIcon icon={faPlus} />
-                </span>
-              ))}
-            </div>
-          </div>
         </SectionCard>
       </div>
     </div>

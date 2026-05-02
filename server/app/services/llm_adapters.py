@@ -10,8 +10,8 @@ from app.models.resume import ResumeDocument, ExperienceEntry, RewriteTarget
 from app.services.interfaces import ResumeParser, ResumeTailor
 
 class LLMResumeParser(ResumeParser):
-    def parse(self, source_bytes: bytes, filename: str = "", *, ai_provider: str | None = None, ai_model: str | None = None, ai_api_key: str | None = None) -> ResumeDocument:
-        raw_text = self._extract_text(source_bytes, filename)
+    def parse(self, source_bytes: bytes, filename: str = "", *, content_type: str | None = None, ai_provider: str | None = None, ai_model: str | None = None, ai_api_key: str | None = None) -> ResumeDocument:
+        raw_text = self._extract_text(source_bytes, filename, content_type)
         
         prompt = f"""Extract the professional experience, skills, and summary from the following raw resume text and return it strictly as a JSON object matching this schema:
 {{
@@ -48,11 +48,14 @@ RAW RESUME TEXT:
             metadata={"source": filename, "parsed_by": "llm"}
         )
 
-    def _extract_text(self, source_bytes: bytes, filename: str) -> str:
-        if filename.lower().endswith(".pdf"):
+    def _extract_text(self, source_bytes: bytes, filename: str, content_type: str | None = None) -> str:
+        lower_name = filename.lower()
+        lower_type = (content_type or "").lower()
+
+        if lower_name.endswith(".pdf") or lower_type == "application/pdf":
             reader = PdfReader(io.BytesIO(source_bytes))
             return "\n".join([page.extract_text() for page in reader.pages])
-        elif filename.lower().endswith(".docx"):
+        elif lower_name.endswith(".docx") or lower_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
             doc = Document(io.BytesIO(source_bytes))
             return "\n".join([p.text for p in doc.paragraphs])
         else:

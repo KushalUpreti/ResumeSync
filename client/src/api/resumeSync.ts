@@ -5,6 +5,7 @@ import type {
   CreateJobResponse,
   JobState,
   MasterResumeResponse,
+  MasterResumeUploadRequest,
   RenderResumeRequest,
   RewritePreviewRequest,
   RewritePreviewResponse,
@@ -44,9 +45,11 @@ export async function waitForJob(jobId: string, intervalMs = 2500) {
   }
 }
 
-export async function uploadMasterResume(inputS3Key: string) {
+export async function uploadMasterResume(payload: MasterResumeUploadRequest) {
   const response = await apiClient.post<CreateJobResponse>('/master-resume', {
-    input_s3_key: inputS3Key,
+    input_s3_key: payload.input_s3_key,
+    filename: payload.filename,
+    content_type: payload.content_type ?? null,
   })
   return response.data
 }

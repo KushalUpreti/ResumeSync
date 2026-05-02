@@ -1,5 +1,3 @@
-import { Link } from 'react-router-dom'
-
 export type FlowStep = {
   label: string
   step: number

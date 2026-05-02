@@ -93,7 +93,7 @@ class S3BackedJobStateStore(JobStateStore):
 
 
 class LocalResumeParser(ResumeParser):
-    def parse(self, source_bytes: bytes, filename: str = "", *, ai_provider: str | None = None, ai_api_key: str | None = None) -> ResumeDocument:
+    def parse(self, source_bytes: bytes, filename: str = "", *, content_type: str | None = None, ai_provider: str | None = None, ai_api_key: str | None = None) -> ResumeDocument:
         text = source_bytes.decode("utf-8", errors="ignore").strip()
         summary = text.splitlines()[0] if text else "Imported resume"
         bullets = [line.strip("- ").strip() for line in text.splitlines()[1:4] if line.strip()]

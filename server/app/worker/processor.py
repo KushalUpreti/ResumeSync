@@ -105,7 +105,14 @@ class JobProcessor:
 
     def _handle_parse_master(self, payload: ParseMasterJobPayload, ai_provider: str | None, ai_model: str | None, ai_api_key: str | None) -> str:
         source_bytes = self.services.object_store.get_bytes(payload.input_s3_key)
-        document = self.services.parser.parse(source_bytes, ai_provider=ai_provider, ai_model=ai_model, ai_api_key=ai_api_key)
+        document = self.services.parser.parse(
+            source_bytes,
+            filename=payload.filename,
+            content_type=payload.content_type,
+            ai_provider=ai_provider,
+            ai_model=ai_model,
+            ai_api_key=ai_api_key,
+        )
         actor_id, is_session = self._get_actor(payload)
         key = master_resume_key(actor_id, is_session)
         self.services.object_store.put_json(key, document.model_dump(mode="json"))
