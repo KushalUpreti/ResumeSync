@@ -29,6 +29,7 @@ export type CreateGenerateJobRequest = {
   template_id: string
   source_json_key?: string | null
   input_s3_key?: string | null
+  source_notes?: string | null
   target_role?: string | null
   target_company?: string | null
   job_description?: string | null

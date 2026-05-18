@@ -81,35 +81,11 @@ RAW RESUME TEXT:
 
 class LLMResumeTailor(ResumeTailor):
     def tailor(self, document: ResumeDocument, *, mode: str, context: dict[str, str | None], ai_provider: str | None = None, ai_model: str | None = None, ai_api_key: str | None = None) -> ResumeDocument:
-        job_desc = context.get("job_description", "")
-        role = context.get("target_role", "")
-        company = context.get("target_company", "")
-        
-        system_prompt = "You are an expert resume writer and ATS optimization specialist."
-        user_prompt = f"""Rewrite the following resume to better align with the job description for a {role} at {company}.
-Mode: {mode} (polisher = subtle improvements, sniper = aggressive alignment)
-
-Return the updated resume strictly as a JSON object matching this schema:
-{{
-  "summary": "...",
-  "experience": [{{"company": "...", "role": "...", "bullets": ["...", "..."]}}],
-  "skills": ["...", "..."]
-}}
-
-Only output the JSON.
-
-JOB DESCRIPTION:
-{job_desc}
-
-RESUME JSON:
-{document.model_dump_json()}"""
+        prompt = self._build_prompt(document, mode=mode, context=context)
 
         response = litellm.completion(
             model=self._get_model(ai_provider, ai_model),
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
+            messages=prompt,
             api_key=ai_api_key,
             response_format={ "type": "json_object" } if ai_provider == "openai" else None
         )
@@ -122,6 +98,90 @@ RESUME JSON:
             skills=data.get("skills", document.skills),
             metadata={**document.metadata, "mode": mode, "tailored": "true"}
         )
+
+    def _build_prompt(self, document: ResumeDocument, *, mode: str, context: dict[str, str | None]) -> list[dict[str, str]]:
+        role = (context.get("target_role") or "").strip()
+        company = (context.get("target_company") or "").strip()
+        job_desc = (context.get("job_description") or "").strip()
+        source_notes = (context.get("source_notes") or "").strip()
+
+        target_line = "the target role"
+        if role and company:
+            target_line = f"{role} at {company}"
+        elif role:
+            target_line = role
+        elif company:
+            target_line = f"a role at {company}"
+
+        schema = """Return the updated resume strictly as a JSON object matching this schema:
+{
+  "summary": "...",
+  "experience": [{"company": "...", "role": "...", "bullets": ["...", "..."]}],
+  "skills": ["...", "..."]
+}
+
+Only output the JSON. Do not include markdown, explanations, or extra keys.
+"""
+
+        if mode == "sniper":
+            system_prompt = (
+                "You are an aggressive ATS resume strategist. "
+                "Your job is to maximize relevance for the target role while staying truthful."
+            )
+            user_prompt = f"""Rewrite the resume for {target_line}.
+Mode: sniper
+
+Use the provided job description and source notes to prioritize the most relevant experience, verbs, and keywords.
+Rules:
+- Make the summary sharp, targeted, and outcome-oriented.
+- Reorder and rewrite bullets to match the target role more aggressively.
+- Surface skills that directly support the target role and job description.
+- Keep the content truthful and grounded in the source material.
+- If source notes add relevant context, weave them into the most appropriate experience section.
+- Favor alignment and keyword density over broad generality.
+
+{schema}
+
+JOB DESCRIPTION:
+{job_desc or "Not provided"}
+
+SOURCE NOTES:
+{source_notes or "Not provided"}
+
+RESUME JSON:
+{document.model_dump_json()}"""
+        else:
+            system_prompt = (
+                "You are a careful resume editor who improves clarity, completeness, and professional tone. "
+                "Your job is to preserve the candidate's broader story while making it stronger and cleaner."
+            )
+            user_prompt = f"""Rewrite the resume for {target_line}.
+Mode: general
+
+Use the provided notes as supporting context, but do not over-optimize or narrow the resume too much.
+Rules:
+- Keep the resume balanced and broadly applicable.
+- Improve clarity, structure, and impact without making it feel overly targeted.
+- Preserve a wide view of the candidate's experience and skills.
+- If source notes add meaningful accomplishments or context, incorporate them naturally.
+- Use the job description as guidance only when it clearly improves relevance.
+- Avoid inventing details or stretching experience beyond what is supported.
+
+{schema}
+
+JOB DESCRIPTION:
+{job_desc or "Not provided"}
+
+SOURCE NOTES:
+{source_notes or "Not provided"}
+
+RESUME JSON:
+{document.model_dump_json()}"""
+
+        return [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
 
     def rewrite_text(self, text: str, *, instruction: str, mode: str, ai_provider: str | None = None, ai_model: str | None = None, ai_api_key: str | None = None) -> str:
         prompt = f"Rewrite this text based on the instruction. Return ONLY the rewritten text, no quotes or explanation.\nInstruction: {instruction}\nText: {text}"

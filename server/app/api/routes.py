@@ -66,6 +66,7 @@ def create_generate_job(
         source_type=request.source_type,
         source_json_key=request.source_json_key,
         input_s3_key=request.input_s3_key,
+        source_notes=request.source_notes,
         output_json_key=resume_json_key(actor_id, new_resume_id, is_session),
         template_id=request.template_id,
         user_id=user.user_id,

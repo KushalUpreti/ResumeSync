@@ -62,6 +62,7 @@ class JobProcessor:
             base_document,
             mode=payload.mode,
             context={
+                "source_notes": payload.source_notes,
                 "target_role": payload.target_role,
                 "target_company": payload.target_company,
                 "job_description": payload.job_description,

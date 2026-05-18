@@ -21,22 +21,26 @@ const savedModes = [
   {
     value: 'general',
     label: 'General',
-    description: 'General mode analyzes your entire history.',
+    description: 'Build a balanced master resume that keeps the full career story intact.',
   },
   {
-    value: 'job-targeting',
-    label: 'Job-Targeting',
-    description: 'Job-Targeting prioritizes relevance for a specific role.',
+    value: 'sniper',
+    label: 'Sniper',
+    description: 'Sharpen the resume toward the target role with stronger keyword and relevance matching.',
   },
-]
+] as const
+
+type SavedModeValue = (typeof savedModes)[number]['value']
 
 function IngestionStep({ onNext }: IngestionStepProps) {
   const { addNotification } = useNotification()
   const { auth } = useAuth()
-  const { masterResume, setDraftResume, setMasterResume, setLastGenerateJob, selectedTemplateId, tailoringMode, targetRole, targetCompany, jobDescription } = useWorkspace()
+  const { masterResume, setDraftResume, setMasterResume, setLastGenerateJob, setTailoringMode, selectedTemplateId, tailoringMode, targetRole, targetCompany, jobDescription } = useWorkspace()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dragActive, setDragActive] = useState(false)
-  const [selectedMode, setSelectedMode] = useState('general')
+  const [selectedMode, setSelectedMode] = useState<SavedModeValue>(
+    tailoringMode === 'sniper' ? 'sniper' : 'general',
+  )
   const [details, setDetails] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [statusMessage, setStatusMessage] = useState('Upload your master resume to unlock authenticated backend flows.')
@@ -82,6 +86,11 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     setSelectedFile(nextFile)
   }
 
+  function handleModeChange(mode: SavedModeValue) {
+    setSelectedMode(mode)
+    setTailoringMode(mode === 'sniper' ? 'sniper' : 'polisher')
+  }
+
   function handleDrop(event: DragEvent<HTMLLabelElement>) {
     event.preventDefault()
     setDragActive(false)
@@ -99,6 +108,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
           mode: tailoringMode,
           source_type: 'master',
           template_id: selectedTemplateId,
+          source_notes: details.trim() || null,
           target_role: targetRole || null,
           target_company: targetCompany || null,
           job_description: jobDescription || null,
@@ -162,6 +172,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
         mode: tailoringMode,
         source_type: 'master',
         template_id: selectedTemplateId,
+        source_notes: details.trim() || null,
         target_role: targetRole || null,
         target_company: targetCompany || null,
         job_description: jobDescription || null,
@@ -207,7 +218,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
                       : 'segmented-control__item'
                   }
                   key={mode.value}
-                  onClick={() => setSelectedMode(mode.value)}
+                  onClick={() => handleModeChange(mode.value)}
                   type="button"
                 >
                   {mode.label}
@@ -219,12 +230,12 @@ function IngestionStep({ onNext }: IngestionStepProps) {
 
           <SectionCard>
             <div className="section-card__header section-card__header--inline">
-              <h2 className="section-card__title">Experience Vault</h2>
+              <h2 className="section-card__title">Ingestion Notes</h2>
             </div>
             <div className="vault-container">
               <textarea
                 className="text-area vault-input"
-                placeholder="e.g., Led the migration of legacy CRM to cloud-based architecture. Managed a team of 12 engineers. Achieved 20% reduction in latency..."
+                placeholder="Add extra context, accomplishments, or role-specific notes you want the LLM to consider during tailoring..."
                 value={details}
                 onChange={(event) => setDetails(event.target.value)}
               />
@@ -318,10 +329,12 @@ function IngestionStep({ onNext }: IngestionStepProps) {
       </div>
 
       <section className="bottom-toolbar">
-        <div className="bottom-toolbar__summary">
+          <div className="bottom-toolbar__summary">
           <div className="bottom-toolbar__icon">AI</div>
           <div>
-            <strong>Engine: {localStorage.getItem('ai_provider_display') || 'Not Selected'}</strong>
+            <strong>
+              Engine: {localStorage.getItem('ai_provider_display') || 'Not Selected'} / {selectedMode === 'sniper' ? 'Sniper' : 'General'}
+            </strong>
             <p>Ready for high-precision tailoring</p>
           </div>
         </div>

@@ -35,6 +35,7 @@ class GenerateJobPayload(BaseModel):
     input_s3_key: str | None = None
     output_json_key: str
     template_id: str
+    source_notes: str | None = None
     user_id: str | None = None
     session_id: str | None = None
     target_role: str | None = None
@@ -109,6 +110,7 @@ class CreateGenerateJobRequest(BaseModel):
     template_id: str
     source_json_key: str | None = None
     input_s3_key: str | None = None
+    source_notes: str | None = None
     target_role: str | None = None
     target_company: str | None = None
     job_description: str | None = None
