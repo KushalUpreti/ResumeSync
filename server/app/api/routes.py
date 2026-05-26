@@ -47,8 +47,8 @@ def _resolve_validation_model(provider: str) -> str:
     if provider == "anthropic":
         return "anthropic/claude-3-5-haiku-20241022"
     if provider == "gemini":
-        return "gemini/gemini-1.5-flash"
-    return "openai/gpt-4o-mini"
+        return "gemini/gemini-2.5-flash"
+    return "gemini/gemini-2.5-flash"
 
 
 def _validate_ai_credentials_or_400(x_ai_provider: str | None, x_ai_model: str | None, x_ai_api_key: str | None) -> tuple[str, str]:

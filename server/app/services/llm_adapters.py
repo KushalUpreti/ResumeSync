@@ -78,10 +78,10 @@ RAW RESUME TEXT:
         if model:
             return model
         if provider == "openai":
-            return "gpt-4o"
+            return "openai/gpt-4o-mini"
         elif provider == "anthropic":
-            return "claude-3-5-sonnet-20240620"
-        return "gemini/gemini-1.5-pro" # Default to Gemini
+            return "anthropic/claude-3-5-haiku-20241022"
+        return "gemini/gemini-2.5-flash"
 
     def _clean_json(self, content: str) -> dict:
         content = content.strip()
@@ -235,10 +235,10 @@ RESUME JSON:
         if model:
             return model
         if provider == "openai":
-            return "gpt-4o"
+            return "openai/gpt-4o-mini"
         elif provider == "anthropic":
-            return "claude-3-5-sonnet-20240620"
-        return "gemini/gemini-1.5-pro"
+            return "anthropic/claude-3-5-haiku-20241022"
+        return "gemini/gemini-2.5-flash"
 
     def _clean_json(self, content: str) -> dict:
         content = content.strip()
