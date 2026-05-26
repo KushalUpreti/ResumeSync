@@ -73,6 +73,12 @@ export type ResumeHistoryResponse = {
   items: ResumeHistoryItem[]
 }
 
+export type ValidateAiKeyResponse = {
+  valid: boolean
+  provider: string
+  model: string
+}
+
 export type RenderResumeRequest = {
   template_id: string
 }

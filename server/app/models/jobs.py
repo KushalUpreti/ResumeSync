@@ -121,6 +121,12 @@ class CreateJobResponse(BaseModel):
     status: JobStatus
 
 
+class ValidateAiKeyResponse(BaseModel):
+    valid: bool
+    provider: str
+    model: str
+
+
 class UploadUrlRequest(BaseModel):
     upload_type: Literal["resume_source", "master_resume"] = "resume_source"
     filename: str

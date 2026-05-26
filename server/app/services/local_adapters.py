@@ -110,6 +110,10 @@ class LocalResumeParser(ResumeParser):
         bullets = [line.strip("- ").strip() for line in text.splitlines()[1:4] if line.strip()]
         start_date, end_date = self._extract_date_range(text)
         return ResumeDocument(
+            full_name="Imported Candidate",
+            email="candidate@example.com",
+            phone="(555) 555-5555",
+            links=["linkedin.com/in/candidate"],
             summary=summary,
             experience=[
                 ExperienceEntry(

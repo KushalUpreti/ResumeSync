@@ -9,7 +9,7 @@ import {
   faWandMagicSparkles,
   faXmark,
 } from '@fortawesome/free-solid-svg-icons'
-import { createGenerateJob, getMasterResume, getResume, getResumeHistory, requestUploadUrl, uploadFileToPresignedUrl, uploadMasterResume, waitForJob } from '../api/resumeSync'
+import { createGenerateJob, getMasterResume, getResume, getResumeHistory, requestUploadUrl, uploadFileToPresignedUrl, uploadMasterResume, validateAiKey, waitForJob } from '../api/resumeSync'
 import SectionCard from '../components/SectionCard'
 import { useAuth } from '../context/useAuth'
 import { useWorkspace } from '../context/useWorkspace'
@@ -128,6 +128,11 @@ function IngestionStep({ onNext }: IngestionStepProps) {
       return match?.[1] ?? null
     }
 
+    async function preflightValidateAi() {
+      setStatusMessage('Validating AI credentials...')
+      await validateAiKey()
+    }
+
     async function generateAndLoadTailoredResume(source: { sourceType: 'master' | 'previous'; sourceJsonKey?: string | null }) {
       setStatusMessage('Starting tailoring job...')
       const generateJob = await createGenerateJob({
@@ -162,6 +167,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     if (selectedHistoryKey && !selectedFile) {
       setIsSaving(true)
       try {
+        await preflightValidateAi()
         await generateAndLoadTailoredResume({ sourceType: 'previous', sourceJsonKey: selectedHistoryKey })
         onNext()
       } catch (error) {
@@ -181,6 +187,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     if (!selectedFile && masterResume) {
       setIsSaving(true)
       try {
+        await preflightValidateAi()
         await generateAndLoadTailoredResume({ sourceType: 'master' })
         onNext()
       } catch (error) {
@@ -209,6 +216,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     setStatusMessage('Requesting a secure upload URL from the backend...')
 
     try {
+      await preflightValidateAi()
       const upload = await requestUploadUrl({
         upload_type: 'master_resume',
         filename: selectedFile.name,
@@ -440,7 +448,14 @@ function IngestionStep({ onNext }: IngestionStepProps) {
           </div>
         </div>
         <div className="bottom-toolbar__actions">
-          <button className="button button--ghost" onClick={() => setSelectedFile(null)} type="button">
+          <button
+            className="button button--ghost"
+            onClick={() => {
+              setSelectedFile(null)
+              setSelectedHistoryKey(null)
+            }}
+            type="button"
+          >
             Cancel
           </button>
           <button

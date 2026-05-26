@@ -8,6 +8,7 @@ import type {
   ResumeHistoryResponse,
   MasterResumeUploadRequest,
   RenderResumeRequest,
+  ValidateAiKeyResponse,
   RewritePreviewRequest,
   RewritePreviewResponse,
   UploadUrlRequest,
@@ -17,6 +18,11 @@ import type { ResumeDocument } from '../types/resume'
 
 export async function requestUploadUrl(payload: UploadUrlRequest) {
   const response = await apiClient.post<UploadUrlResponse>('/upload-url', payload)
+  return response.data
+}
+
+export async function validateAiKey() {
+  const response = await apiClient.post<ValidateAiKeyResponse>('/ai/validate-key')
   return response.data
 }
 

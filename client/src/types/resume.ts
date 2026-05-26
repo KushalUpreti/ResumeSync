@@ -8,6 +8,10 @@ export type ExperienceEntry = {
 
 export type ResumeDocument = {
   resume_id: string
+  full_name: string
+  email: string
+  phone: string
+  links: string[]
   summary: string
   experience: ExperienceEntry[]
   skills: string[]

@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from uuid import uuid4
 
+import litellm
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 
 from app.api.deps import get_services, get_user_context
@@ -23,6 +24,7 @@ from app.models.jobs import (
     RewriteJobPayload,
     UploadUrlRequest,
     UploadUrlResponse,
+    ValidateAiKeyResponse,
 )
 from app.models.resume import CommitResumeRequest, MasterResumeResponse, ResumeDocument, ResumeHistoryItem, ResumeHistoryResponse, RewritePreviewRequest, RewritePreviewResponse, RewriteResumeRequest
 from app.services.container import ServiceContainer
@@ -30,12 +32,59 @@ from app.services.container import ServiceContainer
 router = APIRouter()
 
 
+def _resolve_model(provider: str | None, model: str | None) -> str:
+    if model:
+        return model
+    if provider == "openai":
+        return "gpt-4o-mini"
+    if provider == "anthropic":
+        return "claude-3-5-sonnet-20240620"
+    if provider == "gemini":
+        return "gemini/gemini-1.5-flash"
+    return "gpt-4o-mini"
+
+
+def _validate_ai_credentials_or_400(x_ai_provider: str | None, x_ai_model: str | None, x_ai_api_key: str | None) -> tuple[str, str]:
+    provider = (x_ai_provider or "").strip().lower()
+    api_key = (x_ai_api_key or "").strip()
+    if not provider:
+        raise HTTPException(status_code=400, detail="Missing X-AI-Provider header.")
+    if not api_key:
+        raise HTTPException(status_code=400, detail="Missing X-AI-API-Key header.")
+    model = _resolve_model(provider, x_ai_model)
+    try:
+        litellm.completion(
+            model=model,
+            api_key=api_key,
+            messages=[{"role": "user", "content": "Respond with exactly: ok"}],
+            max_tokens=3,
+            timeout=15,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=401, detail=f"AI key validation failed: {exc}") from exc
+    return provider, model
+
+
+@router.post("/ai/validate-key", response_model=ValidateAiKeyResponse)
+def validate_ai_key(
+    x_ai_provider: str | None = Header(None, alias="X-AI-Provider"),
+    x_ai_model: str | None = Header(None, alias="X-AI-Model"),
+    x_ai_api_key: str | None = Header(None, alias="X-AI-API-Key"),
+) -> ValidateAiKeyResponse:
+    provider, model = _validate_ai_credentials_or_400(x_ai_provider, x_ai_model, x_ai_api_key)
+    return ValidateAiKeyResponse(valid=True, provider=provider, model=model)
+
+
 @router.post("/upload-url", response_model=UploadUrlResponse)
 def create_upload_url(
     request: UploadUrlRequest,
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
+    x_ai_provider: str | None = Header(None, alias="X-AI-Provider"),
+    x_ai_model: str | None = Header(None, alias="X-AI-Model"),
+    x_ai_api_key: str | None = Header(None, alias="X-AI-API-Key"),
 ) -> UploadUrlResponse:
+    _validate_ai_credentials_or_400(x_ai_provider, x_ai_model, x_ai_api_key)
     session_id = user.session_id or user.user_id or str(uuid4())
     suffix = Path(request.filename).suffix or ".docx"
     object_key = temp_upload_key(session_id, f"{uuid4()}{suffix}")
@@ -57,17 +106,29 @@ def create_generate_job(
     x_ai_model: str | None = Header(None, alias="X-AI-Model"),
     x_ai_api_key: str | None = Header(None, alias="X-AI-API-Key"),
 ) -> CreateJobResponse:
+    _validate_ai_credentials_or_400(x_ai_provider, x_ai_model, x_ai_api_key)
     actor_id = user.user_id or user.session_id
     is_session = not bool(user.user_id)
-    
-    new_resume_id = str(uuid4())
+    actor_prefix = f"{'temp' if is_session else 'users'}/{actor_id}/json/"
+
+    output_json_key: str
+    if request.source_type == "previous":
+        if not request.source_json_key:
+            raise HTTPException(status_code=400, detail="source_json_key is required for previous source jobs.")
+        if not request.source_json_key.startswith(actor_prefix):
+            raise HTTPException(status_code=403, detail="Invalid source_json_key for this user.")
+        output_json_key = request.source_json_key
+    else:
+        new_resume_id = str(uuid4())
+        output_json_key = resume_json_key(actor_id, new_resume_id, is_session)
+
     payload = GenerateJobPayload(
         mode=request.mode,
         source_type=request.source_type,
         source_json_key=request.source_json_key,
         input_s3_key=request.input_s3_key,
         source_notes=request.source_notes,
-        output_json_key=resume_json_key(actor_id, new_resume_id, is_session),
+        output_json_key=output_json_key,
         template_id=request.template_id,
         user_id=user.user_id,
         session_id=user.session_id,
@@ -133,6 +194,7 @@ def commit_resume(
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
 ) -> CreateJobResponse:
+    _validate_ai_credentials_or_400(x_ai_provider, x_ai_model, x_ai_api_key)
     actor_id = user.user_id or user.session_id
     is_session = not bool(user.user_id)
 

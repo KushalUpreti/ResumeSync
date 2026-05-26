@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any
 from app.core.exceptions import InvalidStateError
 from app.domain.storage_keys import master_resume_key, output_docx_key
 from app.models.jobs import CommitJobPayload, GenerateJobPayload, JobEnvelope, JobState, ParseMasterJobPayload, RenderJobPayload, RewriteJobPayload

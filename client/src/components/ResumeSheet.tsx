@@ -163,6 +163,13 @@ function ResumeSheet({
 
       <div className="resume-sheet__body">
         <section className="resume-sheet__section">
+          <h3 className="resume-sheet__section-title">Contact</h3>
+          <p className="resume-sheet__contact-line">
+            {[document.full_name, document.email, document.phone, ...(document.links ?? [])].filter(Boolean).join(' | ')}
+          </p>
+        </section>
+
+        <section className="resume-sheet__section">
           <h3 className="resume-sheet__section-title">Professional Summary</h3>
           <div className="resume-sheet__rewrite-target">
             <EditableText

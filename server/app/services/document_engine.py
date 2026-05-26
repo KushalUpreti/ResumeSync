@@ -20,7 +20,8 @@ class DocxtplDocumentRenderer(DocumentRenderer):
             # Fallback if template doesn't exist - create a very basic doc
             from docx import Document
             fallback_doc = Document()
-            fallback_doc.add_heading(f"Resume: {document.resume_id}", 0)
+            fallback_doc.add_heading(document.full_name, 0)
+            fallback_doc.add_paragraph(f"{document.email} | {document.phone} | {' | '.join(document.links)}")
             fallback_doc.add_paragraph(document.summary)
             
             fallback_doc.add_heading("Experience", level=1)
@@ -41,6 +42,11 @@ class DocxtplDocumentRenderer(DocumentRenderer):
 
         # Context for docxtpl
         context = {
+            "full_name": document.full_name,
+            "email": document.email,
+            "phone": document.phone,
+            "links": document.links,
+            "links_csv": " | ".join(document.links),
             "summary": document.summary,
             "experience": [
                 {

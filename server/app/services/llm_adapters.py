@@ -15,6 +15,10 @@ class LLMResumeParser(ResumeParser):
         
         prompt = f"""Extract the professional experience, skills, summary, and employment dates from the following raw resume text and return it strictly as a JSON object matching this schema:
 {{
+  "full_name": "Candidate full name if present, otherwise empty string",
+  "email": "Candidate email if present, otherwise empty string",
+  "phone": "Candidate phone if present, otherwise empty string",
+  "links": ["LinkedIn/GitHub/portfolio URLs if present"],
   "summary": "A concise professional summary",
   "experience": [
     {{
@@ -46,6 +50,10 @@ RAW RESUME TEXT:
         data = self._clean_json(content)
         
         return ResumeDocument(
+            full_name=data.get("full_name", ""),
+            email=data.get("email", ""),
+            phone=data.get("phone", ""),
+            links=data.get("links", []),
             summary=data.get("summary", ""),
             experience=[ExperienceEntry(**exp) for exp in data.get("experience", [])],
             skills=data.get("skills", []),
@@ -97,6 +105,10 @@ class LLMResumeTailor(ResumeTailor):
         data = self._clean_json(response.choices[0].message.content)
         
         return ResumeDocument(
+            full_name=data.get("full_name", document.full_name),
+            email=data.get("email", document.email),
+            phone=data.get("phone", document.phone),
+            links=data.get("links", document.links),
             summary=data.get("summary", document.summary),
             experience=[ExperienceEntry(**exp) for exp in data.get("experience", [])],
             skills=data.get("skills", document.skills),
@@ -119,6 +131,10 @@ class LLMResumeTailor(ResumeTailor):
 
         schema = """Return the updated resume strictly as a JSON object matching this schema:
 {
+  "full_name": "...",
+  "email": "...",
+  "phone": "...",
+  "links": ["...", "..."],
   "summary": "...",
   "experience": [{"company": "...", "role": "...", "start_date": "...", "end_date": "...", "bullets": ["...", "..."]}],
   "skills": ["...", "..."]
@@ -143,6 +159,7 @@ Rules:
 - Keep the content truthful and grounded in the source material.
 - Preserve start and end dates when they are already present in the source data.
 - Do not invent dates or remove dates that were present in the original resume.
+- Preserve name, email, phone, and links unless the source notes explicitly provide corrections.
 - If source notes add relevant context, weave them into the most appropriate experience section.
 - Favor alignment and keyword density over broad generality.
 
@@ -171,6 +188,7 @@ Rules:
 - Preserve a wide view of the candidate's experience and skills.
 - Preserve start and end dates when they are already present in the source data.
 - Do not invent dates or remove dates that were present in the original resume.
+- Preserve name, email, phone, and links unless the source notes explicitly provide corrections.
 - If source notes add meaningful accomplishments or context, incorporate them naturally.
 - Use the job description as guidance only when it clearly improves relevance.
 - Avoid inventing details or stretching experience beyond what is supported.

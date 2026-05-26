@@ -356,6 +356,7 @@ function ReviewStep({ onNext }: ReviewStepProps) {
           />
         </SectionCard>
 
+      
         <SectionCard className="review-panel" style={{ border: '1px solid var(--color-success-soft, #dcfce7)' }}>
           <ResumeSheet
             document={workingDocument}

@@ -1196,6 +1196,11 @@ strong {
   display: block;
 }
 
+.resume-sheet__contact-line {
+  color: #1f2e45;
+  font-weight: 600;
+}
+
 .resume-sheet__inline-strong {
   font-weight: 700;
   color: #1a202c;
