@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from app.core.exceptions import NotFoundError
@@ -55,6 +56,16 @@ class LocalObjectStore(ObjectStore):
         if path.exists():
             path.unlink()
 
+    def list_keys(self, prefix: str) -> list[str]:
+        prefix_path = self._path(prefix)
+        if not prefix_path.exists():
+            return []
+        keys: list[str] = []
+        for path in prefix_path.rglob("*"):
+            if path.is_file():
+                keys.append(str(path.relative_to(self.root)).replace("\\", "/"))
+        return sorted(keys)
+
 
 class LocalQueueService(QueueService):
     def __init__(self, root: Path) -> None:
@@ -97,18 +108,40 @@ class LocalResumeParser(ResumeParser):
         text = source_bytes.decode("utf-8", errors="ignore").strip()
         summary = text.splitlines()[0] if text else "Imported resume"
         bullets = [line.strip("- ").strip() for line in text.splitlines()[1:4] if line.strip()]
+        start_date, end_date = self._extract_date_range(text)
         return ResumeDocument(
             summary=summary,
             experience=[
                 ExperienceEntry(
                     company="Imported Company",
                     role="Imported Role",
+                    start_date=start_date,
+                    end_date=end_date,
                     bullets=bullets or ["Review imported content and replace with parsed experience bullets."],
                 )
             ],
             skills=["Communication", "Execution"],
             metadata={"source": "local_parser"},
         )
+
+    def _extract_date_range(self, text: str) -> tuple[str | None, str | None]:
+        patterns = [
+            re.compile(
+                r"(?P<start>(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+\d{4}|\d{4})\s*(?:-|–|—|to)\s*(?P<end>(?:Present|Current|Now|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?\s+\d{4}|\d{4}))",
+                re.IGNORECASE,
+            ),
+            re.compile(
+                r"(?P<start>\d{1,2}/\d{4})\s*(?:-|–|—|to)\s*(?P<end>(?:Present|Current|Now|\d{1,2}/\d{4}))",
+                re.IGNORECASE,
+            ),
+        ]
+
+        for pattern in patterns:
+            match = pattern.search(text)
+            if match:
+                return match.group("start"), match.group("end")
+
+        return None, None
 
 
 class LocalResumeTailor(ResumeTailor):

@@ -24,7 +24,7 @@ from app.models.jobs import (
     UploadUrlRequest,
     UploadUrlResponse,
 )
-from app.models.resume import CommitResumeRequest, MasterResumeResponse, ResumeDocument, RewritePreviewRequest, RewritePreviewResponse, RewriteResumeRequest
+from app.models.resume import CommitResumeRequest, MasterResumeResponse, ResumeDocument, ResumeHistoryItem, ResumeHistoryResponse, RewritePreviewRequest, RewritePreviewResponse, RewriteResumeRequest
 from app.services.container import ServiceContainer
 
 router = APIRouter()
@@ -240,3 +240,34 @@ def get_master_resume(
         return MasterResumeResponse(exists=False)
     document = services.object_store.get_json(key)
     return MasterResumeResponse(exists=True, document=document)
+
+
+@router.get("/resumes/history", response_model=ResumeHistoryResponse)
+def get_resume_history(
+    user: UserContext = Depends(get_user_context),
+    services: ServiceContainer = Depends(get_services),
+) -> ResumeHistoryResponse:
+    actor_id = user.user_id or user.session_id
+    is_session = not bool(user.user_id)
+    prefix = f"{'temp' if is_session else 'users'}/{actor_id}/json/"
+    keys = [key for key in services.object_store.list_keys(prefix) if key.endswith(".json")]
+
+    history_items: list[ResumeHistoryItem] = []
+    for key in keys:
+        try:
+            document_data = services.object_store.get_json(key)
+            document = ResumeDocument.model_validate(document_data)
+            history_items.append(
+                ResumeHistoryItem(
+                    resume_id=document.resume_id,
+                    json_key=key,
+                    summary=document.summary,
+                    created_at=document.created_at,
+                    updated_at=document.updated_at,
+                )
+            )
+        except Exception:
+            continue
+
+    history_items.sort(key=lambda item: item.updated_at, reverse=True)
+    return ResumeHistoryResponse(items=history_items)

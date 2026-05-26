@@ -3,15 +3,18 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faFileArrowUp,
   faFileLines,
+  faCircle,
+  faCircleDot,
   faSpinner,
   faWandMagicSparkles,
   faXmark,
 } from '@fortawesome/free-solid-svg-icons'
-import { createGenerateJob, getMasterResume, requestUploadUrl, uploadFileToPresignedUrl, uploadMasterResume, waitForJob } from '../api/resumeSync'
+import { createGenerateJob, getMasterResume, getResume, getResumeHistory, requestUploadUrl, uploadFileToPresignedUrl, uploadMasterResume, waitForJob } from '../api/resumeSync'
 import SectionCard from '../components/SectionCard'
 import { useAuth } from '../context/useAuth'
 import { useWorkspace } from '../context/useWorkspace'
 import { useNotification } from '../context/useNotification'
+import type { ResumeHistoryItem } from '../types/api'
 
 type IngestionStepProps = {
   onNext: () => void
@@ -35,7 +38,19 @@ type SavedModeValue = (typeof savedModes)[number]['value']
 function IngestionStep({ onNext }: IngestionStepProps) {
   const { addNotification } = useNotification()
   const { auth } = useAuth()
-  const { masterResume, setDraftResume, setMasterResume, setLastGenerateJob, setTailoringMode, selectedTemplateId, tailoringMode, targetRole, targetCompany, jobDescription } = useWorkspace()
+  const {
+    masterResume,
+    setDraftResume,
+    setMasterResume,
+    setGeneratedResume,
+    setLastGenerateJob,
+    setTailoringMode,
+    selectedTemplateId,
+    tailoringMode,
+    targetRole,
+    targetCompany,
+    jobDescription
+  } = useWorkspace()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dragActive, setDragActive] = useState(false)
   const [selectedMode, setSelectedMode] = useState<SavedModeValue>(
@@ -45,6 +60,10 @@ function IngestionStep({ onNext }: IngestionStepProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [statusMessage, setStatusMessage] = useState('Upload your master resume to unlock authenticated backend flows.')
   const [isSaving, setIsSaving] = useState(false)
+  const [isPreparingReview, setIsPreparingReview] = useState(false)
+  const [resumeHistory, setResumeHistory] = useState<ResumeHistoryItem[]>([])
+  const [selectedHistoryKey, setSelectedHistoryKey] = useState<string | null>(null)
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false)
 
   useEffect(() => {
     if (auth.status !== 'authenticated') {
@@ -64,6 +83,8 @@ function IngestionStep({ onNext }: IngestionStepProps) {
           setDraftResume(null)
           setStatusMessage('Signed in successfully. Upload a master resume to start tailoring.')
         }
+        const historyResponse = await getResumeHistory()
+        setResumeHistory(historyResponse.items)
       } catch {
         setMasterResume(null)
         setDraftResume(null)
@@ -84,6 +105,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     }
 
     setSelectedFile(nextFile)
+    setSelectedHistoryKey(null)
   }
 
   function handleModeChange(mode: SavedModeValue) {
@@ -100,29 +122,77 @@ function IngestionStep({ onNext }: IngestionStepProps) {
   const selectedModeData = savedModes.find((mode) => mode.value === selectedMode)
 
   async function handleProceed() {
-    // If they already have a master resume and didn't select a new one, submit the job and proceed.
-    if (!selectedFile && masterResume) {
+    function deriveResumeIdFromJsonKey(jsonKey: string | null) {
+      if (!jsonKey) return null
+      const match = jsonKey.match(/\/json\/([^/]+)\.json$/)
+      return match?.[1] ?? null
+    }
+
+    async function generateAndLoadTailoredResume(source: { sourceType: 'master' | 'previous'; sourceJsonKey?: string | null }) {
+      setStatusMessage('Starting tailoring job...')
+      const generateJob = await createGenerateJob({
+        job_type: 'generate',
+        mode: tailoringMode,
+        source_type: source.sourceType,
+        template_id: selectedTemplateId,
+        source_json_key: source.sourceJsonKey ?? null,
+        source_notes: details.trim() || null,
+        target_role: targetRole || null,
+        target_company: targetCompany || null,
+        job_description: jobDescription || null,
+      })
+      setLastGenerateJob(generateJob)
+      setIsPreparingReview(true)
+      setStatusMessage('Tailoring your resume. This can take a few moments...')
+      const finalJob = await waitForJob(generateJob.job_id)
+      setLastGenerateJob(finalJob)
+      if (finalJob.status === 'failed') {
+        throw new Error(finalJob.error || 'The tailoring job failed.')
+      }
+
+      const newResumeId = deriveResumeIdFromJsonKey(finalJob.output_s3_key)
+      if (!newResumeId) {
+        throw new Error('Tailoring completed, but no resume id was returned.')
+      }
+      const tailoredDoc = await getResume(newResumeId)
+      setGeneratedResume(newResumeId, finalJob.output_s3_key)
+      setDraftResume(tailoredDoc)
+    }
+
+    if (selectedHistoryKey && !selectedFile) {
+      setIsSaving(true)
       try {
-        const job = await createGenerateJob({
-          job_type: 'generate',
-          mode: tailoringMode,
-          source_type: 'master',
-          template_id: selectedTemplateId,
-          source_notes: details.trim() || null,
-          target_role: targetRole || null,
-          target_company: targetCompany || null,
-          job_description: jobDescription || null,
-        })
-        setLastGenerateJob(job)
+        await generateAndLoadTailoredResume({ sourceType: 'previous', sourceJsonKey: selectedHistoryKey })
+        onNext()
       } catch (error) {
         addNotification({
           type: 'error',
           message: 'Failed to Start Tailoring',
-          description: error instanceof Error ? error.message : 'Could not submit the generation job.'
+          description: error instanceof Error ? error.message : 'Could not complete resume tailoring.'
         })
-        return
+      } finally {
+        setIsPreparingReview(false)
+        setIsSaving(false)
       }
-      onNext()
+      return
+    }
+
+    // If they already have a master resume and didn't select a new one, submit the job and proceed.
+    if (!selectedFile && masterResume) {
+      setIsSaving(true)
+      try {
+        await generateAndLoadTailoredResume({ sourceType: 'master' })
+        onNext()
+      } catch (error) {
+        addNotification({
+          type: 'error',
+          message: 'Failed to Start Tailoring',
+          description: error instanceof Error ? error.message : 'Could not complete resume tailoring.'
+        })
+      } finally {
+        setIsPreparingReview(false)
+        setIsSaving(false)
+      }
       return
     }
 
@@ -165,19 +235,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
 
       setMasterResume(master.document)
       setDraftResume(master.document)
-      setStatusMessage('Upload complete. Starting tailoring job...')
-
-      const generateJob = await createGenerateJob({
-        job_type: 'generate',
-        mode: tailoringMode,
-        source_type: 'master',
-        template_id: selectedTemplateId,
-        source_notes: details.trim() || null,
-        target_role: targetRole || null,
-        target_company: targetCompany || null,
-        job_description: jobDescription || null,
-      })
-      setLastGenerateJob(generateJob)
+      await generateAndLoadTailoredResume({ sourceType: 'master' })
       onNext()
     } catch (error) {
       addNotification({
@@ -186,12 +244,22 @@ function IngestionStep({ onNext }: IngestionStepProps) {
         description: error instanceof Error ? error.message : 'Unable to upload the master resume.'
       })
     } finally {
+      setIsPreparingReview(false)
       setIsSaving(false)
     }
   }
 
   return (
     <div className="page-stack">
+      {isPreparingReview ? (
+        <div className="generation-backdrop" role="status" aria-live="polite" aria-label="Preparing your tailored resume">
+          <div className="generation-backdrop__card">
+            <FontAwesomeIcon icon={faSpinner} spin />
+            <h2>Preparing Your Review</h2>
+            <p>{statusMessage}</p>
+          </div>
+        </div>
+      ) : null}
 
 
       <section className="page-intro">
@@ -320,6 +388,39 @@ function IngestionStep({ onNext }: IngestionStepProps) {
             </div>
           </div>
 
+          {resumeHistory.length > 0 ? (
+            <div className="resume-history">
+              <p className="section-label">Recently Processed</p>
+              <div className="resume-history__list">
+                {resumeHistory.slice(0, 4).map((item) => (
+                  <button
+                    className={selectedHistoryKey === item.json_key ? 'resume-history__row is-selected' : 'resume-history__row'}
+                    key={item.json_key}
+                    onClick={() => {
+                      setSelectedHistoryKey(item.json_key)
+                      setSelectedFile(null)
+                    }}
+                    type="button"
+                  >
+                    <span className="resume-history__dot">
+                      <FontAwesomeIcon icon={selectedHistoryKey === item.json_key ? faCircleDot : faCircle} />
+                    </span>
+                    <span className="resume-history__name">
+                      <FontAwesomeIcon icon={faFileLines} />
+                      {item.summary?.trim() ? item.summary.split('.').slice(0, 1)[0] : `Resume ${item.resume_id.slice(0, 8)}`}
+                    </span>
+                    <span>{new Date(item.updated_at).toLocaleDateString()}</span>
+                  </button>
+                ))}
+              </div>
+              {resumeHistory.length > 4 ? (
+                <button className="button button--ghost resume-history__more" onClick={() => setIsHistoryModalOpen(true)} type="button">
+                  Load more
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="auth-note">
             {masterResume && !selectedFile
               ? 'Upload a new file above if you wish to overwrite your existing master resume.'
@@ -353,6 +454,42 @@ function IngestionStep({ onNext }: IngestionStepProps) {
           </button>
         </div>
       </section>
+
+      {isHistoryModalOpen ? (
+        <div className="modal-backdrop" onClick={() => setIsHistoryModalOpen(false)}>
+          <section className="auth-modal resume-history-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="auth-modal__header">
+              <h2 className="auth-modal__title">All Processed Resumes</h2>
+              <button className="icon-button" onClick={() => setIsHistoryModalOpen(false)} type="button" aria-label="Close history">
+                <FontAwesomeIcon icon={faXmark} />
+              </button>
+            </div>
+            <div className="resume-history__list resume-history__list--modal">
+              {resumeHistory.map((item) => (
+                <button
+                  className={selectedHistoryKey === item.json_key ? 'resume-history__row is-selected' : 'resume-history__row'}
+                  key={item.json_key}
+                  onClick={() => {
+                    setSelectedHistoryKey(item.json_key)
+                    setSelectedFile(null)
+                    setIsHistoryModalOpen(false)
+                  }}
+                  type="button"
+                >
+                  <span className="resume-history__dot">
+                    <FontAwesomeIcon icon={selectedHistoryKey === item.json_key ? faCircleDot : faCircle} />
+                  </span>
+                  <span className="resume-history__name">
+                    <FontAwesomeIcon icon={faFileLines} />
+                    {item.summary?.trim() ? item.summary.split('.').slice(0, 1)[0] : `Resume ${item.resume_id.slice(0, 8)}`}
+                  </span>
+                  <span>{new Date(item.updated_at).toLocaleDateString()}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -13,13 +13,15 @@ class LLMResumeParser(ResumeParser):
     def parse(self, source_bytes: bytes, filename: str = "", *, content_type: str | None = None, ai_provider: str | None = None, ai_model: str | None = None, ai_api_key: str | None = None) -> ResumeDocument:
         raw_text = self._extract_text(source_bytes, filename, content_type)
         
-        prompt = f"""Extract the professional experience, skills, and summary from the following raw resume text and return it strictly as a JSON object matching this schema:
+        prompt = f"""Extract the professional experience, skills, summary, and employment dates from the following raw resume text and return it strictly as a JSON object matching this schema:
 {{
   "summary": "A concise professional summary",
   "experience": [
     {{
       "company": "Company Name",
       "role": "Job Title",
+      "start_date": "Exact date string if present, otherwise null",
+      "end_date": "Exact date string if present, otherwise null",
       "bullets": ["Achievement bullet 1", "Achievement bullet 2"]
     }}
   ],
@@ -27,6 +29,8 @@ class LLMResumeParser(ResumeParser):
 }}
 
 Only output the JSON object. Do not include markdown formatting like ```json. Do not include any introductory or explanatory text.
+
+If the source includes dates, preserve them exactly as they appear when possible. Do not invent dates.
 
 RAW RESUME TEXT:
 {raw_text}"""
@@ -116,7 +120,7 @@ class LLMResumeTailor(ResumeTailor):
         schema = """Return the updated resume strictly as a JSON object matching this schema:
 {
   "summary": "...",
-  "experience": [{"company": "...", "role": "...", "bullets": ["...", "..."]}],
+  "experience": [{"company": "...", "role": "...", "start_date": "...", "end_date": "...", "bullets": ["...", "..."]}],
   "skills": ["...", "..."]
 }
 
@@ -137,6 +141,8 @@ Rules:
 - Reorder and rewrite bullets to match the target role more aggressively.
 - Surface skills that directly support the target role and job description.
 - Keep the content truthful and grounded in the source material.
+- Preserve start and end dates when they are already present in the source data.
+- Do not invent dates or remove dates that were present in the original resume.
 - If source notes add relevant context, weave them into the most appropriate experience section.
 - Favor alignment and keyword density over broad generality.
 
@@ -163,6 +169,8 @@ Rules:
 - Keep the resume balanced and broadly applicable.
 - Improve clarity, structure, and impact without making it feel overly targeted.
 - Preserve a wide view of the candidate's experience and skills.
+- Preserve start and end dates when they are already present in the source data.
+- Do not invent dates or remove dates that were present in the original resume.
 - If source notes add meaningful accomplishments or context, incorporate them naturally.
 - Use the job description as guidance only when it clearly improves relevance.
 - Avoid inventing details or stretching experience beyond what is supported.

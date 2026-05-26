@@ -1,6 +1,8 @@
 export type ExperienceEntry = {
   company: string
   role: string
+  start_date?: string | null
+  end_date?: string | null
   bullets: string[]
 }
 

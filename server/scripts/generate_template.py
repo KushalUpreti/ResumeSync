@@ -17,7 +17,7 @@ def create_base_template():
     # Loop for experience
     doc.add_paragraph('{% for item in experience %}')
     doc.add_heading('{{ item.role }} @ {{ item.company }}', level=2)
-    doc.add_paragraph('{{ item.location }} | {{ item.start_date }} - {{ item.end_date }}')
+    doc.add_paragraph('{% if item.start_date or item.end_date %}{{ item.start_date }}{% if item.start_date and item.end_date %} - {% endif %}{{ item.end_date }}{% endif %}')
     doc.add_paragraph('{% for bullet in item.bullets %}')
     doc.add_paragraph('• {{ bullet }}', style='List Bullet')
     doc.add_paragraph('{% endfor %}')

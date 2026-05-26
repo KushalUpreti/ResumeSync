@@ -23,9 +23,12 @@ class DocxtplDocumentRenderer(DocumentRenderer):
             fallback_doc.add_heading(f"Resume: {document.resume_id}", 0)
             fallback_doc.add_paragraph(document.summary)
             
-            experience_heading = fallback_doc.add_heading("Experience", level=1)
+            fallback_doc.add_heading("Experience", level=1)
             for exp in document.experience:
                 fallback_doc.add_heading(f"{exp.role} at {exp.company}", level=2)
+                date_parts = [part for part in [exp.start_date, exp.end_date] if part]
+                if date_parts:
+                    fallback_doc.add_paragraph(" | ".join(date_parts))
                 for bullet in exp.bullets:
                     fallback_doc.add_paragraph(bullet, style='List Bullet')
             
@@ -43,6 +46,8 @@ class DocxtplDocumentRenderer(DocumentRenderer):
                 {
                     "company": exp.company,
                     "role": exp.role,
+                    "start_date": exp.start_date or "",
+                    "end_date": exp.end_date or "",
                     "bullets": exp.bullets
                 }
                 for exp in document.experience

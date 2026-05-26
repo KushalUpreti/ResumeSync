@@ -1182,11 +1182,68 @@ strong {
 }
 
 .resume-sheet__role-row {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 38%);
+  align-items: start;
+  gap: var(--space-3);
   font-weight: 600;
   color: #1a202c;
   margin-bottom: 4px;
+}
+
+.resume-sheet__summary-text {
+  color: var(--color-text-muted);
+  display: block;
+}
+
+.resume-sheet__inline-strong {
+  font-weight: 700;
+  color: #1a202c;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.resume-sheet__inline-company {
+  color: #1a202c;
+  text-align: right;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.resume-sheet__inline-editor {
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  padding: 1px 2px;
+  margin: -1px -2px;
+  border-radius: 4px;
+  width: 100%;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.resume-sheet__inline-editor--multiline {
+  resize: none;
+  min-height: 72px;
+  overflow: hidden;
+}
+
+.resume-sheet__inline-company.resume-sheet__inline-editor {
+  width: auto;
+  min-width: 120px;
+}
+
+.resume-sheet__inline-editor:focus {
+  outline: none;
+  border-color: #c9d6ea;
+  background: #f8fbff;
+}
+
+.resume-sheet__date-line {
+  margin: 0 0 6px;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
 }
 
 .resume-sheet__bullets {
@@ -1200,19 +1257,161 @@ strong {
   position: relative;
 }
 
-.resume-sheet__bullets li:hover::after {
-  content: 'Suggest rewrite';
+.resume-sheet__bullet-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.resume-sheet__bullet-text {
+  flex: 1 1 auto;
+}
+
+.resume-sheet__rewrite-target {
+  position: relative;
+}
+
+.resume-sheet__rewrite-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #081737;
+  color: #f8fbff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.resume-sheet__rewrite-button:hover {
+  background: #0b2150;
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.resume-sheet__rewrite-button--inline {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.resume-sheet__rewrite-button--undo {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left-width: 0;
+  background: #0c264f;
+}
+
+.resume-sheet__rewrite-button svg {
+  font-size: 0.72rem;
+}
+
+.resume-sheet__bullet-actions {
   position: absolute;
-  right: -120px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: var(--color-primary);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.7rem;
+  left: 0;
+  top: -30px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.resume-sheet__bullet-item:hover .resume-sheet__bullet-actions,
+.resume-sheet__bullet-item:focus-within .resume-sheet__bullet-actions {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.resume-sheet__skills-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.resume-sheet__skill-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 999px;
+  background: #d7e3f5;
+  color: #2a446b;
+  padding: 8px 14px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1;
   cursor: pointer;
-  z-index: 10;
+  transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+
+.resume-sheet__skill-chip:hover {
+  background: #c8d9f2;
+  color: #1c365c;
+  transform: translateY(-1px);
+}
+
+.resume-sheet__skill-chip svg {
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
+.resume-sheet__skill-chip--add {
+  background: #e6eefb;
+  color: #214472;
+  border: 1px dashed #9eb7dc;
+}
+
+.resume-sheet__skill-chip--add:hover {
+  background: #dce8fa;
+}
+
+.resume-sheet__skill-chip--undo {
+  background: #edf3ff;
+  color: #35517a;
+}
+
+.resume-sheet__skill-chip--editor {
+  cursor: default;
+  padding: 6px 10px;
+  gap: 6px;
+}
+
+.resume-sheet__skill-input {
+  border: 0;
+  background: transparent;
+  color: #1f365a;
+  font-size: 0.92rem;
+  font-weight: 600;
+  min-width: 120px;
+  outline: none;
+}
+
+.resume-sheet__skill-input::placeholder {
+  color: #56739f;
+}
+
+.resume-sheet__skill-action {
+  border: 0;
+  background: rgba(31, 69, 116, 0.12);
+  color: #1e4676;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.resume-sheet__skill-action:hover {
+  background: rgba(31, 69, 116, 0.2);
 }
 
 /* Metrics Styles */
@@ -1630,6 +1829,117 @@ strong {
     transform: translateX(100%);
     opacity: 0;
   }
+}
+
+.generation-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  background: rgba(15, 23, 42, 0.36);
+  backdrop-filter: blur(6px);
+}
+
+.generation-backdrop__card {
+  width: min(460px, calc(100% - 40px));
+  padding: 28px 24px;
+  border-radius: 14px;
+  border: 1px solid rgba(198, 198, 205, 0.95);
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+  text-align: center;
+}
+
+.generation-backdrop__card svg {
+  font-size: 1.3rem;
+  color: var(--color-primary);
+  margin-bottom: 10px;
+}
+
+.generation-backdrop__card h2 {
+  margin-bottom: 8px;
+  font-size: 1.35rem;
+  color: var(--color-primary);
+}
+
+.generation-backdrop__card p {
+  color: var(--color-text-muted);
+}
+
+.resume-history {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-outline);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.resume-history__list {
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.resume-history__list--modal {
+  max-height: 420px;
+  overflow: auto;
+}
+
+.resume-history__row {
+  width: 100%;
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 110px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-3);
+  text-align: left;
+  border-bottom: 1px solid var(--color-outline);
+  background: #fff;
+  color: var(--color-primary);
+}
+
+.resume-history__row:last-child {
+  border-bottom: 0;
+}
+
+.resume-history__row:hover {
+  background: #f8fafd;
+}
+
+.resume-history__row.is-selected {
+  background: #eef4ff;
+}
+
+.resume-history__dot {
+  color: #8294b3;
+  font-size: 0.85rem;
+}
+
+.resume-history__row.is-selected .resume-history__dot {
+  color: #1f3f74;
+}
+
+.resume-history__name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.resume-history__name svg {
+  color: #7d90ad;
+}
+
+.resume-history__more {
+  justify-self: center;
+}
+
+.resume-history-modal {
+  width: min(760px, calc(100% - 32px));
 }
 
 

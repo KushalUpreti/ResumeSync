@@ -5,6 +5,7 @@ import type {
   CreateJobResponse,
   JobState,
   MasterResumeResponse,
+  ResumeHistoryResponse,
   MasterResumeUploadRequest,
   RenderResumeRequest,
   RewritePreviewRequest,
@@ -56,6 +57,11 @@ export async function uploadMasterResume(payload: MasterResumeUploadRequest) {
 
 export async function getMasterResume() {
   const response = await apiClient.get<MasterResumeResponse>('/master-resume')
+  return response.data
+}
+
+export async function getResumeHistory() {
+  const response = await apiClient.get<ResumeHistoryResponse>('/resumes/history')
   return response.data
 }
 

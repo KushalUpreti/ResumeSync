@@ -61,6 +61,18 @@ export type MasterResumeResponse = {
   document: ResumeDocument | null
 }
 
+export type ResumeHistoryItem = {
+  resume_id: string
+  json_key: string
+  summary: string
+  updated_at: string
+  created_at: string
+}
+
+export type ResumeHistoryResponse = {
+  items: ResumeHistoryItem[]
+}
+
 export type RenderResumeRequest = {
   template_id: string
 }

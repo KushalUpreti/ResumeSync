@@ -13,6 +13,8 @@ def utcnow() -> datetime:
 class ExperienceEntry(BaseModel):
     company: str
     role: str
+    start_date: str | None = None
+    end_date: str | None = None
     bullets: list[str] = Field(default_factory=list)
 
 
@@ -52,3 +54,15 @@ class RewriteResumeRequest(BaseModel):
 class MasterResumeResponse(BaseModel):
     exists: bool
     document: ResumeDocument | None = None
+
+
+class ResumeHistoryItem(BaseModel):
+    resume_id: str
+    json_key: str
+    summary: str = ""
+    updated_at: datetime
+    created_at: datetime
+
+
+class ResumeHistoryResponse(BaseModel):
+    items: list[ResumeHistoryItem] = Field(default_factory=list)
