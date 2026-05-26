@@ -165,7 +165,29 @@ function IngestionStep({ onNext }: IngestionStepProps) {
       setDraftResume(tailoredDoc)
     }
 
-    if (selectedHistoryKey && !selectedFile) {
+    const hasNotes = Boolean(details.trim())
+    const hasHistory = Boolean(selectedHistoryKey)
+    const hasMaster = Boolean(masterResume)
+    const hasFile = Boolean(selectedFile)
+
+    if (!hasFile && !hasMaster && !hasHistory && !hasNotes) {
+      addNotification({
+        type: 'warning',
+        message: 'No Source Information',
+        description: 'Please upload a resume file or enter details in the ingestion notes to proceed.'
+      })
+      return
+    }
+
+    // Determine the source file. If no file is uploaded but notes are present,
+    // we convert the notes into a virtual text file to ingest as a new master resume.
+    let fileToUse: File | null = selectedFile
+    const isUsingVirtualFile = !selectedFile && !hasMaster && !hasHistory && hasNotes
+    if (isUsingVirtualFile) {
+      fileToUse = new File([details.trim()], 'notes_ingestion.txt', { type: 'text/plain' })
+    }
+
+    if (hasHistory && !selectedFile && !isUsingVirtualFile) {
       setIsSaving(true)
       try {
         await preflightValidateAi()
@@ -185,7 +207,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     }
 
     // If they already have a master resume and didn't select a new one, submit the job and proceed.
-    if (!selectedFile && masterResume) {
+    if (!selectedFile && hasMaster && !isUsingVirtualFile) {
       setIsSaving(true)
       try {
         await preflightValidateAi()
@@ -204,33 +226,33 @@ function IngestionStep({ onNext }: IngestionStepProps) {
       return
     }
 
-    if (!selectedFile) {
+    if (!fileToUse) {
       addNotification({
         type: 'warning',
-        message: 'No File Selected',
-        description: 'Choose a DOCX, PDF, or TXT file before proceeding to the configuration step.'
+        message: 'No Source Selected',
+        description: 'Please choose a resume file or enter details in the ingestion notes.'
       })
       return
     }
 
     setIsSaving(true)
-    setStatusMessage('Requesting a secure upload URL from the backend...')
+    setStatusMessage(isUsingVirtualFile ? 'Processing ingestion notes...' : 'Requesting a secure upload URL from the backend...')
 
     try {
       await preflightValidateAi()
       const upload = await requestUploadUrl({
         upload_type: 'master_resume',
-        filename: selectedFile.name,
-        content_type: selectedFile.type || 'application/octet-stream',
+        filename: fileToUse.name,
+        content_type: fileToUse.type || 'application/octet-stream',
       })
 
-      await uploadFileToPresignedUrl(upload.upload_url, selectedFile, upload.headers)
+      await uploadFileToPresignedUrl(upload.upload_url, fileToUse, upload.headers)
       setStatusMessage('Upload complete. Parsing your master resume...')
 
       const parseJob = await uploadMasterResume({
         input_s3_key: upload.object_key,
-        filename: selectedFile.name,
-        content_type: selectedFile.type || null,
+        filename: fileToUse.name,
+        content_type: fileToUse.type || null,
       })
       const job = await waitForJob(parseJob.job_id)
       if (job.status === 'failed') {
@@ -249,8 +271,8 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     } catch (error) {
       addNotification({
         type: 'error',
-        message: 'Upload Failed',
-        description: getApiErrorMessage(error, 'Unable to upload the master resume.')
+        message: isUsingVirtualFile ? 'Processing Failed' : 'Upload Failed',
+        description: getApiErrorMessage(error, isUsingVirtualFile ? 'Unable to process the ingestion notes.' : 'Unable to upload the master resume.')
       })
     } finally {
       setIsPreparingReview(false)

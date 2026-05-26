@@ -106,6 +106,16 @@ class S3BackedJobStateStore(JobStateStore):
 class LocalResumeParser(ResumeParser):
     def parse(self, source_bytes: bytes, filename: str = "", *, content_type: str | None = None, ai_provider: str | None = None, ai_api_key: str | None = None) -> ResumeDocument:
         text = source_bytes.decode("utf-8", errors="ignore").strip()
+        if not text:
+            raise ValueError("The provided document or notes is empty. Please provide some professional details to proceed.")
+        
+        # Check if they just wrote "hello" or something useless (very short text)
+        if len(text) < 15:
+            raise ValueError(
+                "The provided information is insufficient to generate a resume. "
+                "Please upload a detailed resume or write more description in the notes."
+            )
+            
         summary = text.splitlines()[0] if text else "Imported resume"
         bullets = [line.strip("- ").strip() for line in text.splitlines()[1:4] if line.strip()]
         start_date, end_date = self._extract_date_range(text)

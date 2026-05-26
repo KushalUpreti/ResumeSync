@@ -12,6 +12,8 @@ from app.services.interfaces import ResumeParser, ResumeTailor
 class LLMResumeParser(ResumeParser):
     def parse(self, source_bytes: bytes, filename: str = "", *, content_type: str | None = None, ai_provider: str | None = None, ai_model: str | None = None, ai_api_key: str | None = None) -> ResumeDocument:
         raw_text = self._extract_text(source_bytes, filename, content_type)
+        if not raw_text.strip():
+            raise ValueError("The provided document or notes is empty. Please provide some professional details to proceed.")
         
         prompt = f"""Extract the professional experience, skills, summary, and employment dates from the following raw resume text and return it strictly as a JSON object matching this schema:
 {{
@@ -49,14 +51,23 @@ RAW RESUME TEXT:
         content = response.choices[0].message.content
         data = self._clean_json(content)
         
+        experience_list = [ExperienceEntry(**exp) for exp in data.get("experience", [])]
+        skills_list = data.get("skills", [])
+        
+        if not experience_list and not skills_list:
+            raise ValueError(
+                "The provided information is insufficient to generate a resume. "
+                "Please upload a detailed resume or write more description in the notes."
+            )
+
         return ResumeDocument(
             full_name=data.get("full_name", ""),
             email=data.get("email", ""),
             phone=data.get("phone", ""),
             links=data.get("links", []),
             summary=data.get("summary", ""),
-            experience=[ExperienceEntry(**exp) for exp in data.get("experience", [])],
-            skills=data.get("skills", []),
+            experience=experience_list,
+            skills=skills_list,
             metadata={"source": filename, "parsed_by": "llm"}
         )
 

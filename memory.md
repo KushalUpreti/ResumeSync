@@ -153,6 +153,24 @@
 
 ---
 
+## 8) Homepage Visual Refinement + Particle FX
+- Homepage typography and spacing were tuned to feel less aggressive and more minimal while preserving theme/structure.
+- Added cursor-reactive particle layer on Landing page:
+  - Star-like pulse particles around mouse pointer
+  - Non-interactive overlay (`pointer-events: none`)
+  - Refined to be subtle and minimalistic:
+    - Lower spawn rate (40ms throttle) and count (2 particles per spawn)
+    - Tighter dispersion radius around the cursor (30px)
+    - Smaller particle sizes (1.2px - 3px)
+    - Shorter particle lifespan (1000ms animation, 1100ms removal)
+    - Subtle accent-blue/cyan glow color scheme with reduced scale transition (1.3x max scale)
+
+### Main files
+- `client/src/pages/LandingPage.tsx`
+- `client/src/index.css`
+
+---
+
 ## Important Current Behaviors
 - Ingestion can proceed from exactly one selected source at runtime:
   - New uploaded master resume
@@ -210,4 +228,3 @@
   - `server/app/services/local_adapters.py`
   - `server/app/services/aws_adapters.py`
   - `server/app/worker/processor.py`
-
