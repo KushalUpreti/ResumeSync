@@ -10,6 +10,7 @@ import {
   faXmark,
 } from '@fortawesome/free-solid-svg-icons'
 import { createGenerateJob, getMasterResume, getResume, getResumeHistory, requestUploadUrl, uploadFileToPresignedUrl, uploadMasterResume, validateAiKey, waitForJob } from '../api/resumeSync'
+import { getApiErrorMessage } from '../api/client'
 import SectionCard from '../components/SectionCard'
 import { useAuth } from '../context/useAuth'
 import { useWorkspace } from '../context/useWorkspace'
@@ -174,7 +175,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
         addNotification({
           type: 'error',
           message: 'Failed to Start Tailoring',
-          description: error instanceof Error ? error.message : 'Could not complete resume tailoring.'
+          description: getApiErrorMessage(error, 'Could not complete resume tailoring.')
         })
       } finally {
         setIsPreparingReview(false)
@@ -194,7 +195,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
         addNotification({
           type: 'error',
           message: 'Failed to Start Tailoring',
-          description: error instanceof Error ? error.message : 'Could not complete resume tailoring.'
+          description: getApiErrorMessage(error, 'Could not complete resume tailoring.')
         })
       } finally {
         setIsPreparingReview(false)
@@ -249,7 +250,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
       addNotification({
         type: 'error',
         message: 'Upload Failed',
-        description: error instanceof Error ? error.message : 'Unable to upload the master resume.'
+        description: getApiErrorMessage(error, 'Unable to upload the master resume.')
       })
     } finally {
       setIsPreparingReview(false)

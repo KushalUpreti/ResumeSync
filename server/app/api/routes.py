@@ -32,26 +32,33 @@ from app.services.container import ServiceContainer
 router = APIRouter()
 
 
-def _resolve_model(provider: str | None, model: str | None) -> str:
-    if model:
-        return model
+def _normalize_provider(provider: str | None) -> str:
+    raw = (provider or "").strip().lower()
+    if raw in {"google", "gemini"}:
+        return "gemini"
+    if raw in {"openai", "anthropic"}:
+        return raw
+    return raw
+
+
+def _resolve_validation_model(provider: str) -> str:
     if provider == "openai":
-        return "gpt-4o-mini"
+        return "openai/gpt-4o-mini"
     if provider == "anthropic":
-        return "claude-3-5-sonnet-20240620"
+        return "anthropic/claude-3-5-haiku-20241022"
     if provider == "gemini":
         return "gemini/gemini-1.5-flash"
-    return "gpt-4o-mini"
+    return "openai/gpt-4o-mini"
 
 
 def _validate_ai_credentials_or_400(x_ai_provider: str | None, x_ai_model: str | None, x_ai_api_key: str | None) -> tuple[str, str]:
-    provider = (x_ai_provider or "").strip().lower()
+    provider = _normalize_provider(x_ai_provider)
     api_key = (x_ai_api_key or "").strip()
     if not provider:
         raise HTTPException(status_code=400, detail="Missing X-AI-Provider header.")
     if not api_key:
         raise HTTPException(status_code=400, detail="Missing X-AI-API-Key header.")
-    model = _resolve_model(provider, x_ai_model)
+    model = _resolve_validation_model(provider)
     try:
         litellm.completion(
             model=model,
@@ -61,7 +68,13 @@ def _validate_ai_credentials_or_400(x_ai_provider: str | None, x_ai_model: str |
             timeout=15,
         )
     except Exception as exc:
-        raise HTTPException(status_code=401, detail=f"AI key validation failed: {exc}") from exc
+        message = str(exc)
+        status_code = 401
+        if "rate limit" in message.lower() or "429" in message:
+            status_code = 429
+        elif "timeout" in message.lower():
+            status_code = 503
+        raise HTTPException(status_code=status_code, detail=f"AI credential validation failed for provider '{provider}': {message}") from exc
     return provider, model
 
 

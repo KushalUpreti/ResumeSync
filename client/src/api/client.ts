@@ -6,6 +6,22 @@ export const apiClient = axios.create({
   baseURL: env.apiBaseUrl || undefined,
 })
 
+export function getApiErrorMessage(error: unknown, fallback: string) {
+  if (axios.isAxiosError(error)) {
+    const detail = (error.response?.data as { detail?: string } | undefined)?.detail
+    if (detail) {
+      return detail
+    }
+    if (error.message) {
+      return error.message
+    }
+  }
+  if (error instanceof Error) {
+    return error.message
+  }
+  return fallback
+}
+
 apiClient.interceptors.request.use((config) => {
   const accessToken = getAccessToken()
   if (accessToken) {
