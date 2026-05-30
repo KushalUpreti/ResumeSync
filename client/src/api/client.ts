@@ -7,18 +7,41 @@ export const apiClient = axios.create({
 })
 
 export function getApiErrorMessage(error: unknown, fallback: string) {
+  // Handle Axios errors with possible structured detail payloads.
   if (axios.isAxiosError(error)) {
-    const detail = (error.response?.data as { detail?: string } | undefined)?.detail
-    if (detail) {
-      return detail
+    const responseData = error.response?.data as any
+    // FastAPI / Pydantic validation errors are often under `detail` and can be an array or object.
+    const detail = responseData?.detail
+    if (detail !== undefined) {
+      try {
+        // If it's already a string, return it directly.
+        if (typeof detail === 'string') {
+          return detail
+        }
+        // For arrays or objects, stringify for a readable message.
+        return JSON.stringify(detail)
+      } catch {
+        // Fallback to generic string conversion.
+        return String(detail)
+      }
+    }
+    // If no `detail` field, fallback to the Axios error message if present or stringified data.
+    if (responseData) {
+      try {
+        return typeof responseData === 'string' ? responseData : JSON.stringify(responseData)
+      } catch {
+        // Continue to check error.message
+      }
     }
     if (error.message) {
       return error.message
     }
   }
+  // Generic Error instance handling.
   if (error instanceof Error) {
     return error.message
   }
+  // As a final fallback, return the provided fallback message.
   return fallback
 }
 

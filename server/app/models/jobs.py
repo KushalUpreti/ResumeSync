@@ -10,7 +10,7 @@ from app.models.resume import ResumeDocument, RewriteTarget
 
 JobType = Literal["generate", "rewrite", "render", "parse_master", "commit"]
 ResumeMode = Literal["polisher", "sniper"]
-SourceType = Literal["new_upload", "master", "previous"]
+SourceType = Literal["new_upload", "master", "previous", "notes_only"]
 JobStatus = Literal["pending", "processing", "complete", "failed"]
 
 
@@ -48,6 +48,15 @@ class GenerateJobPayload(BaseModel):
             raise ValueError("input_s3_key is required for new_upload jobs")
         if self.source_type == "previous" and not self.source_json_key:
             raise ValueError("source_json_key is required for previous jobs")
+        if self.source_type == "notes_only" and not self.source_notes:
+            raise ValueError("source_notes is required when source_type is notes_only")
+            
+        if self.mode == "sniper":
+            if not self.job_description or not self.job_description.strip():
+                raise ValueError("Job description is strictly required for sniper mode.")
+            if self.source_type == "notes_only":
+                raise ValueError("Sniper mode requires a resume to be uploaded or selected.")
+                
         return self
 
 

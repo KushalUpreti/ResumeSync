@@ -84,6 +84,19 @@ class JobProcessor:
         raise InvalidStateError("Payload must have user_id or session_id")
 
     def _load_generate_source(self, payload: GenerateJobPayload, ai_provider: str | None, ai_model: str | None, ai_api_key: str | None) -> ResumeDocument:
+        if payload.source_type == "notes_only":
+            if not payload.source_notes:
+                raise InvalidStateError("Notes only jobs require source_notes")
+            source_bytes = payload.source_notes.encode("utf-8")
+            document = self.services.parser.parse(
+                source_bytes,
+                filename="notes_ingestion.txt",
+                ai_provider=ai_provider,
+                ai_model=ai_model,
+                ai_api_key=ai_api_key,
+            )
+            return document
+
         if payload.source_type == "new_upload":
             if not payload.input_s3_key:
                 raise InvalidStateError("New upload jobs require input_s3_key")

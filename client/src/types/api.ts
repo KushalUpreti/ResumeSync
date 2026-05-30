@@ -25,7 +25,7 @@ export type JobState = {
 export type CreateGenerateJobRequest = {
   job_type: 'generate'
   mode: 'polisher' | 'sniper'
-  source_type: 'new_upload' | 'master' | 'previous'
+  source_type: 'new_upload' | 'master' | 'previous' | 'notes_only'
   template_id: string
   source_json_key?: string | null
   input_s3_key?: string | null

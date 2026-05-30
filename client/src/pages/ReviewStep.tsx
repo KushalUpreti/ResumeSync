@@ -348,13 +348,15 @@ function ReviewStep({ onNext }: ReviewStepProps) {
       )}
 
       <div className="review-grid">
-        <SectionCard className="review-panel">
-          <ResumeSheet
-            document={originalDocument}
-            title="Master Resume"
-            subtitle="Uploaded document data"
-          />
-        </SectionCard>
+        {originalDocument && (
+          <SectionCard className="review-panel">
+            <ResumeSheet
+              document={originalDocument}
+              title="Master Resume"
+              subtitle="Uploaded document data"
+            />
+          </SectionCard>
+        )}
 
       
         <SectionCard className="review-panel" style={{ border: '1px solid var(--color-success-soft, #dcfce7)' }}>

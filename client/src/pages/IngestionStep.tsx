@@ -50,10 +50,12 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     tailoringMode,
     targetRole,
     targetCompany,
-    jobDescription
+    jobDescription,
+    setJobDescription
   } = useWorkspace()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dragActive, setDragActive] = useState(false)
+  const [useMasterResume, setUseMasterResume] = useState(true)
   const [selectedMode, setSelectedMode] = useState<SavedModeValue>(
     tailoringMode === 'sniper' ? 'sniper' : 'general',
   )
@@ -134,7 +136,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
       await validateAiKey()
     }
 
-    async function generateAndLoadTailoredResume(source: { sourceType: 'master' | 'previous'; sourceJsonKey?: string | null }) {
+    async function generateAndLoadTailoredResume(source: { sourceType: 'master' | 'previous' | 'notes_only'; sourceJsonKey?: string | null }) {
       setStatusMessage('Starting tailoring job...')
       const generateJob = await createGenerateJob({
         job_type: 'generate',
@@ -167,8 +169,29 @@ function IngestionStep({ onNext }: IngestionStepProps) {
 
     const hasNotes = Boolean(details.trim())
     const hasHistory = Boolean(selectedHistoryKey)
-    const hasMaster = Boolean(masterResume)
+    const hasMaster = Boolean(masterResume && useMasterResume)
     const hasFile = Boolean(selectedFile)
+
+    const isNotesOnly = !selectedFile && !hasMaster && !hasHistory && hasNotes
+
+    if (tailoringMode === 'sniper') {
+      if (!jobDescription?.trim()) {
+        addNotification({
+          type: 'warning',
+          message: 'Job Description Required',
+          description: 'Sniper mode requires a target job description to align your resume.'
+        })
+        return
+      }
+      if (isNotesOnly) {
+        addNotification({
+          type: 'warning',
+          message: 'Resume Required',
+          description: 'Sniper mode requires a resume to be uploaded or selected.'
+        })
+        return
+      }
+    }
 
     if (!hasFile && !hasMaster && !hasHistory && !hasNotes) {
       addNotification({
@@ -179,15 +202,26 @@ function IngestionStep({ onNext }: IngestionStepProps) {
       return
     }
 
-    // Determine the source file. If no file is uploaded but notes are present,
-    // we convert the notes into a virtual text file to ingest as a new master resume.
-    let fileToUse: File | null = selectedFile
-    const isUsingVirtualFile = !selectedFile && !hasMaster && !hasHistory && hasNotes
-    if (isUsingVirtualFile) {
-      fileToUse = new File([details.trim()], 'notes_ingestion.txt', { type: 'text/plain' })
+    if (isNotesOnly) {
+      setIsSaving(true)
+      try {
+        await preflightValidateAi()
+        await generateAndLoadTailoredResume({ sourceType: 'notes_only' })
+        onNext()
+      } catch (error) {
+        addNotification({
+          type: 'error',
+          message: 'Failed to Start Tailoring',
+          description: getApiErrorMessage(error, 'Could not complete resume tailoring.')
+        })
+      } finally {
+        setIsPreparingReview(false)
+        setIsSaving(false)
+      }
+      return
     }
 
-    if (hasHistory && !selectedFile && !isUsingVirtualFile) {
+    if (hasHistory && !selectedFile) {
       setIsSaving(true)
       try {
         await preflightValidateAi()
@@ -207,7 +241,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     }
 
     // If they already have a master resume and didn't select a new one, submit the job and proceed.
-    if (!selectedFile && hasMaster && !isUsingVirtualFile) {
+    if (!selectedFile && hasMaster) {
       setIsSaving(true)
       try {
         await preflightValidateAi()
@@ -226,7 +260,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
       return
     }
 
-    if (!fileToUse) {
+    if (!selectedFile) {
       addNotification({
         type: 'warning',
         message: 'No Source Selected',
@@ -236,23 +270,23 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     }
 
     setIsSaving(true)
-    setStatusMessage(isUsingVirtualFile ? 'Processing ingestion notes...' : 'Requesting a secure upload URL from the backend...')
+    setStatusMessage('Requesting a secure upload URL from the backend...')
 
     try {
       await preflightValidateAi()
       const upload = await requestUploadUrl({
         upload_type: 'master_resume',
-        filename: fileToUse.name,
-        content_type: fileToUse.type || 'application/octet-stream',
+        filename: selectedFile.name,
+        content_type: selectedFile.type || 'application/octet-stream',
       })
 
-      await uploadFileToPresignedUrl(upload.upload_url, fileToUse, upload.headers)
+      await uploadFileToPresignedUrl(upload.upload_url, selectedFile, upload.headers)
       setStatusMessage('Upload complete. Parsing your master resume...')
 
       const parseJob = await uploadMasterResume({
         input_s3_key: upload.object_key,
-        filename: fileToUse.name,
-        content_type: fileToUse.type || null,
+        filename: selectedFile.name,
+        content_type: selectedFile.type || null,
       })
       const job = await waitForJob(parseJob.job_id)
       if (job.status === 'failed') {
@@ -271,8 +305,8 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     } catch (error) {
       addNotification({
         type: 'error',
-        message: isUsingVirtualFile ? 'Processing Failed' : 'Upload Failed',
-        description: getApiErrorMessage(error, isUsingVirtualFile ? 'Unable to process the ingestion notes.' : 'Unable to upload the master resume.')
+        message: 'Upload Failed',
+        description: getApiErrorMessage(error, 'Unable to upload the master resume.')
       })
     } finally {
       setIsPreparingReview(false)
@@ -329,14 +363,24 @@ function IngestionStep({ onNext }: IngestionStepProps) {
 
           <SectionCard>
             <div className="section-card__header section-card__header--inline">
-              <h2 className="section-card__title">Ingestion Notes</h2>
+              <h2 className="section-card__title">
+                {selectedMode === 'sniper' ? 'Job Description' : 'Ingestion Notes'}
+              </h2>
             </div>
             <div className="vault-container">
               <textarea
                 className="text-area vault-input"
-                placeholder="Add extra context, accomplishments, or role-specific notes you want the LLM to consider during tailoring..."
-                value={details}
-                onChange={(event) => setDetails(event.target.value)}
+                placeholder={
+                  selectedMode === 'sniper'
+                    ? 'Paste the target job description here (Required for Sniper mode)...'
+                    : 'Add extra context, accomplishments, or role-specific notes you want the LLM to consider during tailoring...'
+                }
+                value={selectedMode === 'sniper' ? jobDescription : details}
+                onChange={(event) =>
+                  selectedMode === 'sniper'
+                    ? setJobDescription(event.target.value)
+                    : setDetails(event.target.value)
+                }
               />
               <button className="vault-action" type="button">
                 <FontAwesomeIcon icon={faWandMagicSparkles} />
@@ -401,7 +445,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
                     </button>
                   </div>
                 </article>
-              ) : masterResume ? (
+              ) : masterResume && useMasterResume ? (
                 <article className="queue-item" style={{ borderColor: 'var(--color-success)', background: 'rgba(15, 157, 108, 0.05)' }}>
                   <div className="queue-item__meta">
                     <div className="queue-item__icon" style={{ color: 'var(--color-success)' }}>
@@ -412,7 +456,19 @@ function IngestionStep({ onNext }: IngestionStepProps) {
                       <p>Loaded from your account / Ready</p>
                     </div>
                   </div>
+                  <div className="queue-item__status">
+                    <button className="queue-item__remove" onClick={() => { setUseMasterResume(false); setMasterResume(null); }} type="button">
+                      <FontAwesomeIcon icon={faXmark} />
+                    </button>
+                  </div>
                 </article>
+              ) : masterResume && !useMasterResume ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <p className="section-copy text-muted">No file selected yet.</p>
+                  <button className="button button--ghost" onClick={() => setUseMasterResume(true)} type="button" style={{ alignSelf: 'flex-start' }}>
+                    Restore Master Resume
+                  </button>
+                </div>
               ) : (
                 <p className="section-copy text-muted">No file selected yet.</p>
               )}
