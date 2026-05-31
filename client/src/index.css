@@ -1,5 +1,5 @@
 :root {
-  --font-sans: Inter, 'Segoe UI', Arial, sans-serif;
+  --font-sans: Inter, "Segoe UI", Arial, sans-serif;
 
   --color-surface: #f7f9fb;
   --color-surface-dim: #d8dadc;
@@ -459,7 +459,7 @@ strong {
 }
 
 .hero-preview::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: -24% auto auto 20%;
   width: 260px;
@@ -471,7 +471,7 @@ strong {
 .hero-preview__header,
 .hero-preview__score,
 .hero-preview__notice,
-.hero-preview__metrics>div {
+.hero-preview__metrics > div {
   position: relative;
   z-index: 1;
 }
@@ -522,7 +522,7 @@ strong {
   gap: var(--space-4);
 }
 
-.hero-preview__metrics>div,
+.hero-preview__metrics > div,
 .resume-block,
 .optimized-card,
 .queue-item,
@@ -532,7 +532,7 @@ strong {
   background: var(--color-surface-card);
 }
 
-.hero-preview__metrics>div {
+.hero-preview__metrics > div {
   flex: 1;
   padding: var(--space-3) var(--space-4);
   display: grid;
@@ -824,7 +824,11 @@ strong {
   color: var(--color-text-muted);
   text-align: center;
   background:
-    radial-gradient(circle at center, rgba(255, 255, 255, 0.9), rgba(247, 249, 251, 0.96)),
+    radial-gradient(
+      circle at center,
+      rgba(255, 255, 255, 0.9),
+      rgba(247, 249, 251, 0.96)
+    ),
     var(--color-surface-variant);
 }
 
@@ -1127,7 +1131,7 @@ strong {
   border-radius: var(--radius-sm);
   box-shadow: var(--color-shadow-lg);
   color: #2c3e50;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   line-height: 1.5;
   position: relative;
   transition: transform 0.2s ease;
@@ -1298,7 +1302,10 @@ strong {
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.02em;
-  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
 }
 
 .resume-sheet__rewrite-button:hover {
@@ -1334,7 +1341,9 @@ strong {
   opacity: 0;
   transform: translateY(4px);
   pointer-events: none;
-  transition: opacity 0.16s ease, transform 0.16s ease;
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease;
 }
 
 .resume-sheet__bullet-item:hover .resume-sheet__bullet-actions,
@@ -1363,7 +1372,10 @@ strong {
   font-weight: 600;
   line-height: 1;
   cursor: pointer;
-  transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease;
 }
 
 .resume-sheet__skill-chip:hover {
@@ -1442,7 +1454,7 @@ strong {
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-outline);
   text-align: center;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .metric-card__value {
@@ -1470,6 +1482,8 @@ strong {
 }
 
 .template-card {
+  height: 500px;
+  width: 400px;
   overflow: hidden;
   border: 1px solid var(--color-outline);
   border-radius: var(--radius-xl);
@@ -1478,16 +1492,24 @@ strong {
 }
 
 .template-card.is-selected {
+  height: 500px;
   border-color: var(--color-accent);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .template-card__preview {
+  height: 420px;
   position: relative;
   display: grid;
   place-items: center;
   min-height: 320px;
   padding: var(--space-5);
+  overflow: hidden;
+}
+
+.template-card__preview-image {
+  width: 100%;
+  height: 390px;
 }
 
 .template-sheet {
@@ -1594,7 +1616,12 @@ strong {
 .starfield__dot {
   position: absolute;
   border-radius: 999px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 1) 0%, rgba(37, 99, 235, 0.8) 50%, transparent 100%);
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(37, 99, 235, 0.8) 50%,
+    transparent 100%
+  );
   box-shadow: 0 0 8px rgba(37, 99, 235, 0.3);
   transform: translate(-50%, -50%) scale(0.6);
   opacity: 0;
@@ -1704,7 +1731,6 @@ strong {
 }
 
 @media (max-width: 1120px) {
-
   .hero-grid,
   .dashboard-grid,
   .dashboard-grid--config,
@@ -1731,7 +1757,6 @@ strong {
 }
 
 @media (max-width: 760px) {
-
   .site-header__inner,
   .site-footer,
   .app-shell__main {
@@ -1790,14 +1815,16 @@ strong {
   padding: var(--space-4);
   display: flex;
   gap: var(--space-4);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
   animation: toast-slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
 }
 
 .notification-toast::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -1805,10 +1832,18 @@ strong {
   height: 100%;
 }
 
-.notification-toast--info::before { background: var(--color-primary); }
-.notification-toast--success::before { background: var(--color-success); }
-.notification-toast--warning::before { background: #f59e0b; }
-.notification-toast--error::before { background: #ef4444; }
+.notification-toast--info::before {
+  background: var(--color-primary);
+}
+.notification-toast--success::before {
+  background: var(--color-success);
+}
+.notification-toast--warning::before {
+  background: #f59e0b;
+}
+.notification-toast--error::before {
+  background: #ef4444;
+}
 
 .notification-toast__icon {
   flex-shrink: 0;
@@ -1816,10 +1851,18 @@ strong {
   margin-top: 2px;
 }
 
-.notification-toast--info .notification-toast__icon { color: var(--color-primary); }
-.notification-toast--success .notification-toast__icon { color: var(--color-success); }
-.notification-toast--warning .notification-toast__icon { color: #f59e0b; }
-.notification-toast--error .notification-toast__icon { color: #ef4444; }
+.notification-toast--info .notification-toast__icon {
+  color: var(--color-primary);
+}
+.notification-toast--success .notification-toast__icon {
+  color: var(--color-success);
+}
+.notification-toast--warning .notification-toast__icon {
+  color: #f59e0b;
+}
+.notification-toast--error .notification-toast__icon {
+  color: #ef4444;
+}
 
 .notification-toast__content {
   flex: 1;
@@ -1987,7 +2030,3 @@ strong {
 .resume-history-modal {
   width: min(760px, calc(100% - 32px));
 }
-
-
-
-

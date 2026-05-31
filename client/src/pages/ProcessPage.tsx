@@ -1,30 +1,31 @@
-import { useState } from 'react'
-import { flowSteps } from '../data/mockData'
-import FlowStepper from '../components/FlowStepper'
-import IngestionStep from './IngestionStep'
-import ConfigStep from './ConfigStep'
-import ReviewStep from './ReviewStep'
-import ExportStep from './ExportStep'
+import { useState } from "react";
+import { flowSteps } from "../data/mockData";
+import FlowStepper from "../components/FlowStepper";
+import IngestionStep from "./IngestionStep";
+import ConfigStep from "./ConfigStep";
+import ReviewStep from "./ReviewStep";
+import ExportStep from "./ExportStep";
 
 function ProcessPage() {
-  const [currentStep, setCurrentStep] = useState(1)
+  const [currentStep, setCurrentStep] = useState(4);
 
-  const handleNext = () => setCurrentStep((prev) => Math.min(prev + 1, flowSteps.length))
-  const handleBack = () => setCurrentStep((prev) => Math.max(prev - 1, 1))
+  const handleNext = () =>
+    setCurrentStep((prev) => Math.min(prev + 1, flowSteps.length));
+  const handleBack = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
   const handleStepClick = (step: number) => {
     // Only allow clicking back to completed steps
     if (step < currentStep) {
-      setCurrentStep(step)
+      setCurrentStep(step);
     }
-  }
+  };
 
   return (
     <div className="process-container">
       <div className="process-header">
         <div className="container header-flex">
-          <FlowStepper 
-            activeStep={currentStep} 
-            steps={flowSteps} 
+          <FlowStepper
+            activeStep={currentStep}
+            steps={flowSteps}
             onStepClick={handleStepClick}
           />
           <div id="header-actions-portal" />
@@ -42,7 +43,7 @@ function ProcessPage() {
         {currentStep === 4 && <ExportStep onBack={handleBack} />}
       </div>
     </div>
-  )
+  );
 }
 
-export default ProcessPage
+export default ProcessPage;

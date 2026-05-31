@@ -1,41 +1,29 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCheckCircle } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCheckCircle } from "@fortawesome/free-solid-svg-icons";
 
 type TemplateCardProps = {
-  accent?: string
-  description: string
-  isSelected?: boolean
-  onSelect?: () => void
-  title: string
-}
+  accent?: string;
+  description: string;
+  isSelected?: boolean;
+  imgSrc?: string;
+  onSelect?: () => void;
+  title: string;
+};
 
 function TemplateCard({
-  accent = 'linear-gradient(145deg, #27485b 0%, #1c2733 100%)',
+  accent = "linear-gradient(145deg, #27485b 0%, #1c2733 100%)",
   description,
   isSelected = false,
+  imgSrc = "/template.png",
   onSelect,
   title,
 }: TemplateCardProps) {
   return (
-    <article className={isSelected ? 'template-card is-selected' : 'template-card'}>
+    <article
+      className={isSelected ? "template-card is-selected" : "template-card"}
+    >
       <div className="template-card__preview" style={{ background: accent }}>
-        <div className="template-sheet">
-          <div className="template-sheet__header" />
-          <div className="template-sheet__columns">
-            <div>
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-            <div>
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-          </div>
-        </div>
+        <img src={imgSrc ?? '/template.png'} alt="Template preview" className="template-card__preview-image" />
         {isSelected ? (
           <span className="template-card__flag">
             <FontAwesomeIcon icon={faCheckCircle} />
@@ -49,15 +37,17 @@ function TemplateCard({
           <p>{description}</p>
         </div>
         <button
-          className={isSelected ? 'button button--accent' : 'button button--ghost'}
+          className={
+            isSelected ? "button button--accent" : "button button--ghost"
+          }
           onClick={onSelect}
           type="button"
         >
-          {isSelected ? 'Selected' : 'Select'}
+          {isSelected ? "Selected" : "Select"}
         </button>
       </div>
     </article>
-  )
+  );
 }
 
-export default TemplateCard
+export default TemplateCard;
