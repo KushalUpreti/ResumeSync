@@ -7,7 +7,7 @@ import ReviewStep from "./ReviewStep";
 import ExportStep from "./ExportStep";
 
 function ProcessPage() {
-  const [currentStep, setCurrentStep] = useState(4);
+  const [currentStep, setCurrentStep] = useState(1);
 
   const handleNext = () =>
     setCurrentStep((prev) => Math.min(prev + 1, flowSteps.length));

@@ -12,12 +12,12 @@ type ExportStepProps = {
 };
 
 const ExportStep: FC<ExportStepProps> = () => {
-  const { selectedTemplateId, setSelectedTemplateId, currentResume } = useWorkspace();
+  const { selectedTemplateId, setSelectedTemplateId, generatedResumeId } = useWorkspace();
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState("");
 
   async function handleExport() {
-    if (!currentResume?.resume_id) {
+    if (!generatedResumeId) {
       setDownloadError("No resume available to export.");
       return;
     }
@@ -26,7 +26,7 @@ const ExportStep: FC<ExportStepProps> = () => {
     setIsDownloading(true);
     setDownloadError("");
     try {
-      await downloadTemplate(currentResume.resume_id, templateName);
+      await downloadTemplate(generatedResumeId, templateName);
     } catch (error) {
       setDownloadError(
         error instanceof Error ? error.message : "Failed to download template.",
