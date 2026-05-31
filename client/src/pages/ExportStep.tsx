@@ -5,51 +5,34 @@ import { templates } from "../data/mockData";
 import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFileArrowDown, faSpinner } from "@fortawesome/free-solid-svg-icons";
-import { renderResume, waitForJob } from "../api/resumeSync";
+import { downloadTemplate } from "../api/resumeSync";
 
 type ExportStepProps = {
   // Back navigation removed per request
-  // onBack?: () => void
 };
 
-const ExportStep: FC<ExportStepProps> = (/*{ onBack }*/) => {
-  const {
-    selectedTemplateId,
-    setSelectedTemplateId,
-    generatedResumeId,
-    lastRenderJob,
-    setLastRenderJob,
-  } = useWorkspace();
-  const [renderStatus, setRenderStatus] = useState("");
-  const [isRendering, setIsRendering] = useState(false);
+const ExportStep: FC<ExportStepProps> = () => {
+  const { selectedTemplateId, setSelectedTemplateId, currentResume } = useWorkspace();
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState("");
 
-  async function handleRender() {
-    if (!generatedResumeId) {
-      setRenderStatus(
-        "Generate a draft first so the backend has a resume id to render.",
-      );
+  async function handleExport() {
+    if (!currentResume?.resume_id) {
+      setDownloadError("No resume available to export.");
       return;
     }
-    setIsRendering(true);
-    setRenderStatus("Submitting a render job to the backend...");
+
+    const templateName = selectedTemplateId || "modern";
+    setIsDownloading(true);
+    setDownloadError("");
     try {
-      const renderJob = await renderResume(generatedResumeId, {
-        template_id: selectedTemplateId,
-      });
-      const finalJob = await waitForJob(renderJob.job_id);
-      setLastRenderJob(finalJob);
-      if (finalJob.status === "failed") {
-        throw new Error(finalJob.error || "Render failed.");
-      }
-      setRenderStatus(
-        `Render complete. Output stored at ${finalJob.output_s3_key}.`,
-      );
+      await downloadTemplate(currentResume.resume_id, templateName);
     } catch (error) {
-      setRenderStatus(
-        error instanceof Error ? error.message : "Unable to render the resume.",
+      setDownloadError(
+        error instanceof Error ? error.message : "Failed to download template.",
       );
     } finally {
-      setIsRendering(false);
+      setIsDownloading(false);
     }
   }
 
@@ -82,6 +65,12 @@ const ExportStep: FC<ExportStepProps> = (/*{ onBack }*/) => {
         ))}
       </div>
 
+      {downloadError && (
+        <p style={{ color: "var(--color-error, #f87171)", marginTop: "var(--space-2)", textAlign: "right" }}>
+          {downloadError}
+        </p>
+      )}
+
       <div
         className="page-intro__actions"
         style={{
@@ -92,12 +81,16 @@ const ExportStep: FC<ExportStepProps> = (/*{ onBack }*/) => {
       >
         <button
           className="button button--ghost"
-          onClick={() => void handleRender()}
+          disabled={isDownloading}
+          onClick={() => void handleExport()}
           type="button"
         >
-          {isRendering ? <FontAwesomeIcon icon={faSpinner} spin /> : null}
-          <FontAwesomeIcon icon={faFileArrowDown} />
-          Export .docx
+          {isDownloading ? (
+            <FontAwesomeIcon icon={faSpinner} spin />
+          ) : (
+            <FontAwesomeIcon icon={faFileArrowDown} />
+          )}
+          {isDownloading ? "Downloading…" : "Export .docx"}
         </button>
       </div>
     </div>

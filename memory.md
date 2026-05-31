@@ -228,3 +228,20 @@
   - `server/app/services/local_adapters.py`
   - `server/app/services/aws_adapters.py`
   - `server/app/worker/processor.py`
+
+---
+
+## 9) Export Pipeline & Document Generation
+- Cleaned up the `ExportStep.tsx` UI, centering the layout and adding a right-aligned export action bar.
+- Replaced mock HTML template previews with real thumbnail images (`template.png`).
+- Created `/templates` and `/templates/{name}` routes to fetch list of available `.docx` templates.
+- Added a synchronous download endpoint `GET /resume/{resume_id}/download` to actually fill the chosen `.docx` template using `DocxtplDocumentRenderer` and stream it back to the client.
+- Export button now triggers the actual download pipeline, returning the final populated document to the user.
+
+### Main files
+- Server:
+  - `server/app/api/routes.py`
+  - `server/app/services/document_engine.py`
+- Client:
+  - `client/src/pages/ExportStep.tsx`
+  - `client/src/api/resumeSync.ts`

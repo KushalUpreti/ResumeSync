@@ -35,7 +35,7 @@ export const providerCards = [
 ]
 
 export const templates = [
-  { title: 'Modern', description: 'Best for Tech & Design', accent: 'linear-gradient(145deg, #284a60, #17202c)', imgSrc: '/modern.png', image: '/template.png' },
-  { title: 'Executive', description: 'Best for Leadership', accent: 'linear-gradient(145deg, #355a6a, #1d2a36)', selected: true, imgSrc: '/executive.png', image: '/template.png' },
-  { title: 'Professional', description: 'Best for Corporate', accent: 'linear-gradient(145deg, #f1f3f6, #dce3ea)', imgSrc: '/professional.png', image: '/template.png' },
+  { title: 'Modern', description: 'Best for Tech & Design', accent: 'linear-gradient(145deg, #284a60, #17202c)', imgSrc: '/template.png' },
+  { title: 'Executive', description: 'Best for Leadership', accent: 'linear-gradient(145deg, #355a6a, #1d2a36)', selected: true, imgSrc: '/template.png' },
+  { title: 'Professional', description: 'Best for Corporate', accent: 'linear-gradient(145deg, #f1f3f6, #dce3ea)', imgSrc: '/template.png' },
 ]

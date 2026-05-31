@@ -92,3 +92,22 @@ export async function renderResume(resumeId: string, payload: RenderResumeReques
   const response = await apiClient.post<CreateJobResponse>(`/resume/${resumeId}/render`, payload)
   return response.data
 }
+
+/**
+ * Download a populated .docx template file from the backend and trigger a browser save dialog.
+ * @param resumeId      the ID of the current resume
+ * @param templateName  lowercase template name, e.g. "modern" | "executive" | "professional"
+ */
+export async function downloadTemplate(resumeId: string, templateName: string): Promise<void> {
+  const response = await apiClient.get<Blob>(`/resume/${resumeId}/download?template_id=${encodeURIComponent(templateName)}`, {
+    responseType: 'blob',
+  })
+  const url = URL.createObjectURL(response.data)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = `resume_${templateName}.docx`
+  document.body.appendChild(anchor)
+  anchor.click()
+  document.body.removeChild(anchor)
+  URL.revokeObjectURL(url)
+}
