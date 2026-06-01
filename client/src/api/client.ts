@@ -10,22 +10,30 @@ export function getApiErrorMessage(error: unknown, fallback: string) {
   // Handle Axios errors with possible structured detail payloads.
   if (axios.isAxiosError(error)) {
     const responseData = error.response?.data as any
-    // FastAPI / Pydantic validation errors are often under `detail` and can be an array or object.
+    const status = error.response?.status
+
+    // Friendly messages for common status codes
+    if (status === 429) {
+      return "Rate limit exceeded. Please wait a moment and try again."
+    }
+    if (status === 401) {
+      return "Invalid API key. Please verify your credentials."
+    }
+
+    // FastAPI / Pydantic validation errors are often under `detail`
     const detail = responseData?.detail
     if (detail !== undefined) {
       try {
-        // If it's already a string, return it directly.
         if (typeof detail === 'string') {
           return detail
         }
-        // For arrays or objects, stringify for a readable message.
         return JSON.stringify(detail)
       } catch {
-        // Fallback to generic string conversion.
         return String(detail)
       }
     }
-    // If no `detail` field, fallback to the Axios error message if present or stringified data.
+
+    // Fallback to response data if present
     if (responseData) {
       try {
         return typeof responseData === 'string' ? responseData : JSON.stringify(responseData)

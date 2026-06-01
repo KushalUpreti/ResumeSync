@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-
-import {} from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faWandMagicSparkles } from "@fortawesome/free-solid-svg-icons";
 import { getResume, rewritePreview, waitForJob } from "../api/resumeSync";
 import { useNotification } from "../context/useNotification";
 import SectionCard from "../components/SectionCard";
@@ -362,7 +362,7 @@ function ReviewStep({ onNext }: ReviewStepProps) {
         document.getElementById("header-actions-portal")!,
       )}
 
-      <div className={`review-grid ${singleResume ? 'single-resume' : ''}`}>
+      <div className={`review-grid ${singleResume ? "single-resume" : ""}`}>
         {originalDocument && (
           <SectionCard className="review-panel">
             <ResumeSheet
@@ -373,25 +373,46 @@ function ReviewStep({ onNext }: ReviewStepProps) {
           </SectionCard>
         )}
 
-        <SectionCard className="review-panel" style={{ border: '1px solid var(--color-success-soft, #dcfce7)' }}>
-          <ResumeSheet
-            document={workingDocument}
-            isLoading={isGenerating}
-            title="Tailored Resume"
-            subtitle="AI enhanced for target role"
-            activeRewritePath={activeRewritePath}
-            canUndoPath={canUndoPath}
-            onUndo={handleUndo}
-            onAddSkill={handleAddSkill}
-            canUndoSkillRemoval={removedSkillsHistory.length > 0}
-            onUndoSkillRemoval={handleUndoSkillRemoval}
-            onRemoveSkill={(skill, index) => {
-              void skill
-              handleRemoveSkill(index)
-            }}
-            onRewrite={(target) => void handleRewriteTarget(target)}
-            onInlineEdit={handleInlineEdit}
-          />
+        <SectionCard
+          className="review-panel"
+          style={{
+            border: "1px solid var(--color-success-soft, #dcfce7)",
+            overflow: "hidden",
+            padding: 0,
+          }}
+        >
+          <div className="optimized-banner">
+            <div>
+              <FontAwesomeIcon
+                icon={faWandMagicSparkles}
+                style={{ marginRight: "8px" }}
+              />
+              AI Optimized Output
+            </div>
+            <div className="ats-badge">
+              <span className="status-dot"></span> ATS OPTIMIZED
+            </div>
+          </div>
+          <div style={{ padding: "var(--space-8)" }}>
+            <ResumeSheet
+              document={workingDocument}
+              isLoading={isGenerating}
+              title="Tailored Resume"
+              subtitle="AI enhanced for target role"
+              activeRewritePath={activeRewritePath}
+              canUndoPath={canUndoPath}
+              onUndo={handleUndo}
+              onAddSkill={handleAddSkill}
+              canUndoSkillRemoval={removedSkillsHistory.length > 0}
+              onUndoSkillRemoval={handleUndoSkillRemoval}
+              onRemoveSkill={(skill, index) => {
+                void skill;
+                handleRemoveSkill(index);
+              }}
+              onRewrite={(target) => void handleRewriteTarget(target)}
+              onInlineEdit={handleInlineEdit}
+            />
+          </div>
         </SectionCard>
       </div>
     </div>

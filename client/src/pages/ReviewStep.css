@@ -1,14 +1,13 @@
 /* Single resume view: center and width like a Word document */
 .review-grid.single-resume {
-  display: flex;
-  justify-content: center;
+  display: block;
   width: 100%;
   padding: var(--space-6);
 }
 
 .review-grid.single-resume .resume-sheet {
-  max-width: 794px; /* Approx A4 width at 96 DPI */
-  width: 100%;
+  width: 50vw;
+  margin: auto;
   background: #fff;
   box-shadow: 0 2px 12px rgba(0,0,0,0.1);
   border-radius: var(--radius-md);

@@ -7,7 +7,7 @@ import {
   faEyeSlash,
   faMemory,
   faMicrochip,
-  faPlus,
+  faPlus, faWandMagicSparkles,
 } from '@fortawesome/free-solid-svg-icons'
 import SectionCard from '../components/SectionCard'
 import { useNotification } from '../context/useNotification'
@@ -52,7 +52,7 @@ function ConfigStep({ onNext }: ConfigStepProps) {
     const savedProvider = localStorage.getItem('ai_provider_display') || 'OpenAI'
     return localStorage.getItem('ai_model') || modelMappings[savedProvider][0].value
   })
-  const [temperature, setTemperature] = useState(0.7)
+
 
   const handleProviderChange = (providerName: string) => {
     setSelectedProvider(providerName)
@@ -141,12 +141,7 @@ function ConfigStep({ onNext }: ConfigStepProps) {
             )
           })}
 
-          <div className="provider-card provider-card--empty">
-            <div className="provider-card__empty-icon">
-              <FontAwesomeIcon icon={faPlus} />
-            </div>
-            <h3>Custom Provider (BYOK)</h3>
-          </div>
+
         </div>
 
         <SectionCard className="config-panel">
@@ -174,9 +169,6 @@ function ConfigStep({ onNext }: ConfigStepProps) {
                   <FontAwesomeIcon icon={showApiKey ? faEyeSlash : faEye} />
                 </button>
               </div>
-              <div className="field__hint field__hint--success">
-                <span className="dot dot--success"></span> {apiKey ? 'KEY VALIDATED' : 'NO KEY PROVIDED'}
-              </div>
             </label>
 
             <label className="field">
@@ -194,24 +186,7 @@ function ConfigStep({ onNext }: ConfigStepProps) {
               </select>
             </label>
 
-            <div className="field">
-              <span>Temperature</span>
-              <div className="slider-readout">
-                <input
-                  className="range-input"
-                  max="1"
-                  min="0"
-                  onChange={(event) => setTemperature(Number(event.target.value))}
-                  step="0.1"
-                  type="range"
-                  value={temperature}
-                />
-                <strong>{temperature.toFixed(1)}</strong>
-              </div>
-              <small className="field__hint">
-                Lower values are more deterministic and precise.
-              </small>
-            </div>
+
           </div>
 
           <div className="action-stack">
