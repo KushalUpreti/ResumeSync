@@ -1,5 +1,5 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { useEffect, useState } from 'react'
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { useEffect, useState } from "react";
 import {
   faArrowRight,
   faBullseye,
@@ -8,96 +8,106 @@ import {
   faRocket,
   faShieldHalved,
   faSyncAlt,
-} from '@fortawesome/free-solid-svg-icons'
-import { Link } from 'react-router-dom'
-import SectionCard from '../components/SectionCard'
+} from "@fortawesome/free-solid-svg-icons";
+import { Link } from "react-router-dom";
+import SectionCard from "../components/SectionCard";
 
 type LandingPageProps = {
-  isLoggedIn: boolean
-  onOpenSignUp: () => void
-}
+  isLoggedIn: boolean;
+  onOpenSignUp: () => void;
+};
 
 type StarParticle = {
-  id: number
-  x: number
-  y: number
-  size: number
-  delay: number
-}
+  id: number;
+  x: number;
+  y: number;
+  size: number;
+  delay: number;
+};
 
 const featureCards = [
   {
-    title: 'Semantic Extraction',
-    copy: 'Our engine maps your experience to industry-standard taxonomies used by Workday and Greenhouse.',
+    title: "Semantic Extraction",
+    copy: "Our engine maps your experience to industry-standard taxonomies used by Workday and Greenhouse.",
   },
   {
-    title: 'Bias Neutralization',
-    copy: 'AI-driven auditing identifies and corrects subtle patterns that might trigger algorithmic filtering.',
+    title: "Bias Neutralization",
+    copy: "AI-driven auditing identifies and corrects subtle patterns that might trigger algorithmic filtering.",
   },
   {
-    title: 'Impact Quantifier',
-    copy: 'Automatically translates vague tasks into data-backed metrics that grab attention instantly.',
+    title: "Impact Quantifier",
+    copy: "Automatically translates vague tasks into data-backed metrics that grab attention instantly.",
   },
-]
+];
 
 const modeCards = [
   {
-    label: 'Mode 01',
-    title: 'The Polisher',
-    copy: 'The grounded choice. Refines your existing content for maximum clarity, tone consistency, and grammatical precision without changing your core narrative.',
-    bullets: ['Precision tone adjustment', 'Grammar & syntax scrubbing', 'Clarity & conciseness focus'],
-    cta: 'Select Polisher',
+    label: "Mode 01",
+    title: "The Polisher",
+    copy: "The grounded choice. Refines your existing content for maximum clarity, tone consistency, and grammatical precision without changing your core narrative.",
+    bullets: [
+      "Precision tone adjustment",
+      "Grammar & syntax scrubbing",
+      "Clarity & conciseness focus",
+    ],
+    cta: "Select Polisher",
     icon: faShieldHalved,
   },
   {
-    label: 'Mode 02',
-    title: 'The Sniper',
-    copy: 'The FAANG-ready choice. Heavy-duty job targeting. We rewrite your bullets based on specific job descriptions to force-align with company values.',
-    bullets: ['Job-specific keyword injection', 'Metric-focused bullet generation', 'Company culture alignment'],
-    cta: 'Select Sniper',
+    label: "Mode 02",
+    title: "The Sniper",
+    copy: "The FAANG-ready choice. Heavy-duty job targeting. We rewrite your bullets based on specific job descriptions to force-align with company values.",
+    bullets: [
+      "Job-specific keyword injection",
+      "Metric-focused bullet generation",
+      "Company culture alignment",
+    ],
+    cta: "Select Sniper",
     featured: true,
     icon: faBullseye,
   },
-]
+];
 
 function LandingPage({ isLoggedIn, onOpenSignUp }: LandingPageProps) {
-  const [stars, setStars] = useState<StarParticle[]>([])
+  const [stars, setStars] = useState<StarParticle[]>([]);
 
   useEffect(() => {
-    let nextId = 1
-    let lastSpawn = 0
+    let nextId = 1;
+    let lastSpawn = 0;
 
     function handleMove(event: MouseEvent) {
-      const now = performance.now()
+      const now = performance.now();
       if (now - lastSpawn < 40) {
-        return
+        return;
       }
-      lastSpawn = now
+      lastSpawn = now;
 
-      const count = 2
+      const count = 2;
       const next = Array.from({ length: count }).map(() => ({
         id: nextId++,
         x: event.clientX + (Math.random() - 0.5) * 30,
         y: event.clientY + (Math.random() - 0.5) * 30,
         size: 1.2 + Math.random() * 1.8,
         delay: Math.random() * 0.08,
-      }))
+      }));
 
-      setStars((current) => [...current.slice(-60), ...next])
+      setStars((current) => [...current.slice(-60), ...next]);
     }
 
-    window.addEventListener('mousemove', handleMove, { passive: true })
-    return () => window.removeEventListener('mousemove', handleMove)
-  }, [])
+    window.addEventListener("mousemove", handleMove, { passive: true });
+    return () => window.removeEventListener("mousemove", handleMove);
+  }, []);
 
   useEffect(() => {
-    if (!stars.length) return
+    if (!stars.length) return;
     const timer = window.setTimeout(() => {
-      const cutoff = stars[stars.length - 1]?.id ? stars[stars.length - 1].id - 20 : 0
-      setStars((current) => current.filter((star) => star.id > cutoff))
-    }, 1100)
-    return () => window.clearTimeout(timer)
-  }, [stars])
+      const cutoff = stars[stars.length - 1]?.id
+        ? stars[stars.length - 1].id - 20
+        : 0;
+      setStars((current) => current.filter((star) => star.id > cutoff));
+    }, 1100);
+    return () => window.clearTimeout(timer);
+  }, [stars]);
 
   return (
     <div className="page-stack landing-stack">
@@ -125,22 +135,19 @@ function LandingPage({ isLoggedIn, onOpenSignUp }: LandingPageProps) {
             Elite Career Results
           </h1>
           <p className="page-copy">
-            Precision-engineered career documentation powered by enterprise-grade AI
-            orchestration. Optimize for high-stakes ATS algorithms while maintaining
-            technical authority throughout your BYOK architecture.
+            Precision-engineered career documentation powered by
+            enterprise-grade AI orchestration. Optimize for high-stakes ATS
+            algorithms while maintaining technical authority throughout your
+            BYOK architecture.
           </p>
           <div className="hero-actions">
             <Link className="button button--primary" to="/process">
-              {isLoggedIn ? 'Open Workspace' : 'Get Started'}
+              {isLoggedIn ? "Open Workspace" : "Get Started"}
               <FontAwesomeIcon icon={faArrowRight} />
             </Link>
-            <button className="button button--ghost" onClick={onOpenSignUp} type="button">
-              How It Works
-            </button>
           </div>
           <div className="hero-infra">
             <div>
-              <p className="section-label">Enterprise-grade infrastructure</p>
               <span className="hero-infra__icon">
                 <FontAwesomeIcon icon={faShieldHalved} />
               </span>
@@ -197,8 +204,8 @@ function LandingPage({ isLoggedIn, onOpenSignUp }: LandingPageProps) {
           <div className="hero-preview__notice">
             <strong>AES-256 Encryption Active</strong>
             <p>
-              Secure tunnel established for BYOK data stream. Fargate instance running in
-              VPC isolation.
+              Secure tunnel established for BYOK data stream. Fargate instance
+              running in VPC isolation.
             </p>
           </div>
         </SectionCard>
@@ -208,8 +215,9 @@ function LandingPage({ isLoggedIn, onOpenSignUp }: LandingPageProps) {
         <div className="section-heading">
           <h2>Defeating the ATS Black Hole</h2>
           <p>
-            Modern recruiters do not read resumes first. Their algorithms do. If your
-            syntax is not engineered for parsing, your expertise never reaches a human eye.
+            Modern recruiters do not read resumes first. Their algorithms do. If
+            your syntax is not engineered for parsing, your expertise never
+            reaches a human eye.
           </p>
         </div>
         <div className="feature-grid">
@@ -225,12 +233,14 @@ function LandingPage({ isLoggedIn, onOpenSignUp }: LandingPageProps) {
       <section className="mode-showcase">
         {modeCards.map((mode) => (
           <SectionCard
-            className={mode.featured ? 'mode-panel is-featured' : 'mode-panel'}
+            className={mode.featured ? "mode-panel is-featured" : "mode-panel"}
             key={mode.title}
           >
             <div className="mode-panel__top">
               <p className="section-label">{mode.label}</p>
-              {mode.featured ? <span className="tag tag--dark">Popular</span> : null}
+              {mode.featured ? (
+                <span className="tag tag--dark">Popular</span>
+              ) : null}
             </div>
             <h3>{mode.title}</h3>
             <p className="section-copy">{mode.copy}</p>
@@ -242,8 +252,8 @@ function LandingPage({ isLoggedIn, onOpenSignUp }: LandingPageProps) {
             <Link
               className={
                 mode.featured
-                  ? 'button button--primary button--full'
-                  : 'button button--ghost button--full'
+                  ? "button button--primary button--full"
+                  : "button button--ghost button--full"
               }
               to="/process"
             >
@@ -258,13 +268,15 @@ function LandingPage({ isLoggedIn, onOpenSignUp }: LandingPageProps) {
         <SectionCard className="capability-grid__large">
           <h3>Enterprise Grade Infrastructure</h3>
           <p className="section-copy">
-            Built on AWS Fargate for ephemeral, isolated execution environments. Your
-            data never touches a persistent disk.
+            Built on AWS Fargate for ephemeral, isolated execution environments.
+            Your data never touches a persistent disk.
           </p>
         </SectionCard>
         <SectionCard>
           <h3>LLM Agnostic</h3>
-          <p className="section-copy">Switch between GPT-4o, Claude 3.5, and Gemini Pro.</p>
+          <p className="section-copy">
+            Switch between GPT-4o, Claude 3.5, and Gemini Pro.
+          </p>
         </SectionCard>
         <SectionCard>
           <div className="capability-icon">
@@ -284,7 +296,10 @@ function LandingPage({ isLoggedIn, onOpenSignUp }: LandingPageProps) {
 
       <section className="cta-band">
         <p className="section-label">Ready to Sync?</p>
-        <h2>Join 15,000+ engineers who have upgraded their careers with ResumeSync AI.</h2>
+        <h2>
+          Join 15,000+ engineers who have upgraded their careers with ResumeSync
+          AI.
+        </h2>
         <div className="cta-band__actions">
           <Link className="button button--light" to="/process">
             Get Started Now
@@ -292,7 +307,7 @@ function LandingPage({ isLoggedIn, onOpenSignUp }: LandingPageProps) {
         </div>
       </section>
     </div>
-  )
+  );
 }
 
-export default LandingPage
+export default LandingPage;

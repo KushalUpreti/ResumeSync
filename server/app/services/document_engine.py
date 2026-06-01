@@ -35,7 +35,22 @@ class DocxtplDocumentRenderer(DocumentRenderer):
             
             fallback_doc.add_heading("Skills", level=1)
             fallback_doc.add_paragraph(", ".join(document.skills))
-            
+
+            if document.education:
+                fallback_doc.add_heading("Education", level=1)
+                for edu in document.education:
+                    title_parts = [edu.degree]
+                    if edu.field_of_study:
+                        title_parts.append(f"in {edu.field_of_study}")
+                    fallback_doc.add_heading(f"{' '.join(title_parts)} — {edu.institution}", level=2)
+                    date_parts = [part for part in [edu.start_date, edu.end_date] if part]
+                    if date_parts:
+                        fallback_doc.add_paragraph(" – ".join(date_parts))
+                    if edu.gpa:
+                        fallback_doc.add_paragraph(f"GPA: {edu.gpa}")
+                    if edu.description:
+                        fallback_doc.add_paragraph(edu.description)
+
             target = io.BytesIO()
             fallback_doc.save(target)
             return target.getvalue()
@@ -59,7 +74,20 @@ class DocxtplDocumentRenderer(DocumentRenderer):
                 for exp in document.experience
             ],
             "skills": document.skills,
-            "skills_csv": ", ".join(document.skills)
+            "skills_csv": ", ".join(document.skills),
+            "education": [
+                {
+                    "institution": edu.institution,
+                    "degree": edu.degree,
+                    "field_of_study": edu.field_of_study or "",
+                    "start_date": edu.start_date or "",
+                    "end_date": edu.end_date or "",
+                    "gpa": edu.gpa or "",
+                    "description": edu.description or "",
+                }
+                for edu in document.education
+            ],
+            "has_education": len(document.education) > 0,
         }
 
         doc.render(context)

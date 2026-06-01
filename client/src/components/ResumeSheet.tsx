@@ -259,6 +259,32 @@ function ResumeSheet({
           ))}
         </section>
 
+        {document.education && document.education.length > 0 && (
+          <section className="resume-sheet__section">
+            <h3 className="resume-sheet__section-title">Education</h3>
+            {document.education.map((edu, idx) => (
+              <div className="resume-sheet__experience-item" key={idx}>
+                <div className="resume-sheet__role-row">
+                  <span className="resume-sheet__inline-strong">
+                    {[edu.degree, edu.field_of_study].filter(Boolean).join(' in ')}
+                  </span>
+                  <span className="resume-sheet__inline-company">{edu.institution}</span>
+                </div>
+                {(edu.start_date || edu.end_date) ? (
+                  <p className="resume-sheet__date-line">
+                    {[edu.start_date, edu.end_date].filter(Boolean).join(' – ')}
+                  </p>
+                ) : null}
+                {edu.gpa ? (
+                  <p className="resume-sheet__date-line">GPA: {edu.gpa}</p>
+                ) : null}
+                {edu.description ? (
+                  <p className="resume-sheet__summary-text" style={{ marginTop: '4px' }}>{edu.description}</p>
+                ) : null}
+              </div>
+            ))}
+          </section>
+        )}
         <section className="resume-sheet__section">
           <h3 className="resume-sheet__section-title">Skills</h3>
           {onRemoveSkill ? (

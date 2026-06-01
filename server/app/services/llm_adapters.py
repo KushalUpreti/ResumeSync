@@ -6,7 +6,7 @@ import litellm
 from typing import Any
 from pypdf import PdfReader
 from docx import Document
-from app.models.resume import ResumeDocument, ExperienceEntry, RewriteTarget
+from app.models.resume import ResumeDocument, ExperienceEntry, EducationEntry, RewriteTarget
 from app.services.interfaces import ResumeParser, ResumeTailor
 
 class LLMResumeParser(ResumeParser):
@@ -15,7 +15,7 @@ class LLMResumeParser(ResumeParser):
         if not raw_text.strip():
             raise ValueError("The provided document or notes is empty. Please provide some professional details to proceed.")
         
-        prompt = f"""Extract the professional experience, skills, summary, and employment dates from the following raw resume text and return it strictly as a JSON object matching this schema:
+        prompt = f"""Extract the professional experience, education, skills, summary, and employment dates from the following raw resume text and return it strictly as a JSON object matching this schema:
 {{
   "full_name": "Candidate full name if present, otherwise empty string",
   "email": "Candidate email if present, otherwise empty string",
@@ -31,12 +31,24 @@ class LLMResumeParser(ResumeParser):
       "bullets": ["Achievement bullet 1", "Achievement bullet 2"]
     }}
   ],
+  "education": [
+    {{
+      "institution": "University or School Name",
+      "degree": "Degree name (e.g. Bachelor of Science)",
+      "field_of_study": "Major or field if present, otherwise empty string",
+      "start_date": "Exact date string if present, otherwise null",
+      "end_date": "Exact date string if present, otherwise null",
+      "gpa": "GPA if present, otherwise empty string",
+      "description": "Honors, relevant coursework, or other details if present, otherwise empty string"
+    }}
+  ],
   "skills": ["Skill 1", "Skill 2"]
 }}
 
 Only output the JSON object. Do not include markdown formatting like ```json. Do not include any introductory or explanatory text.
 
 If the source includes dates, preserve them exactly as they appear when possible. Do not invent dates.
+If no education information is present, return an empty array for "education".
 
 RAW RESUME TEXT:
 {raw_text}"""
@@ -52,6 +64,7 @@ RAW RESUME TEXT:
         data = self._clean_json(content)
         
         experience_list = [ExperienceEntry(**exp) for exp in data.get("experience", [])]
+        education_list = [EducationEntry(**edu) for edu in data.get("education", [])]
         skills_list = data.get("skills", [])
         
         if not experience_list and not skills_list:
@@ -67,6 +80,7 @@ RAW RESUME TEXT:
             links=data.get("links", []),
             summary=data.get("summary", ""),
             experience=experience_list,
+            education=education_list,
             skills=skills_list,
             metadata={"source": filename, "parsed_by": "llm"}
         )
@@ -122,6 +136,7 @@ class LLMResumeTailor(ResumeTailor):
             links=data.get("links", document.links),
             summary=data.get("summary", document.summary),
             experience=[ExperienceEntry(**exp) for exp in data.get("experience", [])],
+            education=[EducationEntry(**edu) for edu in data.get("education", [])] if data.get("education") else document.education,
             skills=data.get("skills", document.skills),
             metadata={**document.metadata, "mode": mode, "tailored": "true"}
         )
@@ -148,10 +163,12 @@ class LLMResumeTailor(ResumeTailor):
   "links": ["...", "..."],
   "summary": "...",
   "experience": [{"company": "...", "role": "...", "start_date": "...", "end_date": "...", "bullets": ["...", "..."]}],
+  "education": [{"institution": "...", "degree": "...", "field_of_study": "...", "start_date": "...", "end_date": "...", "gpa": "...", "description": "..."}],
   "skills": ["...", "..."]
 }
 
 Only output the JSON. Do not include markdown, explanations, or extra keys.
+If no education data exists in the source resume, return an empty array for "education".
 """
 
         if mode == "sniper":

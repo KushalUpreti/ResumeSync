@@ -1,15 +1,15 @@
-import { Link } from 'react-router-dom'
-import type { AuthState, AuthView } from '../context/authTypes'
+import { Link } from "react-router-dom";
+import type { AuthState, AuthView } from "../context/authTypes";
 
 type AppHeaderProps = {
-  auth: AuthState
-  onOpenAuthModal: (view: AuthView) => void
-  onSignOut: () => void
-}
+  auth: AuthState;
+  onOpenAuthModal: (view: AuthView) => void;
+  onSignOut: () => void;
+};
 
 function AppHeader({ auth, onOpenAuthModal, onSignOut }: AppHeaderProps) {
-  const isLoggedIn = auth.status === 'authenticated'
-  const userName = isLoggedIn ? auth.user.name || auth.user.email : null
+  const isLoggedIn = auth.status === "authenticated";
+  const userName = isLoggedIn ? auth.user.name || auth.user.email : null;
 
   return (
     <header className="site-header">
@@ -18,16 +18,20 @@ function AppHeader({ auth, onOpenAuthModal, onSignOut }: AppHeaderProps) {
           ResumeSync AI
         </Link>
         <div className="site-header__actions">
-          {auth.status === 'loading' ? (
+          {auth.status === "loading" ? (
             <span className="status-badge">Loading session...</span>
-          ) : auth.status === 'error' ? (
+          ) : auth.status === "error" ? (
             <span className="status-badge">Auth config issue</span>
           ) : isLoggedIn ? (
             <>
               <button className="button button--ghost" type="button">
                 {userName}
               </button>
-              <button className="button button--ghost" onClick={onSignOut} type="button">
+              <button
+                className="button button--ghost"
+                onClick={onSignOut}
+                type="button"
+              >
                 Sign out
               </button>
             </>
@@ -35,14 +39,14 @@ function AppHeader({ auth, onOpenAuthModal, onSignOut }: AppHeaderProps) {
             <>
               <button
                 className="button button--ghost"
-                onClick={() => onOpenAuthModal('signIn')}
+                onClick={() => onOpenAuthModal("signIn")}
                 type="button"
               >
                 Login
               </button>
               <button
                 className="button button--primary"
-                onClick={() => onOpenAuthModal('signUp')}
+                onClick={() => onOpenAuthModal("signUp")}
                 type="button"
               >
                 Get Started
@@ -52,7 +56,7 @@ function AppHeader({ auth, onOpenAuthModal, onSignOut }: AppHeaderProps) {
         </div>
       </div>
     </header>
-  )
+  );
 }
 
-export default AppHeader
+export default AppHeader;

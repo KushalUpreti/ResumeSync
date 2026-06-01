@@ -444,9 +444,6 @@ function IngestionStep({ onNext }: IngestionStepProps) {
                     : setDetails(event.target.value)
                 }
               />
-              <button className="vault-action" type="button">
-                <FontAwesomeIcon icon={faWandMagicSparkles} />
-              </button>
             </div>
           </SectionCard>
         </div>
@@ -458,7 +455,6 @@ function IngestionStep({ onNext }: IngestionStepProps) {
               Upload your latest PDF/DOCX resume for structural analysis.
             </p>
           </div>
-
           <label
             className={dragActive ? "upload-panel is-active" : "upload-panel"}
             onDragEnter={() => setDragActive(true)}
@@ -486,7 +482,6 @@ function IngestionStep({ onNext }: IngestionStepProps) {
               Select from Computer
             </button>
           </label>
-
           <div className="queue-block">
             <p className="section-label">Selected for Analysis</p>
             <div className="queue-list">
@@ -572,7 +567,6 @@ function IngestionStep({ onNext }: IngestionStepProps) {
               )}
             </div>
           </div>
-
           {resumeHistory.length > 0 ? (
             <div className="resume-history">
               <p className="section-label">Recently Processed</p>
@@ -622,13 +616,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
                 </button>
               ) : null}
             </div>
-          ) : null}
-
-          <div className="auth-note">
-            {masterResume && !selectedFile
-              ? "Upload a new file above if you wish to overwrite your existing master resume."
-              : statusMessage}
-          </div>
+          ) : null}{" "}
         </SectionCard>
       </div>
 

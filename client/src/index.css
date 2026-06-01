@@ -160,7 +160,7 @@ strong {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-6);
-  min-height: 78px;
+  min-height: 60px;
 }
 
 .brand-mark {

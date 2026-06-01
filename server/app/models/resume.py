@@ -23,6 +23,16 @@ class ExperienceEntry(BaseModel):
     bullets: list[str] = Field(default_factory=list)
 
 
+class EducationEntry(BaseModel):
+    institution: str
+    degree: str
+    field_of_study: str = ""
+    start_date: str | None = None
+    end_date: str | None = None
+    gpa: str = ""
+    description: str = ""
+
+
 class ResumeDocument(BaseModel):
     resume_id: str = Field(default_factory=lambda: str(uuid4()))
     full_name: str = PLACEHOLDER_NAME
@@ -31,6 +41,7 @@ class ResumeDocument(BaseModel):
     links: list[str] = Field(default_factory=lambda: PLACEHOLDER_LINKS.copy())
     summary: str = ""
     experience: list[ExperienceEntry] = Field(default_factory=list)
+    education: list[EducationEntry] = Field(default_factory=list)
     skills: list[str] = Field(default_factory=list)
     metadata: dict[str, str] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=utcnow)
