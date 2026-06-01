@@ -33,6 +33,29 @@ class EducationEntry(BaseModel):
     description: str = ""
 
 
+class ProjectEntry(BaseModel):
+    name: str
+    description: str = ""
+    role: str | None = None
+    technologies: list[str] = Field(default_factory=list)
+    url: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
+    bullets: list[str] = Field(default_factory=list)
+
+
+class CertificationEntry(BaseModel):
+    name: str
+    issuer: str = ""
+    date_obtained: str | None = None
+    url: str | None = None
+
+
+class SkillCategory(BaseModel):
+    category: str
+    items: list[str] = Field(default_factory=list)
+
+
 class ResumeDocument(BaseModel):
     resume_id: str = Field(default_factory=lambda: str(uuid4()))
     full_name: str = PLACEHOLDER_NAME
@@ -42,7 +65,9 @@ class ResumeDocument(BaseModel):
     summary: str = ""
     experience: list[ExperienceEntry] = Field(default_factory=list)
     education: list[EducationEntry] = Field(default_factory=list)
-    skills: list[str] = Field(default_factory=list)
+    projects: list[ProjectEntry] = Field(default_factory=list)
+    certifications: list[CertificationEntry] = Field(default_factory=list)
+    skills: list[SkillCategory] = Field(default_factory=list)
     metadata: dict[str, str] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)

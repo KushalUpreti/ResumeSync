@@ -34,7 +34,9 @@ class DocxtplDocumentRenderer(DocumentRenderer):
                     fallback_doc.add_paragraph(bullet, style='List Bullet')
             
             fallback_doc.add_heading("Skills", level=1)
-            fallback_doc.add_paragraph(", ".join(document.skills))
+            for skill_cat in document.skills:
+                fallback_doc.add_heading(skill_cat.category, level=2)
+                fallback_doc.add_paragraph(", ".join(skill_cat.items))
 
             if document.education:
                 fallback_doc.add_heading("Education", level=1)
@@ -50,6 +52,35 @@ class DocxtplDocumentRenderer(DocumentRenderer):
                         fallback_doc.add_paragraph(f"GPA: {edu.gpa}")
                     if edu.description:
                         fallback_doc.add_paragraph(edu.description)
+
+            if document.projects:
+                fallback_doc.add_heading("Projects", level=1)
+                for proj in document.projects:
+                    title_parts = [proj.name]
+                    if proj.role:
+                        title_parts.append(proj.role)
+                    fallback_doc.add_heading(" — ".join(title_parts), level=2)
+                    date_parts = [part for part in [proj.start_date, proj.end_date] if part]
+                    if date_parts:
+                        fallback_doc.add_paragraph(" – ".join(date_parts))
+                    if proj.url:
+                        fallback_doc.add_paragraph(f"URL: {proj.url}")
+                    if proj.technologies:
+                        fallback_doc.add_paragraph(f"Technologies: {', '.join(proj.technologies)}")
+                    if proj.description:
+                        fallback_doc.add_paragraph(proj.description)
+                    for bullet in proj.bullets:
+                        fallback_doc.add_paragraph(bullet, style='List Bullet')
+
+            if document.certifications:
+                fallback_doc.add_heading("Certifications", level=1)
+                for cert in document.certifications:
+                    parts = [cert.name]
+                    if cert.issuer:
+                        parts.append(cert.issuer)
+                    if cert.date_obtained:
+                        parts.append(cert.date_obtained)
+                    fallback_doc.add_paragraph(" | ".join(parts))
 
             target = io.BytesIO()
             fallback_doc.save(target)
@@ -73,8 +104,14 @@ class DocxtplDocumentRenderer(DocumentRenderer):
                 }
                 for exp in document.experience
             ],
-            "skills": document.skills,
-            "skills_csv": ", ".join(document.skills),
+            "skills": [
+                {
+                    "category": cat.category,
+                    "items": cat.items,
+                    "skills_csv": ", ".join(cat.items),
+                }
+                for cat in document.skills
+            ],
             "education": [
                 {
                     "institution": edu.institution,
@@ -88,6 +125,30 @@ class DocxtplDocumentRenderer(DocumentRenderer):
                 for edu in document.education
             ],
             "has_education": len(document.education) > 0,
+            "projects": [
+                {
+                    "name": proj.name,
+                    "description": proj.description or "",
+                    "role": proj.role or "",
+                    "technologies": proj.technologies,
+                    "url": proj.url or "",
+                    "start_date": proj.start_date or "",
+                    "end_date": proj.end_date or "",
+                    "bullets": proj.bullets,
+                }
+                for proj in document.projects
+            ],
+            "has_projects": len(document.projects) > 0,
+            "certifications": [
+                {
+                    "name": cert.name,
+                    "issuer": cert.issuer or "",
+                    "date_obtained": cert.date_obtained or "",
+                    "url": cert.url or "",
+                }
+                for cert in document.certifications
+            ],
+            "has_certifications": len(document.certifications) > 0,
         }
 
         doc.render(context)

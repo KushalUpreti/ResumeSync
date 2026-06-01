@@ -24,9 +24,9 @@ function ReviewStep({ onNext }: ReviewStepProps) {
   const [rewriteHistory, setRewriteHistory] = useState<
     Record<string, string[]>
   >({});
-  const [removedSkillsHistory, setRemovedSkillsHistory] = useState<string[]>(
-    [],
-  );
+  const [removedSkillsHistory, setRemovedSkillsHistory] = useState<
+    { categoryIndex: number; skill: string }[]
+  >([]);
 
   const {
     draftResume,
@@ -288,18 +288,25 @@ function ReviewStep({ onNext }: ReviewStepProps) {
     }));
   }
 
-  function handleRemoveSkill(index: number) {
+  function handleRemoveSkill(categoryIndex: number, skillIndex: number) {
     if (!draftResume) {
       return;
     }
 
-    const removedSkill = draftResume.skills[index];
+    const category = draftResume.skills[categoryIndex];
+    if (!category) return;
+
+    const removedSkill = category.items[skillIndex];
     if (removedSkill) {
-      setRemovedSkillsHistory((current) => [...current, removedSkill]);
+      setRemovedSkillsHistory((current) => [...current, { categoryIndex, skill: removedSkill }]);
     }
-    const nextSkills = draftResume.skills.filter(
-      (_, skillIndex) => skillIndex !== index,
-    );
+
+    const nextSkills = [...draftResume.skills];
+    nextSkills[categoryIndex] = {
+      ...category,
+      items: category.items.filter((_, idx) => idx !== skillIndex),
+    };
+
     setDraftResume({
       ...draftResume,
       skills: nextSkills,
@@ -310,36 +317,59 @@ function ReviewStep({ onNext }: ReviewStepProps) {
     if (!draftResume) {
       return;
     }
-    const previousSkill = removedSkillsHistory[removedSkillsHistory.length - 1];
-    if (!previousSkill) {
+    const previous = removedSkillsHistory[removedSkillsHistory.length - 1];
+    if (!previous) {
       return;
     }
+    const nextSkills = [...draftResume.skills];
+    if (nextSkills[previous.categoryIndex]) {
+      nextSkills[previous.categoryIndex] = {
+        ...nextSkills[previous.categoryIndex],
+        items: [...nextSkills[previous.categoryIndex].items, previous.skill],
+      };
+    }
+    
     setDraftResume({
       ...draftResume,
-      skills: [...draftResume.skills, previousSkill],
+      skills: nextSkills,
     });
     setRemovedSkillsHistory((current) => current.slice(0, -1));
   }
 
-  function handleAddSkill(skill: string) {
+  function handleAddSkill(categoryName: string, skill: string) {
     if (!draftResume) {
       return;
     }
-    if (
-      draftResume.skills.some(
-        (existing) => existing.toLowerCase() === skill.toLowerCase(),
-      )
-    ) {
-      addNotification({
-        type: "info",
-        message: "Skill already present",
-        description: `"${skill}" is already in your skills list.`,
-      });
-      return;
+    
+    const nextSkills = [...draftResume.skills];
+    const catIndex = nextSkills.findIndex(
+      (c) => c.category.toLowerCase() === categoryName.toLowerCase()
+    );
+
+    if (catIndex >= 0) {
+      if (
+        nextSkills[catIndex].items.some(
+          (existing) => existing.toLowerCase() === skill.toLowerCase()
+        )
+      ) {
+        addNotification({
+          type: "info",
+          message: "Skill already present",
+          description: `"${skill}" is already in the ${categoryName} category.`,
+        });
+        return;
+      }
+      nextSkills[catIndex] = {
+        ...nextSkills[catIndex],
+        items: [...nextSkills[catIndex].items, skill],
+      };
+    } else {
+      nextSkills.push({ category: categoryName, items: [skill] });
     }
+
     setDraftResume({
       ...draftResume,
-      skills: [...draftResume.skills, skill],
+      skills: nextSkills,
     });
   }
 
@@ -405,9 +435,8 @@ function ReviewStep({ onNext }: ReviewStepProps) {
               onAddSkill={handleAddSkill}
               canUndoSkillRemoval={removedSkillsHistory.length > 0}
               onUndoSkillRemoval={handleUndoSkillRemoval}
-              onRemoveSkill={(skill, index) => {
-                void skill;
-                handleRemoveSkill(index);
+              onRemoveSkill={(categoryIndex, skillIndex) => {
+                handleRemoveSkill(categoryIndex, skillIndex);
               }}
               onRewrite={(target) => void handleRewriteTarget(target)}
               onInlineEdit={handleInlineEdit}

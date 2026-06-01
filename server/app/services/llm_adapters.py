@@ -6,7 +6,7 @@ import litellm
 from typing import Any
 from pypdf import PdfReader
 from docx import Document
-from app.models.resume import ResumeDocument, ExperienceEntry, EducationEntry, RewriteTarget
+from app.models.resume import ResumeDocument, ExperienceEntry, EducationEntry, ProjectEntry, CertificationEntry, SkillCategory, RewriteTarget
 from app.services.interfaces import ResumeParser, ResumeTailor
 
 class LLMResumeParser(ResumeParser):
@@ -42,13 +42,38 @@ class LLMResumeParser(ResumeParser):
       "description": "Honors, relevant coursework, or other details if present, otherwise empty string"
     }}
   ],
-  "skills": ["Skill 1", "Skill 2"]
+  "projects": [
+    {{
+      "name": "Project Name",
+      "description": "Brief summary of the project if present, otherwise empty string",
+      "role": "Your role on the project if present, otherwise null",
+      "technologies": ["Tech 1", "Tech 2"],
+      "url": "Project link if present, otherwise null",
+      "start_date": "Exact date string if present, otherwise null",
+      "end_date": "Exact date string if present, otherwise null",
+      "bullets": ["Achievement bullet 1", "Achievement bullet 2"]
+    }}
+  ],
+  "certifications": [
+    {{
+      "name": "Certification Name",
+      "issuer": "Issuing Organization",
+      "date_obtained": "Exact date string if present, otherwise null",
+      "url": "Link to credential if present, otherwise null"
+    }}
+  ],
+  "skills": [
+    {{
+      "category": "e.g. Languages, Frameworks, Tools, Soft Skills",
+      "items": ["Skill 1", "Skill 2"]
+    }}
+  ]
 }}
 
 Only output the JSON object. Do not include markdown formatting like ```json. Do not include any introductory or explanatory text.
 
 If the source includes dates, preserve them exactly as they appear when possible. Do not invent dates.
-If no education information is present, return an empty array for "education".
+If no education, projects, certifications, or skills information is present, return an empty array for those fields.
 
 RAW RESUME TEXT:
 {raw_text}"""
@@ -65,9 +90,11 @@ RAW RESUME TEXT:
         
         experience_list = [ExperienceEntry(**exp) for exp in data.get("experience", [])]
         education_list = [EducationEntry(**edu) for edu in data.get("education", [])]
-        skills_list = data.get("skills", [])
+        projects_list = [ProjectEntry(**proj) for proj in data.get("projects", [])]
+        certifications_list = [CertificationEntry(**cert) for cert in data.get("certifications", [])]
+        skills_list = [SkillCategory(**cat) for cat in data.get("skills", [])]
         
-        if not experience_list and not skills_list:
+        if not experience_list and not skills_list and not projects_list:
             raise ValueError(
                 "The provided information is insufficient to generate a resume. "
                 "Please upload a detailed resume or write more description in the notes."
@@ -81,6 +108,8 @@ RAW RESUME TEXT:
             summary=data.get("summary", ""),
             experience=experience_list,
             education=education_list,
+            projects=projects_list,
+            certifications=certifications_list,
             skills=skills_list,
             metadata={"source": filename, "parsed_by": "llm"}
         )
@@ -136,8 +165,10 @@ class LLMResumeTailor(ResumeTailor):
             links=data.get("links", document.links),
             summary=data.get("summary", document.summary),
             experience=[ExperienceEntry(**exp) for exp in data.get("experience", [])],
-            education=[EducationEntry(**edu) for edu in data.get("education", [])] if data.get("education") else document.education,
-            skills=data.get("skills", document.skills),
+            education=[EducationEntry(**edu) for edu in data.get("education", [])] if data.get("education") is not None else document.education,
+            projects=[ProjectEntry(**proj) for proj in data.get("projects", [])] if data.get("projects") is not None else document.projects,
+            certifications=[CertificationEntry(**cert) for cert in data.get("certifications", [])] if data.get("certifications") is not None else document.certifications,
+            skills=[SkillCategory(**cat) for cat in data.get("skills", [])] if data.get("skills") is not None else document.skills,
             metadata={**document.metadata, "mode": mode, "tailored": "true"}
         )
 
@@ -164,11 +195,13 @@ class LLMResumeTailor(ResumeTailor):
   "summary": "...",
   "experience": [{"company": "...", "role": "...", "start_date": "...", "end_date": "...", "bullets": ["...", "..."]}],
   "education": [{"institution": "...", "degree": "...", "field_of_study": "...", "start_date": "...", "end_date": "...", "gpa": "...", "description": "..."}],
-  "skills": ["...", "..."]
+  "projects": [{"name": "...", "description": "...", "role": "...", "technologies": ["..."], "url": "...", "start_date": "...", "end_date": "...", "bullets": ["...", "..."]}],
+  "certifications": [{"name": "...", "issuer": "...", "date_obtained": "...", "url": "..."}],
+  "skills": [{"category": "...", "items": ["...", "..."]}]
 }
 
 Only output the JSON. Do not include markdown, explanations, or extra keys.
-If no education data exists in the source resume, return an empty array for "education".
+If no education, projects, certifications, or skills data exists in the source resume, return an empty array for those fields.
 """
 
         if mode == "sniper":

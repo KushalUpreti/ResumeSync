@@ -16,6 +16,28 @@ export type EducationEntry = {
   description?: string
 }
 
+export type ProjectEntry = {
+  name: string
+  description?: string
+  role?: string
+  technologies: string[]
+  url?: string
+  start_date?: string | null
+  end_date?: string | null
+  bullets: string[]
+}
+
+export type CertificationEntry = {
+  name: string
+  issuer?: string
+  date_obtained?: string | null
+  url?: string
+}
+export type SkillCategory = {
+  category: string
+  items: string[]
+}
+
 export type ResumeDocument = {
   resume_id: string
   full_name: string
@@ -25,7 +47,9 @@ export type ResumeDocument = {
   summary: string
   experience: ExperienceEntry[]
   education?: EducationEntry[]
-  skills: string[]
+  projects?: ProjectEntry[]
+  certifications?: CertificationEntry[]
+  skills: SkillCategory[]
   metadata?: Record<string, string>
   created_at?: string
   updated_at?: string

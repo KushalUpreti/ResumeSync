@@ -18,8 +18,8 @@ type ResumeSheetProps = {
   canUndoPath?: (path: string) => boolean
   onUndo?: (path: string) => void
   onRewrite?: (target: RewriteTarget) => void
-  onRemoveSkill?: (skill: string, index: number) => void
-  onAddSkill?: (skill: string) => void
+  onRemoveSkill?: (categoryIndex: number, skillIndex: number) => void
+  onAddSkill?: (categoryName: string, skill: string) => void
   canUndoSkillRemoval?: boolean
   onUndoSkillRemoval?: () => void
   onInlineEdit?: (path: string, value: string) => void
@@ -133,8 +133,9 @@ function ResumeSheet({
   onUndoSkillRemoval,
   onInlineEdit,
 }: ResumeSheetProps) {
-  const [isAddingSkill, setIsAddingSkill] = useState(false)
+  const [addingSkillToCategory, setAddingSkillToCategory] = useState<string | null>(null)
   const [newSkill, setNewSkill] = useState('')
+  const [newCategoryName, setNewCategoryName] = useState('')
 
   if (!document) {
     return (
@@ -144,14 +145,24 @@ function ResumeSheet({
     )
   }
 
-  function handleAddSkill() {
+  function handleAddSkill(categoryName: string) {
     const value = newSkill.trim()
     if (!value || !onAddSkill) {
       return
     }
-    onAddSkill(value)
+    onAddSkill(categoryName, value)
     setNewSkill('')
-    setIsAddingSkill(false)
+    setAddingSkillToCategory(null)
+  }
+
+  function handleAddNewCategory() {
+    const cat = newCategoryName.trim()
+    const val = newSkill.trim()
+    if (!cat || !val || !onAddSkill) return
+    onAddSkill(cat, val)
+    setNewCategoryName('')
+    setNewSkill('')
+    setAddingSkillToCategory(null)
   }
 
   return (
@@ -285,75 +296,210 @@ function ResumeSheet({
             ))}
           </section>
         )}
+
+        {document.projects && document.projects.length > 0 && (
+          <section className="resume-sheet__section">
+            <h3 className="resume-sheet__section-title">Projects</h3>
+            {document.projects.map((proj, idx) => (
+              <div className="resume-sheet__experience-item" key={idx}>
+                <div className="resume-sheet__role-row">
+                  <span className="resume-sheet__inline-strong">{proj.name}</span>
+                  <span className="resume-sheet__inline-company">{proj.role || ''}</span>
+                </div>
+                {(proj.start_date || proj.end_date) ? (
+                  <p className="resume-sheet__date-line">
+                    {[proj.start_date, proj.end_date].filter(Boolean).join(' – ')}
+                  </p>
+                ) : null}
+                {proj.technologies && proj.technologies.length > 0 ? (
+                  <p className="resume-sheet__date-line">Technologies: {proj.technologies.join(', ')}</p>
+                ) : null}
+                {proj.description ? (
+                  <p className="resume-sheet__summary-text" style={{ marginTop: '4px', marginBottom: '8px' }}>
+                    {proj.description}
+                  </p>
+                ) : null}
+                <ul className="resume-sheet__bullets">
+                  {proj.bullets.map((bullet, bIdx) => (
+                    <li key={bIdx} className="resume-sheet__bullet-item">
+                      <div className="resume-sheet__bullet-row">
+                        <span className="resume-sheet__bullet-text">{bullet}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {document.certifications && document.certifications.length > 0 && (
+          <section className="resume-sheet__section">
+            <h3 className="resume-sheet__section-title">Certifications</h3>
+            {document.certifications.map((cert, idx) => (
+              <div className="resume-sheet__experience-item" key={idx}>
+                <div className="resume-sheet__role-row">
+                  <span className="resume-sheet__inline-strong">{cert.name}</span>
+                  <span className="resume-sheet__inline-company">{cert.issuer}</span>
+                </div>
+                {cert.date_obtained ? (
+                  <p className="resume-sheet__date-line">{cert.date_obtained}</p>
+                ) : null}
+              </div>
+            ))}
+          </section>
+        )}
         <section className="resume-sheet__section">
           <h3 className="resume-sheet__section-title">Skills</h3>
-          {onRemoveSkill ? (
-            <div className="resume-sheet__skills-list">
-              {document.skills.map((skill, index) => (
-                <button
-                  key={`${skill}-${index}`}
-                  className="resume-sheet__skill-chip"
-                  onClick={() => onRemoveSkill(skill, index)}
-                  type="button"
-                  aria-label={`Remove skill ${skill}`}
-                  title={`Remove ${skill}`}
-                >
-                  <span>{skill}</span>
-                  <FontAwesomeIcon icon={faXmark} />
-                </button>
-              ))}
-              {isAddingSkill ? (
-                <div className="resume-sheet__skill-chip resume-sheet__skill-chip--editor">
-                  <input
-                    className="resume-sheet__skill-input"
-                    value={newSkill}
-                    onChange={(event) => setNewSkill(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault()
-                        handleAddSkill()
-                      }
-                      if (event.key === 'Escape') {
-                        event.preventDefault()
-                        setIsAddingSkill(false)
-                        setNewSkill('')
-                      }
-                    }}
-                    placeholder="New skill"
-                    autoFocus
-                  />
+          <div className="resume-sheet__skills-container" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {document.skills.map((skillCategory, catIndex) => (
+              <div key={skillCategory.category} className="resume-sheet__skill-category">
+                <h4 className="resume-sheet__inline-strong" style={{ marginBottom: '8px', fontSize: '0.9em', color: 'var(--color-text-muted)' }}>
+                  {skillCategory.category}
+                </h4>
+                {onRemoveSkill ? (
+                  <div className="resume-sheet__skills-list">
+                    {skillCategory.items.map((skill, skillIndex) => (
+                      <button
+                        key={`${skill}-${skillIndex}`}
+                        className="resume-sheet__skill-chip"
+                        onClick={() => onRemoveSkill(catIndex, skillIndex)}
+                        type="button"
+                        aria-label={`Remove skill ${skill}`}
+                        title={`Remove ${skill}`}
+                      >
+                        <span>{skill}</span>
+                        <FontAwesomeIcon icon={faXmark} />
+                      </button>
+                    ))}
+                    {addingSkillToCategory === skillCategory.category ? (
+                      <div className="resume-sheet__skill-chip resume-sheet__skill-chip--editor">
+                        <input
+                          className="resume-sheet__skill-input"
+                          value={newSkill}
+                          onChange={(event) => setNewSkill(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                              event.preventDefault()
+                              handleAddSkill(skillCategory.category)
+                            }
+                            if (event.key === 'Escape') {
+                              event.preventDefault()
+                              setAddingSkillToCategory(null)
+                              setNewSkill('')
+                            }
+                          }}
+                          placeholder="New skill"
+                          autoFocus
+                        />
+                        <button
+                          className="resume-sheet__skill-action"
+                          onClick={() => handleAddSkill(skillCategory.category)}
+                          type="button"
+                          aria-label="Add skill"
+                        >
+                          <FontAwesomeIcon icon={faCheck} />
+                        </button>
+                        <button
+                          className="resume-sheet__skill-action"
+                          onClick={() => {
+                            setAddingSkillToCategory(null)
+                            setNewSkill('')
+                          }}
+                          type="button"
+                          aria-label="Cancel adding skill"
+                        >
+                          <FontAwesomeIcon icon={faXmark} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        className="resume-sheet__skill-chip resume-sheet__skill-chip--add"
+                        onClick={() => setAddingSkillToCategory(skillCategory.category)}
+                        type="button"
+                        aria-label="Add skill"
+                      >
+                        <span>Add skill</span>
+                        <FontAwesomeIcon icon={faPlus} />
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <p>{skillCategory.items.join(' • ')}</p>
+                )}
+              </div>
+            ))}
+
+            {/* Add new category block */}
+            {onAddSkill && (
+              <div className="resume-sheet__skill-category" style={{ marginTop: '8px' }}>
+                {addingSkillToCategory === 'NEW_CATEGORY' ? (
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input
+                      className="resume-sheet__inline-editor"
+                      style={{ padding: '4px 8px', fontSize: '0.9em', maxWidth: '150px' }}
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder="Category name"
+                      autoFocus
+                    />
+                    <div className="resume-sheet__skill-chip resume-sheet__skill-chip--editor">
+                      <input
+                        className="resume-sheet__skill-input"
+                        value={newSkill}
+                        onChange={(event) => setNewSkill(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault()
+                            handleAddNewCategory()
+                          }
+                          if (event.key === 'Escape') {
+                            event.preventDefault()
+                            setAddingSkillToCategory(null)
+                            setNewCategoryName('')
+                            setNewSkill('')
+                          }
+                        }}
+                        placeholder="New skill"
+                      />
+                      <button
+                        className="resume-sheet__skill-action"
+                        onClick={handleAddNewCategory}
+                        type="button"
+                        aria-label="Add category and skill"
+                      >
+                        <FontAwesomeIcon icon={faCheck} />
+                      </button>
+                      <button
+                        className="resume-sheet__skill-action"
+                        onClick={() => {
+                          setAddingSkillToCategory(null)
+                          setNewCategoryName('')
+                          setNewSkill('')
+                        }}
+                        type="button"
+                        aria-label="Cancel"
+                      >
+                        <FontAwesomeIcon icon={faXmark} />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
                   <button
-                    className="resume-sheet__skill-action"
-                    onClick={handleAddSkill}
+                    className="button button--ghost"
+                    style={{ fontSize: '0.9em', padding: '4px 8px' }}
+                    onClick={() => setAddingSkillToCategory('NEW_CATEGORY')}
                     type="button"
-                    aria-label="Add skill"
                   >
-                    <FontAwesomeIcon icon={faCheck} />
+                    <FontAwesomeIcon icon={faPlus} style={{ marginRight: '6px' }} />
+                    Add Category
                   </button>
-                  <button
-                    className="resume-sheet__skill-action"
-                    onClick={() => {
-                      setIsAddingSkill(false)
-                      setNewSkill('')
-                    }}
-                    type="button"
-                    aria-label="Cancel adding skill"
-                  >
-                    <FontAwesomeIcon icon={faXmark} />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  className="resume-sheet__skill-chip resume-sheet__skill-chip--add"
-                  onClick={() => setIsAddingSkill(true)}
-                  type="button"
-                  aria-label="Add skill"
-                >
-                  <span>Add skill</span>
-                  <FontAwesomeIcon icon={faPlus} />
-                </button>
-              )}
-              {canUndoSkillRemoval && onUndoSkillRemoval ? (
+                )}
+              </div>
+            )}
+
+            {canUndoSkillRemoval && onUndoSkillRemoval ? (
+              <div style={{ marginTop: '8px' }}>
                 <button
                   className="resume-sheet__skill-chip resume-sheet__skill-chip--undo"
                   onClick={onUndoSkillRemoval}
@@ -363,11 +509,9 @@ function ResumeSheet({
                   <span>Undo remove</span>
                   <FontAwesomeIcon icon={faRotateLeft} />
                 </button>
-              ) : null}
-            </div>
-          ) : (
-            <p>{document.skills.join(' • ')}</p>
-          )}
+              </div>
+            ) : null}
+          </div>
         </section>
       </div>
     </div>
