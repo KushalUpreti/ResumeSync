@@ -1,7 +1,7 @@
 /* Single resume view: center and width like a Word document */
 .review-grid.single-resume {
   display: block;
-  width: 100%;
+  margin: auto;
   padding: var(--space-6);
 }
 
@@ -9,7 +9,7 @@
   width: 50vw;
   margin: auto;
   background: #fff;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   border-radius: var(--radius-md);
   padding: var(--space-6);
 }

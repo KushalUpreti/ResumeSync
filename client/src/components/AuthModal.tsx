@@ -36,9 +36,9 @@ function AuthModal({
         role="dialog"
       >
         <div className="auth-modal__header">
-          <div>
-            <p className="eyebrow">Secure access</p>
-            <h2 className="auth-modal__title">
+          <div style={{ flex: 1 }}>
+            <p className="eyebrow" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>Secure access</p>
+            <h2 className="auth-modal__title" style={{ marginTop: '4px' }}>
               {authView === 'signIn' ? 'Welcome back' : 'Create your account'}
             </h2>
           </div>
@@ -76,17 +76,7 @@ function AuthModal({
             </span>
             Continue with Google
           </button>
-          <button
-            className="social-button"
-            disabled
-            type="button"
-          >
-            <span className="social-button__meta">
-              <FontAwesomeIcon icon={faGoogle} />
-              Soon
-            </span>
-            LinkedIn coming soon
-          </button>
+
           <button
             className="social-button"
             onClick={() =>
@@ -104,7 +94,7 @@ function AuthModal({
 
         <div className="auth-note">
           {authConfigError ??
-            'Cognito hosted auth is wired for email and Google sign-in. LinkedIn is still a UI placeholder until that identity provider is configured.'}
+            'Cognito hosted auth is configured for email and Google sign-in. Use either to access your personalized workspace.'}
         </div>
       </section>
     </div>

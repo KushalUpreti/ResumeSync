@@ -6,6 +6,7 @@ import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFileArrowDown, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { downloadTemplate } from "../api/resumeSync";
+import { useNotification } from "../context/useNotification";
 
 type ExportStepProps = {
   // Back navigation removed per request
@@ -13,24 +14,29 @@ type ExportStepProps = {
 
 const ExportStep: FC<ExportStepProps> = () => {
   const { selectedTemplateId, setSelectedTemplateId, generatedResumeId } = useWorkspace();
+  const { addNotification } = useNotification();
   const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadError, setDownloadError] = useState("");
 
   async function handleExport() {
     if (!generatedResumeId) {
-      setDownloadError("No resume available to export.");
+      addNotification({
+        type: "error",
+        message: "Export Failed",
+        description: "No resume available to export.",
+      });
       return;
     }
 
     const templateName = selectedTemplateId || "modern";
     setIsDownloading(true);
-    setDownloadError("");
     try {
       await downloadTemplate(generatedResumeId, templateName);
     } catch (error) {
-      setDownloadError(
-        error instanceof Error ? error.message : "Failed to download template.",
-      );
+      addNotification({
+        type: "error",
+        message: "Export Failed",
+        description: error instanceof Error ? error.message : "Failed to download template.",
+      });
     } finally {
       setIsDownloading(false);
     }
@@ -64,12 +70,6 @@ const ExportStep: FC<ExportStepProps> = () => {
           />
         ))}
       </div>
-
-      {downloadError && (
-        <p style={{ color: "var(--color-error, #f87171)", marginTop: "var(--space-2)", textAlign: "right" }}>
-          {downloadError}
-        </p>
-      )}
 
       <div
         className="page-intro__actions"

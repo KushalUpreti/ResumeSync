@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faWandMagicSparkles } from "@fortawesome/free-solid-svg-icons";
 import { getResume, rewritePreview, waitForJob } from "../api/resumeSync";
+import './ReviewStep.css';
 import { useNotification } from "../context/useNotification";
 import SectionCard from "../components/SectionCard";
 import ResumeSheet from "../components/ResumeSheet";
@@ -298,7 +299,10 @@ function ReviewStep({ onNext }: ReviewStepProps) {
 
     const removedSkill = category.items[skillIndex];
     if (removedSkill) {
-      setRemovedSkillsHistory((current) => [...current, { categoryIndex, skill: removedSkill }]);
+      setRemovedSkillsHistory((current) => [
+        ...current,
+        { categoryIndex, skill: removedSkill },
+      ]);
     }
 
     const nextSkills = [...draftResume.skills];
@@ -328,7 +332,7 @@ function ReviewStep({ onNext }: ReviewStepProps) {
         items: [...nextSkills[previous.categoryIndex].items, previous.skill],
       };
     }
-    
+
     setDraftResume({
       ...draftResume,
       skills: nextSkills,
@@ -340,16 +344,16 @@ function ReviewStep({ onNext }: ReviewStepProps) {
     if (!draftResume) {
       return;
     }
-    
+
     const nextSkills = [...draftResume.skills];
     const catIndex = nextSkills.findIndex(
-      (c) => c.category.toLowerCase() === categoryName.toLowerCase()
+      (c) => c.category.toLowerCase() === categoryName.toLowerCase(),
     );
 
     if (catIndex >= 0) {
       if (
         nextSkills[catIndex].items.some(
-          (existing) => existing.toLowerCase() === skill.toLowerCase()
+          (existing) => existing.toLowerCase() === skill.toLowerCase(),
         )
       ) {
         addNotification({
@@ -394,7 +398,7 @@ function ReviewStep({ onNext }: ReviewStepProps) {
 
       <div className={`review-grid ${singleResume ? "single-resume" : ""}`}>
         {originalDocument && (
-          <SectionCard className="review-panel">
+          <SectionCard className="review-panel" style={{ padding: 0 }}>
             <ResumeSheet
               document={originalDocument}
               title="Master Resume"
@@ -423,7 +427,7 @@ function ReviewStep({ onNext }: ReviewStepProps) {
               <span className="status-dot"></span> ATS OPTIMIZED
             </div>
           </div>
-          <div style={{ padding: "var(--space-8)" }}>
+          <div>
             <ResumeSheet
               document={workingDocument}
               isLoading={isGenerating}

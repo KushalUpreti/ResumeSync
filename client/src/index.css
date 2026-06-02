@@ -244,11 +244,12 @@ strong {
   justify-content: center;
   align-items: center;
   gap: var(--space-2);
-  min-height: 46px;
+  min-height: 42px;
   padding: 0 var(--space-4);
   border: 1px solid transparent;
   border-radius: var(--radius-md);
-  font-weight: 500;
+  font-weight: 400;
+  font-size: 0.9rem;
   text-align: center;
   white-space: nowrap;
 }
@@ -1694,27 +1695,58 @@ strong {
 .auth-modal {
   position: relative;
   z-index: 1001;
-  width: min(520px, 100%);
-  padding: var(--space-6);
-  border: 1px solid var(--color-outline);
+  width: min(460px, 100%);
+  padding: var(--space-8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-2xl);
-  background: var(--color-surface-card);
-  box-shadow: var(--color-shadow-lg);
+  background: rgb(255, 254, 253);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  animation: modal-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modal-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .auth-modal__header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
+  margin-bottom: var(--space-2);
 }
 
 .icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 40px;
   height: 40px;
   border-radius: 50%;
   color: var(--color-text-muted);
   background: var(--color-surface-variant);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.icon-button:hover {
+  background: var(--color-surface-hover, rgba(255, 255, 255, 0.1));
+  color: var(--color-primary);
+  transform: scale(1.05);
 }
 
 .auth-toggle {
@@ -1722,20 +1754,29 @@ strong {
   gap: var(--space-2);
   padding: var(--space-1);
   border-radius: var(--radius-round);
-  background: var(--color-surface-container);
+  background: rgb(125 80 80 / 7%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  width: 100%;
+  justify-content: center;
 }
 
 .auth-toggle__item {
-  min-width: 110px;
+  flex: 1;
   min-height: 42px;
   padding: 0 var(--space-4);
   border-radius: var(--radius-round);
   color: var(--color-text-muted);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .auth-toggle__item.is-active {
   color: var(--color-primary);
-  background: var(--color-surface-card);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
 }
 
 .social-button {
@@ -1743,12 +1784,21 @@ strong {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  min-height: 52px;
-  padding: 0 var(--space-4);
-  border: 1px solid var(--color-outline);
-  border-radius: var(--radius-md);
+  min-height: 54px;
+  padding: 0 var(--space-5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
   color: var(--color-primary);
-  background: var(--color-surface-card);
+  background: rgb(125 80 80 / 7%);
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.social-button:hover {
+  background: rgba(255, 247, 233, 0.2);
+  border-color: rgba(255, 225, 208, 0.9);
+  transform: translateY(-1px);
 }
 
 .social-button__meta {
@@ -1763,8 +1813,12 @@ strong {
 }
 
 .auth-note {
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--color-outline);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: var(--space-5);
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  text-align: center;
 }
 
 @media (max-width: 1120px) {
