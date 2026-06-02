@@ -5,8 +5,10 @@ import IngestionStep from "./IngestionStep";
 import ConfigStep from "./ConfigStep";
 import ReviewStep from "./ReviewStep";
 import ExportStep from "./ExportStep";
+import { useWorkspace } from "../context/useWorkspace";
 
 function ProcessPage() {
+  const { generatedResumeId } = useWorkspace();
   const [currentStep, setCurrentStep] = useState(1);
 
   const handleNext = () =>
@@ -27,6 +29,11 @@ function ProcessPage() {
             activeStep={currentStep}
             steps={flowSteps}
             onStepClick={handleStepClick}
+            getWarningMessage={(step) =>
+              generatedResumeId && currentStep >= 3 && step < 3
+                ? "You’ve already generated a resume. Going back may lose your review edits and generated progress."
+                : null
+            }
           />
           <div id="header-actions-portal" />
         </div>

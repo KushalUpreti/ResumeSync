@@ -107,7 +107,7 @@ class DocxtplDocumentRenderer(DocumentRenderer):
             "skills": [
                 {
                     "category": cat.category,
-                    "items": cat.items,
+                    "skills": cat.items,       # ← matches cat.skills in templates
                     "skills_csv": ", ".join(cat.items),
                 }
                 for cat in document.skills

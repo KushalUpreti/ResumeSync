@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faWandMagicSparkles } from "@fortawesome/free-solid-svg-icons";
+import { faFileLines, faWandMagicSparkles } from "@fortawesome/free-solid-svg-icons";
 import { getResume, rewritePreview, waitForJob } from "../api/resumeSync";
 import './ReviewStep.css';
 import { useNotification } from "../context/useNotification";
@@ -26,7 +26,7 @@ function ReviewStep({ onNext }: ReviewStepProps) {
     Record<string, string[]>
   >({});
   const [removedSkillsHistory, setRemovedSkillsHistory] = useState<
-    { categoryIndex: number; skill: string }[]
+    { categoryName: string; skill: string }[]
   >([]);
 
   const {
@@ -45,6 +45,21 @@ function ReviewStep({ onNext }: ReviewStepProps) {
 
   // Determine if we are in the single‑resume scenario (no master resume present)
   const singleResume = !masterResume && !!draftResume;
+  const undoSkillRemovalCategoryIndex =
+    removedSkillsHistory.length > 0 && draftResume
+      ? (() => {
+          const lastCategoryName =
+            removedSkillsHistory[removedSkillsHistory.length - 1]
+              ?.categoryName;
+          if (!lastCategoryName) {
+            return null;
+          }
+          const categoryIndex = draftResume.skills.findIndex(
+            (category) => category.category === lastCategoryName,
+          );
+          return categoryIndex >= 0 ? categoryIndex : null;
+        })()
+      : null;
 
   function deriveResumeIdFromJsonKey(jsonKey: string | null) {
     if (!jsonKey) return null;
@@ -97,7 +112,9 @@ function ReviewStep({ onNext }: ReviewStepProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastGenerateJob?.job_id, lastGenerateJob?.status]);
 
-  function buildRewriteInstruction(kind: "summary" | "bullet point") {
+  function buildRewriteInstruction(
+    kind: "summary" | "bullet point" | "project description",
+  ) {
     const targetBits = [targetRole, targetCompany ? `at ${targetCompany}` : ""]
       .filter(Boolean)
       .join(" ");
@@ -114,6 +131,18 @@ function ReviewStep({ onNext }: ReviewStepProps) {
       return [
         `Rewrite this professional summary as a single strong paragraph for ${targetContext}.`,
         "Preserve the original facts, metrics, and dates if any are mentioned.",
+        modeContext,
+        jobContext,
+      ]
+        .filter(Boolean)
+        .join(" ");
+    }
+
+    if (kind === "project description") {
+      return [
+        `Rewrite this project description for ${targetContext}.`,
+        "Keep it concise, clear, and specific while preserving the key facts and outcomes.",
+        "Preserve numbers, dates, and factual details.",
         modeContext,
         jobContext,
       ]
@@ -141,10 +170,12 @@ function ReviewStep({ onNext }: ReviewStepProps) {
       return { ...document, summary: nextText };
     }
 
-    const match = path.match(/^experience\[(\d+)\]\.bullets\[(\d+)\]$/);
-    if (match) {
-      const expIndex = Number(match[1]);
-      const bulletIndex = Number(match[2]);
+    const experienceBulletMatch = path.match(
+      /^experience\[(\d+)\]\.bullets\[(\d+)\]$/,
+    );
+    if (experienceBulletMatch) {
+      const expIndex = Number(experienceBulletMatch[1]);
+      const bulletIndex = Number(experienceBulletMatch[2]);
       const nextExperience = document.experience.map((entry, index) => {
         if (index !== expIndex) {
           return entry;
@@ -164,25 +195,158 @@ function ReviewStep({ onNext }: ReviewStepProps) {
       };
     }
 
-    const roleMatch = path.match(/^experience\[(\d+)\]\.(role|company)$/);
-    if (!roleMatch) {
-      return document;
+    const experienceFieldMatch = path.match(
+      /^experience\[(\d+)\]\.(role|company|start_date|end_date)$/,
+    );
+    if (experienceFieldMatch) {
+      const expIndex = Number(experienceFieldMatch[1]);
+      const field = experienceFieldMatch[2] as
+        | "role"
+        | "company"
+        | "start_date"
+        | "end_date";
+      const nextExperience = document.experience.map((entry, index) => {
+        if (index !== expIndex) return entry;
+        return {
+          ...entry,
+          [field]: nextText,
+        };
+      });
+
+      return {
+        ...document,
+        experience: nextExperience,
+      };
     }
 
-    const expIndex = Number(roleMatch[1]);
-    const field = roleMatch[2] as "role" | "company";
-    const nextExperience = document.experience.map((entry, index) => {
-      if (index !== expIndex) return entry;
+    const contactFieldMatch = path.match(
+      /^contact\.(full_name|email|phone)$/,
+    );
+    if (contactFieldMatch) {
+      const field = contactFieldMatch[1] as "full_name" | "email" | "phone";
       return {
-        ...entry,
+        ...document,
         [field]: nextText,
       };
-    });
+    }
 
-    return {
-      ...document,
-      experience: nextExperience,
-    };
+    const contactLinkMatch = path.match(/^contact\.links\[(\d+)\]$/);
+    if (contactLinkMatch) {
+      const linkIndex = Number(contactLinkMatch[1]);
+      return {
+        ...document,
+        links: document.links.map((link, index) =>
+          index === linkIndex ? nextText : link,
+        ),
+      };
+    }
+
+    const educationFieldMatch = path.match(
+      /^education\[(\d+)\]\.(institution|degree|field_of_study|start_date|end_date|gpa|description)$/,
+    );
+    if (educationFieldMatch) {
+      const entryIndex = Number(educationFieldMatch[1]);
+      const field = educationFieldMatch[2] as
+        | "institution"
+        | "degree"
+        | "field_of_study"
+        | "start_date"
+        | "end_date"
+        | "gpa"
+        | "description";
+
+      return {
+        ...document,
+        education: document.education?.map((entry, index) => {
+          if (index !== entryIndex) {
+            return entry;
+          }
+
+          return {
+            ...entry,
+            [field]: nextText,
+          };
+        }),
+      };
+    }
+
+    const projectBulletMatch = path.match(
+      /^projects\[(\d+)\]\.bullets\[(\d+)\]$/,
+    );
+    if (projectBulletMatch) {
+      const projectIndex = Number(projectBulletMatch[1]);
+      const bulletIndex = Number(projectBulletMatch[2]);
+
+      return {
+        ...document,
+        projects: document.projects?.map((entry, index) => {
+          if (index !== projectIndex) {
+            return entry;
+          }
+
+          return {
+            ...entry,
+            bullets: entry.bullets.map((bullet, idx) =>
+              idx === bulletIndex ? nextText : bullet,
+            ),
+          };
+        }),
+      };
+    }
+
+    const projectFieldMatch = path.match(
+      /^projects\[(\d+)\]\.(name|role|description|start_date|end_date)$/,
+    );
+    if (projectFieldMatch) {
+      const projectIndex = Number(projectFieldMatch[1]);
+      const field = projectFieldMatch[2] as
+        | "name"
+        | "role"
+        | "description"
+        | "start_date"
+        | "end_date";
+
+      return {
+        ...document,
+        projects: document.projects?.map((entry, index) => {
+          if (index !== projectIndex) {
+            return entry;
+          }
+
+          return {
+            ...entry,
+            [field]: nextText,
+          };
+        }),
+      };
+    }
+
+    const certificationFieldMatch = path.match(
+      /^certifications\[(\d+)\]\.(name|issuer|date_obtained)$/,
+    );
+    if (certificationFieldMatch) {
+      const certIndex = Number(certificationFieldMatch[1]);
+      const field = certificationFieldMatch[2] as
+        | "name"
+        | "issuer"
+        | "date_obtained";
+
+      return {
+        ...document,
+        certifications: document.certifications?.map((entry, index) => {
+          if (index !== certIndex) {
+            return entry;
+          }
+
+          return {
+            ...entry,
+            [field]: nextText,
+          };
+        }),
+      };
+    }
+
+    return document;
   }
 
   function getCurrentValue(
@@ -192,21 +356,96 @@ function ReviewStep({ onNext }: ReviewStepProps) {
     if (path === "summary") {
       return document.summary;
     }
-    const match = path.match(/^experience\[(\d+)\]\.bullets\[(\d+)\]$/);
-    if (match) {
-      const expIndex = Number(match[1]);
-      const bulletIndex = Number(match[2]);
+    const experienceBulletMatch = path.match(
+      /^experience\[(\d+)\]\.bullets\[(\d+)\]$/,
+    );
+    if (experienceBulletMatch) {
+      const expIndex = Number(experienceBulletMatch[1]);
+      const bulletIndex = Number(experienceBulletMatch[2]);
       const entry = document.experience[expIndex];
       if (!entry) return null;
       return entry.bullets[bulletIndex] ?? null;
     }
-    const roleMatch = path.match(/^experience\[(\d+)\]\.(role|company)$/);
-    if (roleMatch) {
-      const expIndex = Number(roleMatch[1]);
-      const field = roleMatch[2] as "role" | "company";
+    const experienceFieldMatch = path.match(
+      /^experience\[(\d+)\]\.(role|company|start_date|end_date)$/,
+    );
+    if (experienceFieldMatch) {
+      const expIndex = Number(experienceFieldMatch[1]);
+      const field = experienceFieldMatch[2] as
+        | "role"
+        | "company"
+        | "start_date"
+        | "end_date";
       const entry = document.experience[expIndex];
       if (!entry) return null;
-      return entry[field];
+      return entry[field] ?? null;
+    }
+    const contactFieldMatch = path.match(
+      /^contact\.(full_name|email|phone)$/,
+    );
+    if (contactFieldMatch) {
+      const field = contactFieldMatch[1] as "full_name" | "email" | "phone";
+      return document[field];
+    }
+    const contactLinkMatch = path.match(/^contact\.links\[(\d+)\]$/);
+    if (contactLinkMatch) {
+      const linkIndex = Number(contactLinkMatch[1]);
+      return document.links[linkIndex] ?? null;
+    }
+    const educationFieldMatch = path.match(
+      /^education\[(\d+)\]\.(institution|degree|field_of_study|start_date|end_date|gpa|description)$/,
+    );
+    if (educationFieldMatch) {
+      const entryIndex = Number(educationFieldMatch[1]);
+      const field = educationFieldMatch[2] as
+        | "institution"
+        | "degree"
+        | "field_of_study"
+        | "start_date"
+        | "end_date"
+        | "gpa"
+        | "description";
+      const entry = document.education?.[entryIndex];
+      if (!entry) return null;
+      return entry[field] ?? null;
+    }
+    const projectBulletMatch = path.match(
+      /^projects\[(\d+)\]\.bullets\[(\d+)\]$/,
+    );
+    if (projectBulletMatch) {
+      const projectIndex = Number(projectBulletMatch[1]);
+      const bulletIndex = Number(projectBulletMatch[2]);
+      const entry = document.projects?.[projectIndex];
+      if (!entry) return null;
+      return entry.bullets[bulletIndex] ?? null;
+    }
+    const projectFieldMatch = path.match(
+      /^projects\[(\d+)\]\.(name|role|description|start_date|end_date)$/,
+    );
+    if (projectFieldMatch) {
+      const projectIndex = Number(projectFieldMatch[1]);
+      const field = projectFieldMatch[2] as
+        | "name"
+        | "role"
+        | "description"
+        | "start_date"
+        | "end_date";
+      const entry = document.projects?.[projectIndex];
+      if (!entry) return null;
+      return entry[field] ?? null;
+    }
+    const certificationFieldMatch = path.match(
+      /^certifications\[(\d+)\]\.(name|issuer|date_obtained)$/,
+    );
+    if (certificationFieldMatch) {
+      const certIndex = Number(certificationFieldMatch[1]);
+      const field = certificationFieldMatch[2] as
+        | "name"
+        | "issuer"
+        | "date_obtained";
+      const entry = document.certifications?.[certIndex];
+      if (!entry) return null;
+      return entry[field] ?? null;
     }
     return null;
   }
@@ -215,7 +454,7 @@ function ReviewStep({ onNext }: ReviewStepProps) {
     if (!draftResume) return;
     const nextValue = value;
     const currentValue = getCurrentValue(draftResume, path);
-    if (currentValue === null || currentValue === nextValue) return;
+    if (currentValue === nextValue) return;
     setDraftResume(applyRewrite(draftResume, path, nextValue));
   }
 
@@ -233,7 +472,11 @@ function ReviewStep({ onNext }: ReviewStepProps) {
       const response = await rewritePreview({
         text: target.text,
         instruction: buildRewriteInstruction(
-          target.label === "summary" ? "summary" : "bullet point",
+          target.label === "summary"
+            ? "summary"
+            : target.label === "project description"
+              ? "project description"
+              : "bullet point",
         ),
         mode: tailoringMode,
       });
@@ -298,18 +541,27 @@ function ReviewStep({ onNext }: ReviewStepProps) {
     if (!category) return;
 
     const removedSkill = category.items[skillIndex];
-    if (removedSkill) {
+    if (removedSkill && category.items.length > 1) {
       setRemovedSkillsHistory((current) => [
         ...current,
-        { categoryIndex, skill: removedSkill },
+        { categoryName: category.category, skill: removedSkill },
       ]);
     }
 
     const nextSkills = [...draftResume.skills];
-    nextSkills[categoryIndex] = {
-      ...category,
-      items: category.items.filter((_, idx) => idx !== skillIndex),
-    };
+    const nextItems = category.items.filter((_, idx) => idx !== skillIndex);
+
+    if (nextItems.length === 0) {
+      nextSkills.splice(categoryIndex, 1);
+      setRemovedSkillsHistory((current) =>
+        current.filter((entry) => entry.categoryName !== category.category),
+      );
+    } else {
+      nextSkills[categoryIndex] = {
+        ...category,
+        items: nextItems,
+      };
+    }
 
     setDraftResume({
       ...draftResume,
@@ -325,13 +577,17 @@ function ReviewStep({ onNext }: ReviewStepProps) {
     if (!previous) {
       return;
     }
-    const nextSkills = [...draftResume.skills];
-    if (nextSkills[previous.categoryIndex]) {
-      nextSkills[previous.categoryIndex] = {
-        ...nextSkills[previous.categoryIndex],
-        items: [...nextSkills[previous.categoryIndex].items, previous.skill],
-      };
+    const categoryIndex = draftResume.skills.findIndex(
+      (category) => category.category === previous.categoryName,
+    );
+    if (categoryIndex < 0) {
+      return;
     }
+    const nextSkills = [...draftResume.skills];
+    nextSkills[categoryIndex] = {
+      ...nextSkills[categoryIndex],
+      items: [...nextSkills[categoryIndex].items, previous.skill],
+    };
 
     setDraftResume({
       ...draftResume,
@@ -398,19 +654,43 @@ function ReviewStep({ onNext }: ReviewStepProps) {
 
       <div className={`review-grid ${singleResume ? "single-resume" : ""}`}>
         {originalDocument && (
-          <SectionCard className="review-panel" style={{ padding: 0 }}>
-            <ResumeSheet
-              document={originalDocument}
-              title="Master Resume"
-              subtitle="Uploaded document data"
-            />
+          <SectionCard
+            className="review-panel review-panel--source"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 0,
+              overflow: "hidden",
+              padding: 0,
+            }}
+          >
+            <div className="source-banner">
+              <div>
+                <FontAwesomeIcon
+                  icon={faFileLines}
+                  style={{ marginRight: "8px" }}
+                />
+                Original Source
+              </div>
+              <div className="source-badge">Uploaded document</div>
+            </div>
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <ResumeSheet
+                document={originalDocument}
+                title="Master Resume"
+                subtitle="Uploaded document data"
+              />
+            </div>
           </SectionCard>
         )}
 
         <SectionCard
-          className="review-panel"
+          className="review-panel review-panel--generated"
           style={{
             border: "1px solid var(--color-success-soft, #dcfce7)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 0,
             overflow: "hidden",
             padding: 0,
           }}
@@ -427,7 +707,7 @@ function ReviewStep({ onNext }: ReviewStepProps) {
               <span className="status-dot"></span> ATS OPTIMIZED
             </div>
           </div>
-          <div>
+          <div style={{ flex: 1, minHeight: 0 }}>
             <ResumeSheet
               document={workingDocument}
               isLoading={isGenerating}
@@ -438,6 +718,7 @@ function ReviewStep({ onNext }: ReviewStepProps) {
               onUndo={handleUndo}
               onAddSkill={handleAddSkill}
               canUndoSkillRemoval={removedSkillsHistory.length > 0}
+              undoSkillRemovalCategoryIndex={undoSkillRemovalCategoryIndex}
               onUndoSkillRemoval={handleUndoSkillRemoval}
               onRemoveSkill={(categoryIndex, skillIndex) => {
                 handleRemoveSkill(categoryIndex, skillIndex);

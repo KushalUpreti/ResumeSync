@@ -8,9 +8,15 @@ type FlowStepperProps = {
   activeStep: number
   steps: FlowStep[]
   onStepClick?: (step: number) => void
+  getWarningMessage?: (step: number) => string | null
 }
 
-function FlowStepper({ activeStep, steps, onStepClick }: FlowStepperProps) {
+function FlowStepper({
+  activeStep,
+  steps,
+  onStepClick,
+  getWarningMessage,
+}: FlowStepperProps) {
   const activeIndex = steps.findIndex((step) => step.step === activeStep)
 
   return (
@@ -19,6 +25,7 @@ function FlowStepper({ activeStep, steps, onStepClick }: FlowStepperProps) {
         const isComplete = index < activeIndex
         const isActive = step.step === activeStep
         const canNavigate = isComplete || isActive
+        const warningMessage = getWarningMessage?.(step.step) ?? null
 
         return (
           <div className="flow-stepper__item" key={step.step}>
@@ -34,9 +41,21 @@ function FlowStepper({ activeStep, steps, onStepClick }: FlowStepperProps) {
                 onClick={() => onStepClick?.(step.step)}
                 type="button"
                 disabled={!onStepClick && !isComplete}
+                aria-describedby={
+                  warningMessage ? `flow-stepper-warning-${step.step}` : undefined
+                }
               >
                 <span className="flow-stepper__count">{step.step}</span>
                 <span>{step.label}</span>
+                {warningMessage ? (
+                  <span
+                    className="flow-stepper__warning"
+                    id={`flow-stepper-warning-${step.step}`}
+                    role="tooltip"
+                  >
+                    {warningMessage}
+                  </span>
+                ) : null}
               </button>
             ) : (
               <span

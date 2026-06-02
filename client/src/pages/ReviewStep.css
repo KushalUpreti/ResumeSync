@@ -7,7 +7,7 @@
 
 .review-grid.single-resume .resume-sheet {
   width: 50vw;
-  margin: auto;
+  margin: 0 auto;
   background: #fff;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   border-radius: var(--radius-md);
