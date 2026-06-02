@@ -86,6 +86,12 @@ function IngestionStep({ onNext }: IngestionStepProps) {
 
   useEffect(() => {
     if (auth.status !== "authenticated") {
+      setMasterResume(null);
+      setDraftResume(null);
+      setResumeHistory([]);
+      setStatusMessage(
+        "Sign in to load your stored master resume, or upload a file to continue.",
+      );
       return;
     }
 
@@ -509,7 +515,9 @@ function IngestionStep({ onNext }: IngestionStepProps) {
                     </button>
                   </div>
                 </article>
-              ) : masterResume && useMasterResume ? (
+              ) : auth.status === "authenticated" &&
+                masterResume &&
+                useMasterResume ? (
                 <article
                   className="queue-item"
                   style={{
@@ -542,7 +550,9 @@ function IngestionStep({ onNext }: IngestionStepProps) {
                     </button>
                   </div>
                 </article>
-              ) : masterResume && !useMasterResume ? (
+              ) : auth.status === "authenticated" &&
+                masterResume &&
+                !useMasterResume ? (
                 <div
                   style={{
                     display: "flex",

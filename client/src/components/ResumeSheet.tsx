@@ -1,14 +1,33 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ResumeDocument } from "../types/resume";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCheck,
   faPlus,
+  faGripVertical,
+  faTrashCan,
   faRotateLeft,
   faSpinner,
   faWandMagicSparkles,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
+import {
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  SortableContext,
+  defaultAnimateLayoutChanges,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 
 type RewriteTarget = {
   path: string;
@@ -71,6 +90,17 @@ type ResumeSheetProps = {
   canUndoPath?: (path: string) => boolean;
   onUndo?: (path: string) => void;
   onRewrite?: (target: RewriteTarget) => void;
+  onReorderBullet?: (
+    section: "experience" | "projects",
+    entryIndex: number,
+    fromIndex: number,
+    toIndex: number,
+  ) => void;
+  onDeleteBullet?: (
+    section: "experience" | "projects",
+    entryIndex: number,
+    bulletIndex: number,
+  ) => void;
   onRemoveSkill?: (categoryIndex: number, skillIndex: number) => void;
   onAddSkill?: (categoryName: string, skill: string) => void;
   canUndoSkillRemoval?: boolean;
@@ -220,6 +250,155 @@ function EditableText({
   );
 }
 
+type BulletSection = "experience" | "projects";
+
+type SortableBulletItemProps = {
+  id: string;
+  section: BulletSection;
+  entryIndex: number;
+  bulletIndex: number;
+  bullet: string;
+  activeRewritePath?: string | null;
+  canUndoPath?: (path: string) => boolean;
+  onUndo?: (path: string) => void;
+  onRewrite?: (target: RewriteTarget) => void;
+  onInlineEdit?: (path: string, value: string) => void;
+  onDeleteBullet?: (
+    section: BulletSection,
+    entryIndex: number,
+    bulletIndex: number,
+  ) => void;
+  showEmptyPlaceholders?: boolean;
+};
+
+function SortableBulletItem({
+  id,
+  section,
+  entryIndex,
+  bulletIndex,
+  bullet,
+  activeRewritePath,
+  canUndoPath,
+  onUndo,
+  onRewrite,
+  onInlineEdit,
+  onDeleteBullet,
+  showEmptyPlaceholders,
+}: SortableBulletItemProps) {
+  const {
+    setNodeRef,
+    setActivatorNodeRef,
+    attributes,
+    listeners,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id,
+    data: { section, entryIndex, bulletIndex },
+    animateLayoutChanges: (args) =>
+      args.isSorting ? defaultAnimateLayoutChanges(args) : false,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition: transition
+      ? "transform 170ms cubic-bezier(0.22, 1, 0.36, 1)"
+      : undefined,
+  };
+
+  return (
+    <li
+      ref={setNodeRef}
+      className={`resume-sheet__bullet-item${isDragging ? " is-dragging" : ""}`}
+      style={style}
+    >
+      <div className="resume-sheet__bullet-row">
+        <div className="resume-sheet__bullet-controls">
+          <button
+            ref={setActivatorNodeRef}
+            className="resume-sheet__drag-handle"
+            type="button"
+            aria-label="Drag to reorder bullet"
+            title="Drag to reorder"
+            {...attributes}
+            {...listeners}
+          >
+            <FontAwesomeIcon icon={faGripVertical} />
+          </button>
+          {onDeleteBullet ? (
+            <button
+              className="resume-sheet__delete-bullet"
+              type="button"
+              aria-label="Delete bullet"
+              title="Delete bullet"
+              onClick={() => onDeleteBullet(section, entryIndex, bulletIndex)}
+            >
+              <FontAwesomeIcon icon={faTrashCan} />
+            </button>
+          ) : null}
+        </div>
+        <EditableText
+          value={bullet}
+          path={`${section}[${entryIndex}].bullets[${bulletIndex}]`}
+          className="resume-sheet__bullet-text"
+          multiline
+          commitOnChange
+          placeholder={
+            showEmptyPlaceholders
+              ? "Add bullet"
+              : undefined
+          }
+          onInlineEdit={onInlineEdit}
+        />
+      </div>
+      {onRewrite ? (
+        <div className="resume-sheet__bullet-actions">
+          <button
+            className="resume-sheet__rewrite-button resume-sheet__rewrite-button--inline"
+            onClick={() =>
+              onRewrite({
+                path: `${section}[${entryIndex}].bullets[${bulletIndex}]`,
+                text: bullet,
+                label: "bullet point",
+              })
+            }
+            type="button"
+            aria-label="Suggest replacement for bullet point"
+          >
+            {activeRewritePath ===
+            `${section}[${entryIndex}].bullets[${bulletIndex}]` ? (
+              <FontAwesomeIcon icon={faSpinner} spin />
+            ) : (
+              <FontAwesomeIcon icon={faWandMagicSparkles} />
+            )}
+            <span>
+              {activeRewritePath ===
+              `${section}[${entryIndex}].bullets[${bulletIndex}]`
+                ? "Rewriting"
+                : "Suggest replacement"}
+            </span>
+          </button>
+          {canUndoPath?.(`${section}[${entryIndex}].bullets[${bulletIndex}]`) &&
+          onUndo ? (
+            <button
+              className="resume-sheet__rewrite-button resume-sheet__rewrite-button--undo"
+              onClick={() =>
+                onUndo(`${section}[${entryIndex}].bullets[${bulletIndex}]`)
+              }
+              type="button"
+              aria-label="Undo previous rewrite"
+            >
+              <FontAwesomeIcon icon={faRotateLeft} />
+              <span>Undo</span>
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+    </li>
+  );
+}
+
 function ResumeSheet({
   document,
   title,
@@ -229,6 +408,8 @@ function ResumeSheet({
   canUndoPath,
   onUndo,
   onRewrite,
+  onReorderBullet,
+  onDeleteBullet,
   onRemoveSkill,
   onAddSkill,
   canUndoSkillRemoval,
@@ -242,6 +423,25 @@ function ResumeSheet({
   >(null);
   const [newSkill, setNewSkill] = useState("");
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [suppressBulletControls, setSuppressBulletControls] = useState(false);
+  const suppressBulletControlsTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (suppressBulletControlsTimer.current) {
+        window.clearTimeout(suppressBulletControlsTimer.current);
+      }
+    };
+  }, []);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   if (!document) {
     return (
@@ -274,8 +474,51 @@ function ResumeSheet({
     setAddingSkillToCategory(null);
   }
 
+  function handleDragEnd(event: DragEndEvent) {
+    setSuppressBulletControls(true);
+    if (suppressBulletControlsTimer.current) {
+      window.clearTimeout(suppressBulletControlsTimer.current);
+    }
+    suppressBulletControlsTimer.current = window.setTimeout(() => {
+      setSuppressBulletControls(false);
+      suppressBulletControlsTimer.current = null;
+    }, 180);
+
+    if (!onReorderBullet) {
+      return;
+    }
+
+    const activeData = event.active.data.current as
+      | { section: BulletSection; entryIndex: number; bulletIndex: number }
+      | undefined;
+    const overData = event.over?.data.current as
+      | { section: BulletSection; entryIndex: number; bulletIndex: number }
+      | undefined;
+
+    if (
+      !activeData ||
+      !overData ||
+      activeData.section !== overData.section ||
+      activeData.entryIndex !== overData.entryIndex ||
+      activeData.bulletIndex === overData.bulletIndex
+    ) {
+      return;
+    }
+
+    onReorderBullet(
+      activeData.section,
+      activeData.entryIndex,
+      activeData.bulletIndex,
+      overData.bulletIndex,
+    );
+  }
+
   return (
-    <div className={`resume-sheet ${isLoading ? "is-loading" : ""}`}>
+    <div
+      className={`resume-sheet ${
+        isLoading ? "is-loading" : ""
+      }${suppressBulletControls ? " resume-sheet--suppress-bullet-controls" : ""}`}
+    >
       <header className="resume-sheet__header">
         <h2 className="resume-sheet__title">{title || "Resume Preview"}</h2>
         <p className="resume-sheet__subtitle">
@@ -283,6 +526,11 @@ function ResumeSheet({
         </p>
       </header>
 
+      <DndContext
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+        sensors={onReorderBullet ? sensors : undefined}
+      >
       <div className="resume-sheet__body">
         <section className="resume-sheet__section">
           <h3 className="resume-sheet__section-title">Contact</h3>
@@ -397,66 +645,46 @@ function ResumeSheet({
                   />
                 </p>
               ) : null}
-              <ul className="resume-sheet__bullets">
-                {exp.bullets.map((bullet, bIdx) => (
-                  <li key={bIdx} className="resume-sheet__bullet-item">
-                    <div className="resume-sheet__bullet-row">
-                      <EditableText
-                        value={bullet}
-                        path={`experience[${idx}].bullets[${bIdx}]`}
-                        className="resume-sheet__bullet-text"
-                        multiline
-                        commitOnChange
-                        placeholder={showEmptyPlaceholders ? getPlaceholder(`experience[${idx}].bullets[${bIdx}]`) : undefined}
+              <SortableContext
+                items={exp.bullets.map((_, bIdx) => `experience-${idx}-${bIdx}`)}
+                strategy={verticalListSortingStrategy}
+              >
+                <ul className="resume-sheet__bullets">
+                  {exp.bullets.length > 0 ? (
+                    exp.bullets.map((bullet, bIdx) => (
+                      <SortableBulletItem
+                        key={`experience-${idx}-${bIdx}`}
+                        id={`experience-${idx}-${bIdx}`}
+                        section="experience"
+                        entryIndex={idx}
+                        bulletIndex={bIdx}
+                        bullet={bullet}
+                        activeRewritePath={activeRewritePath}
+                        canUndoPath={canUndoPath}
+                        onUndo={onUndo}
+                        onRewrite={onRewrite}
                         onInlineEdit={onInlineEdit}
+                        onDeleteBullet={onDeleteBullet}
+                        showEmptyPlaceholders={showEmptyPlaceholders}
                       />
-                    </div>
-                    {onRewrite ? (
-                      <div className="resume-sheet__bullet-actions">
-                        <button
-                          className="resume-sheet__rewrite-button resume-sheet__rewrite-button--inline"
-                          onClick={() =>
-                            onRewrite({
-                              path: `experience[${idx}].bullets[${bIdx}]`,
-                              text: bullet,
-                              label: "bullet point",
-                            })
-                          }
-                          type="button"
-                          aria-label="Suggest replacement for bullet point"
-                        >
-                          {activeRewritePath ===
-                          `experience[${idx}].bullets[${bIdx}]` ? (
-                            <FontAwesomeIcon icon={faSpinner} spin />
-                          ) : (
-                            <FontAwesomeIcon icon={faWandMagicSparkles} />
-                          )}
-                          <span>
-                            {activeRewritePath ===
-                            `experience[${idx}].bullets[${bIdx}]`
-                              ? "Rewriting"
-                              : "Suggest replacement"}
-                          </span>
-                        </button>
-                        {canUndoPath?.(`experience[${idx}].bullets[${bIdx}]`) &&
-                        onUndo ? (
-                          <button
-                            className="resume-sheet__rewrite-button resume-sheet__rewrite-button--undo"
-                            onClick={() =>
-                              onUndo(`experience[${idx}].bullets[${bIdx}]`)
-                            }
-                            type="button"
-                            aria-label="Undo previous rewrite"
-                          >
-                            <FontAwesomeIcon icon={faRotateLeft} />
-                            <span>Undo</span>
-                          </button>
-                        ) : null}
+                    ))
+                  ) : showEmptyPlaceholders ? (
+                    <li className="resume-sheet__bullet-item resume-sheet__bullet-item--empty">
+                      <div className="resume-sheet__bullet-row">
+                        <EditableText
+                          value=""
+                          path={`experience[${idx}].bullets[0]`}
+                          className="resume-sheet__bullet-text"
+                          multiline
+                          commitOnChange
+                          placeholder={getPlaceholder(`experience[${idx}].bullets[0]`)}
+                          onInlineEdit={onInlineEdit}
+                        />
                       </div>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
+                    </li>
+                  ) : null}
+                </ul>
+              </SortableContext>
             </div>
           ))}
         </section>
@@ -613,52 +841,46 @@ function ResumeSheet({
                     onInlineEdit={onInlineEdit}
                   />
                 </div>
-                <ul className="resume-sheet__bullets">
-                  {proj.bullets.map((bullet, bIdx) => (
-                    <li key={bIdx} className="resume-sheet__bullet-item">
-                      <div className="resume-sheet__bullet-row">
-                        <EditableText
-                          value={bullet}
-                          path={`projects[${idx}].bullets[${bIdx}]`}
-                          className="resume-sheet__bullet-text"
-                          multiline
-                          commitOnChange
-                          placeholder={showEmptyPlaceholders ? getPlaceholder(`projects[${idx}].bullets[${bIdx}]`) : undefined}
+                <SortableContext
+                  items={proj.bullets.map((_, bIdx) => `projects-${idx}-${bIdx}`)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <ul className="resume-sheet__bullets">
+                    {proj.bullets.length > 0 ? (
+                      proj.bullets.map((bullet, bIdx) => (
+                        <SortableBulletItem
+                          key={`projects-${idx}-${bIdx}`}
+                          id={`projects-${idx}-${bIdx}`}
+                          section="projects"
+                          entryIndex={idx}
+                          bulletIndex={bIdx}
+                          bullet={bullet}
+                          activeRewritePath={activeRewritePath}
+                          canUndoPath={canUndoPath}
+                          onUndo={onUndo}
+                          onRewrite={onRewrite}
                           onInlineEdit={onInlineEdit}
+                          onDeleteBullet={onDeleteBullet}
+                          showEmptyPlaceholders={showEmptyPlaceholders}
                         />
-                      </div>
-                      {onRewrite ? (
-                        <div className="resume-sheet__bullet-actions">
-                          <button
-                            className="resume-sheet__rewrite-button resume-sheet__rewrite-button--inline"
-                            onClick={() =>
-                              onRewrite({
-                                path: `projects[${idx}].bullets[${bIdx}]`,
-                                text: bullet,
-                                label: "bullet point",
-                              })
-                            }
-                            type="button"
-                            aria-label="Suggest replacement for project bullet point"
-                          >
-                            {activeRewritePath ===
-                            `projects[${idx}].bullets[${bIdx}]` ? (
-                              <FontAwesomeIcon icon={faSpinner} spin />
-                            ) : (
-                              <FontAwesomeIcon icon={faWandMagicSparkles} />
-                            )}
-                            <span>
-                              {activeRewritePath ===
-                              `projects[${idx}].bullets[${bIdx}]`
-                                ? "Rewriting"
-                                : "Suggest replacement"}
-                            </span>
-                          </button>
+                      ))
+                    ) : showEmptyPlaceholders ? (
+                      <li className="resume-sheet__bullet-item resume-sheet__bullet-item--empty">
+                        <div className="resume-sheet__bullet-row">
+                          <EditableText
+                            value=""
+                            path={`projects[${idx}].bullets[0]`}
+                            className="resume-sheet__bullet-text"
+                            multiline
+                            commitOnChange
+                            placeholder={getPlaceholder(`projects[${idx}].bullets[0]`)}
+                            onInlineEdit={onInlineEdit}
+                          />
                         </div>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
+                      </li>
+                    ) : null}
+                  </ul>
+                </SortableContext>
               </div>
             ))}
           </section>
@@ -893,6 +1115,7 @@ function ResumeSheet({
           </div>
         </section>
       </div>
+      </DndContext>
     </div>
   );
 }

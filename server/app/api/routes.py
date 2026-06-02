@@ -225,7 +225,10 @@ def download_rendered_resume(
     try:
         rendered_bytes = services.renderer.render(document, template_id=safe_template)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Render failed: {exc}") from exc
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to generate the selected resume template right now. Please try again.",
+        ) from exc
 
     filename = f"resume_{safe_template}.docx"
     return StreamingResponse(

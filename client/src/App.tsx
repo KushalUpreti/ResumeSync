@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom'
+import { Route, Routes, useLocation } from 'react-router-dom'
 import AuthModal from './components/AuthModal'
 import AppFooter from './components/AppFooter'
 import AppHeader from './components/AppHeader'
@@ -6,9 +6,11 @@ import './App.css'
 import { useAuth } from './context/useAuth'
 import AuthCallbackPage from './pages/AuthCallbackPage'
 import LandingPage from './pages/LandingPage'
+import PrototypePage from './pages/PrototypePage'
 import ProcessPage from './pages/ProcessPage'
 
 function App() {
+  const location = useLocation()
   const {
     auth,
     authView,
@@ -23,30 +25,40 @@ function App() {
     startGoogleSignIn,
   } = useAuth()
   const isLoggedIn = auth.status === 'authenticated'
+  const isPrototypeRoute = location.pathname === '/prototype'
 
   return (
-    <div className="app-shell">
+    <div className={isPrototypeRoute ? 'app-shell app-shell--prototype' : 'app-shell'}>
       <AppHeader
         auth={auth}
         onOpenAuthModal={openAuthModal}
         onSignOut={signOut}
       />
-      <main className="app-shell__main">
+      <main
+        className={
+          isPrototypeRoute
+            ? 'app-shell__main app-shell__main--prototype'
+            : 'app-shell__main'
+        }
+      >
         <Routes>
           <Route
             path="/"
             element={
               <LandingPage
                 isLoggedIn={isLoggedIn}
-                onOpenSignUp={() => openAuthModal('signUp')}
               />
             }
+          />
+          <Route
+            path="/prototype"
+            element={<PrototypePage isLoggedIn={isLoggedIn} />}
           />
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route path="/process" element={<ProcessPage />} />
         </Routes>
       </main>
-      <AppFooter />
+      {isPrototypeRoute ? null : <AppFooter />}
 
       {isAuthOpen ? (
         <AuthModal

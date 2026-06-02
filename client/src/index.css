@@ -1488,10 +1488,104 @@ strong {
 }
 
 .resume-sheet__bullet-row {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
   width: 100%;
+}
+
+.resume-sheet__bullet-controls {
+  position: absolute;
+  right: -34px;
+  left: auto;
+  top: 1px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transform: scale(0.96);
+  pointer-events: auto;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+  z-index: 3;
+}
+
+.resume-sheet__bullet-item:hover .resume-sheet__bullet-controls,
+.resume-sheet__bullet-item:focus-within .resume-sheet__bullet-controls {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.resume-sheet--suppress-bullet-controls .resume-sheet__bullet-controls {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.resume-sheet__drag-handle,
+.resume-sheet__delete-bullet {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: grab;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.resume-sheet__drag-handle {
+  color: #94a3b8;
+}
+
+.resume-sheet__drag-handle:hover,
+.resume-sheet__drag-handle:focus-visible {
+  color: #111827;
+  background: rgba(15, 23, 42, 0.06);
+  outline: none;
+}
+
+.resume-sheet__drag-handle:active {
+  cursor: grabbing;
+  transform: scale(0.96);
+}
+
+.resume-sheet__delete-bullet {
+  color: #dc2626;
+  cursor: pointer;
+}
+
+.resume-sheet__delete-bullet:hover,
+.resume-sheet__delete-bullet:focus-visible {
+  color: #b91c1c;
+  background: rgba(220, 38, 38, 0.08);
+  outline: none;
+}
+
+.resume-sheet__delete-bullet:active {
+  transform: scale(0.96);
+}
+
+.resume-sheet__bullet-item.is-dragging .resume-sheet__delete-bullet {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.resume-sheet__bullet-item.is-dragging {
+  opacity: 0.55;
+}
+
+.resume-sheet__bullet-item.is-drop-target {
+  background: rgba(15, 23, 42, 0.035);
+  border-radius: 8px;
 }
 
 .resume-sheet__bullet-text {
@@ -1899,43 +1993,6 @@ strong {
 
 .site-footer__note {
   margin-top: var(--space-2);
-}
-
-.starfield {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.starfield__dot {
-  position: absolute;
-  border-radius: 999px;
-  background: radial-gradient(
-    circle,
-    rgba(255, 255, 255, 1) 0%,
-    rgba(37, 99, 235, 0.8) 50%,
-    transparent 100%
-  );
-  box-shadow: 0 0 8px rgba(37, 99, 235, 0.3);
-  transform: translate(-50%, -50%) scale(0.6);
-  opacity: 0;
-  animation: star-pulse 1000ms ease-out forwards;
-  mix-blend-mode: screen;
-}
-
-@keyframes star-pulse {
-  0% {
-    transform: translate(-50%, -50%) scale(0.6);
-    opacity: 0;
-  }
-  20% {
-    opacity: 0.8;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(1.3);
-    opacity: 0;
-  }
 }
 
 .modal-backdrop {

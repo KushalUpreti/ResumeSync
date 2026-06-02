@@ -1,5 +1,4 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useEffect, useState } from "react";
 import {
   faArrowRight,
   faBullseye,
@@ -14,15 +13,6 @@ import SectionCard from "../components/SectionCard";
 
 type LandingPageProps = {
   isLoggedIn: boolean;
-  onOpenSignUp: () => void;
-};
-
-type StarParticle = {
-  id: number;
-  x: number;
-  y: number;
-  size: number;
-  delay: number;
 };
 
 const featureCards = [
@@ -68,64 +58,9 @@ const modeCards = [
   },
 ];
 
-function LandingPage({ isLoggedIn, onOpenSignUp }: LandingPageProps) {
-  const [stars, setStars] = useState<StarParticle[]>([]);
-
-  useEffect(() => {
-    let nextId = 1;
-    let lastSpawn = 0;
-
-    function handleMove(event: MouseEvent) {
-      const now = performance.now();
-      if (now - lastSpawn < 40) {
-        return;
-      }
-      lastSpawn = now;
-
-      const count = 2;
-      const next = Array.from({ length: count }).map(() => ({
-        id: nextId++,
-        x: event.clientX + (Math.random() - 0.5) * 30,
-        y: event.clientY + (Math.random() - 0.5) * 30,
-        size: 1.2 + Math.random() * 1.8,
-        delay: Math.random() * 0.08,
-      }));
-
-      setStars((current) => [...current.slice(-60), ...next]);
-    }
-
-    window.addEventListener("mousemove", handleMove, { passive: true });
-    return () => window.removeEventListener("mousemove", handleMove);
-  }, []);
-
-  useEffect(() => {
-    if (!stars.length) return;
-    const timer = window.setTimeout(() => {
-      const cutoff = stars[stars.length - 1]?.id
-        ? stars[stars.length - 1].id - 20
-        : 0;
-      setStars((current) => current.filter((star) => star.id > cutoff));
-    }, 1100);
-    return () => window.clearTimeout(timer);
-  }, [stars]);
-
+function LandingPage({ isLoggedIn }: LandingPageProps) {
   return (
     <div className="page-stack landing-stack">
-      <div className="starfield" aria-hidden="true">
-        {stars.map((star) => (
-          <span
-            className="starfield__dot"
-            key={star.id}
-            style={{
-              left: `${star.x}px`,
-              top: `${star.y}px`,
-              width: `${star.size}px`,
-              height: `${star.size}px`,
-              animationDelay: `${star.delay}s`,
-            }}
-          />
-        ))}
-      </div>
       <section className="hero-grid">
         <div className="hero-copy">
           <p className="eyebrow">Version 2.4.0 live</p>
@@ -144,6 +79,9 @@ function LandingPage({ isLoggedIn, onOpenSignUp }: LandingPageProps) {
             <Link className="button button--primary" to="/process">
               {isLoggedIn ? "Open Workspace" : "Get Started"}
               <FontAwesomeIcon icon={faArrowRight} />
+            </Link>
+            <Link className="button button--ghost" to="/prototype">
+              View the prototype
             </Link>
           </div>
           <div className="hero-infra">

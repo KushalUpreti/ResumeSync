@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFileLines, faWandMagicSparkles } from "@fortawesome/free-solid-svg-icons";
 import { getResume, rewritePreview, waitForJob } from "../api/resumeSync";
 import './ReviewStep.css';
+import { arrayMove } from "@dnd-kit/sortable";
 import { useNotification } from "../context/useNotification";
 import SectionCard from "../components/SectionCard";
 import ResumeSheet from "../components/ResumeSheet";
@@ -14,6 +15,127 @@ type ReviewStepProps = {
   onNext: () => void;
   onBack: () => void;
 };
+
+type BulletSection = "experience" | "projects";
+
+function getBulletPath(
+  section: BulletSection,
+  entryIndex: number,
+  bulletIndex: number,
+) {
+  return `${section}[${entryIndex}].bullets[${bulletIndex}]`;
+}
+
+function remapBulletPath(
+  path: string,
+  section: BulletSection,
+  entryIndex: number,
+  fromIndex: number,
+  toIndex: number,
+) {
+  const match = path.match(
+    /^(experience|projects)\[(\d+)\]\.bullets\[(\d+)\]$/,
+  );
+  if (!match) {
+    return path;
+  }
+
+  const matchedSection = match[1] as BulletSection;
+  const matchedEntryIndex = Number(match[2]);
+  const matchedBulletIndex = Number(match[3]);
+
+  if (matchedSection !== section || matchedEntryIndex !== entryIndex) {
+    return path;
+  }
+
+  let nextBulletIndex = matchedBulletIndex;
+  if (fromIndex < toIndex) {
+    if (matchedBulletIndex === fromIndex) {
+      nextBulletIndex = toIndex;
+    } else if (matchedBulletIndex > fromIndex && matchedBulletIndex <= toIndex) {
+      nextBulletIndex = matchedBulletIndex - 1;
+    }
+  } else if (fromIndex > toIndex) {
+    if (matchedBulletIndex === fromIndex) {
+      nextBulletIndex = toIndex;
+    } else if (matchedBulletIndex >= toIndex && matchedBulletIndex < fromIndex) {
+      nextBulletIndex = matchedBulletIndex + 1;
+    }
+  }
+
+  return getBulletPath(section, entryIndex, nextBulletIndex);
+}
+
+function remapBulletHistory(
+  history: Record<string, string[]>,
+  section: BulletSection,
+  entryIndex: number,
+  fromIndex: number,
+  toIndex: number,
+) {
+  const nextHistory: Record<string, string[]> = {};
+
+  for (const [path, values] of Object.entries(history)) {
+    const nextPath = remapBulletPath(path, section, entryIndex, fromIndex, toIndex);
+    nextHistory[nextPath] = values;
+  }
+
+  return nextHistory;
+}
+
+function remapBulletPathAfterDelete(
+  path: string,
+  section: BulletSection,
+  entryIndex: number,
+  deletedIndex: number,
+) {
+  const match = path.match(/^(experience|projects)\[(\d+)\]\.bullets\[(\d+)\]$/);
+  if (!match) {
+    return path;
+  }
+
+  const matchedSection = match[1] as BulletSection;
+  const matchedEntryIndex = Number(match[2]);
+  const matchedBulletIndex = Number(match[3]);
+
+  if (matchedSection !== section || matchedEntryIndex !== entryIndex) {
+    return path;
+  }
+
+  if (matchedBulletIndex === deletedIndex) {
+    return null;
+  }
+
+  if (matchedBulletIndex > deletedIndex) {
+    return getBulletPath(section, entryIndex, matchedBulletIndex - 1);
+  }
+
+  return path;
+}
+
+function remapBulletHistoryAfterDelete(
+  history: Record<string, string[]>,
+  section: BulletSection,
+  entryIndex: number,
+  deletedIndex: number,
+) {
+  const nextHistory: Record<string, string[]> = {};
+
+  for (const [path, values] of Object.entries(history)) {
+    const nextPath = remapBulletPathAfterDelete(
+      path,
+      section,
+      entryIndex,
+      deletedIndex,
+    );
+    if (!nextPath) {
+      continue;
+    }
+    nextHistory[nextPath] = values;
+  }
+
+  return nextHistory;
+}
 
 function ReviewStep({ onNext }: ReviewStepProps) {
   const { addNotification } = useNotification();
@@ -181,11 +303,16 @@ function ReviewStep({ onNext }: ReviewStepProps) {
           return entry;
         }
 
+        const nextBullets = [...entry.bullets];
+        if (bulletIndex >= nextBullets.length) {
+          nextBullets.push(nextText);
+        } else {
+          nextBullets[bulletIndex] = nextText;
+        }
+
         return {
           ...entry,
-          bullets: entry.bullets.map((bullet, idx) =>
-            idx === bulletIndex ? nextText : bullet,
-          ),
+          bullets: nextBullets,
         };
       });
 
@@ -284,11 +411,16 @@ function ReviewStep({ onNext }: ReviewStepProps) {
             return entry;
           }
 
+          const nextBullets = [...entry.bullets];
+          if (bulletIndex >= nextBullets.length) {
+            nextBullets.push(nextText);
+          } else {
+            nextBullets[bulletIndex] = nextText;
+          }
+
           return {
             ...entry,
-            bullets: entry.bullets.map((bullet, idx) =>
-              idx === bulletIndex ? nextText : bullet,
-            ),
+            bullets: nextBullets,
           };
         }),
       };
@@ -347,6 +479,89 @@ function ReviewStep({ onNext }: ReviewStepProps) {
     }
 
     return document;
+  }
+
+  function handleReorderBullet(
+    section: BulletSection,
+    entryIndex: number,
+    fromIndex: number,
+    toIndex: number,
+  ) {
+    if (!draftResume || fromIndex === toIndex) {
+      return;
+    }
+
+    if (section === "experience") {
+      const entry = draftResume.experience[entryIndex];
+      if (!entry) return;
+      const nextBullets = arrayMove(entry.bullets, fromIndex, toIndex);
+      setDraftResume({
+        ...draftResume,
+        experience: draftResume.experience.map((item, index) =>
+          index === entryIndex ? { ...item, bullets: nextBullets } : item,
+        ),
+      });
+    } else {
+      const entry = draftResume.projects?.[entryIndex];
+      if (!entry || !draftResume.projects) return;
+      const nextBullets = arrayMove(entry.bullets, fromIndex, toIndex);
+      setDraftResume({
+        ...draftResume,
+        projects: draftResume.projects.map((item, index) =>
+          index === entryIndex ? { ...item, bullets: nextBullets } : item,
+        ),
+      });
+    }
+
+    setRewriteHistory((current) =>
+      remapBulletHistory(current, section, entryIndex, fromIndex, toIndex),
+    );
+    setActiveRewritePath((current) =>
+      current
+        ? remapBulletPath(current, section, entryIndex, fromIndex, toIndex)
+        : current,
+    );
+  }
+
+  function handleDeleteBullet(
+    section: BulletSection,
+    entryIndex: number,
+    bulletIndex: number,
+  ) {
+    if (!draftResume) {
+      return;
+    }
+
+    if (section === "experience") {
+      const entry = draftResume.experience[entryIndex];
+      if (!entry) return;
+      const nextBullets = entry.bullets.filter((_, idx) => idx !== bulletIndex);
+      setDraftResume({
+        ...draftResume,
+        experience: draftResume.experience.map((item, index) =>
+          index === entryIndex ? { ...item, bullets: nextBullets } : item,
+        ),
+      });
+    } else {
+      const entry = draftResume.projects?.[entryIndex];
+      if (!entry || !draftResume.projects) return;
+      const nextBullets = entry.bullets.filter((_, idx) => idx !== bulletIndex);
+      setDraftResume({
+        ...draftResume,
+        projects: draftResume.projects.map((item, index) =>
+          index === entryIndex ? { ...item, bullets: nextBullets } : item,
+        ),
+      });
+    }
+
+    setRewriteHistory((current) =>
+      remapBulletHistoryAfterDelete(current, section, entryIndex, bulletIndex),
+    );
+    setActiveRewritePath((current) =>
+      current
+        ? remapBulletPathAfterDelete(current, section, entryIndex, bulletIndex)
+        : current,
+    );
   }
 
   function getCurrentValue(
@@ -724,6 +939,8 @@ function ReviewStep({ onNext }: ReviewStepProps) {
               onRemoveSkill={(categoryIndex, skillIndex) => {
                 handleRemoveSkill(categoryIndex, skillIndex);
               }}
+              onReorderBullet={handleReorderBullet}
+              onDeleteBullet={handleDeleteBullet}
               onRewrite={(target) => void handleRewriteTarget(target)}
               onInlineEdit={handleInlineEdit}
             />
