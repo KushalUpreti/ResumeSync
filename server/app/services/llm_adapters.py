@@ -7,6 +7,12 @@ from typing import Any
 from pypdf import PdfReader
 from docx import Document
 from app.models.resume import ResumeDocument, ExperienceEntry, EducationEntry, ProjectEntry, CertificationEntry, SkillCategory, RewriteTarget
+from app.services.date_sorting import (
+    sort_certification_entries,
+    sort_education_entries,
+    sort_experience_entries,
+    sort_project_entries,
+)
 from app.services.interfaces import ResumeParser, ResumeTailor
 
 class LLMResumeParser(ResumeParser):
@@ -73,6 +79,7 @@ class LLMResumeParser(ResumeParser):
 Only output the JSON object. Do not include markdown formatting like ```json. Do not include any introductory or explanatory text.
 
 If the source includes dates, preserve them exactly as they appear when possible. Do not invent dates.
+Return experience, education, projects, and certifications sorted with the most recent entry first within each section.
 If no education, projects, certifications, or skills information is present, return an empty array for those fields.
 
 RAW RESUME TEXT:
@@ -88,10 +95,18 @@ RAW RESUME TEXT:
         content = response.choices[0].message.content
         data = self._clean_json(content)
         
-        experience_list = [ExperienceEntry(**exp) for exp in data.get("experience", [])]
-        education_list = [EducationEntry(**edu) for edu in data.get("education", [])]
-        projects_list = [ProjectEntry(**proj) for proj in data.get("projects", [])]
-        certifications_list = [CertificationEntry(**cert) for cert in data.get("certifications", [])]
+        experience_list = sort_experience_entries(
+            [ExperienceEntry(**exp) for exp in data.get("experience", [])]
+        )
+        education_list = sort_education_entries(
+            [EducationEntry(**edu) for edu in data.get("education", [])]
+        )
+        projects_list = sort_project_entries(
+            [ProjectEntry(**proj) for proj in data.get("projects", [])]
+        )
+        certifications_list = sort_certification_entries(
+            [CertificationEntry(**cert) for cert in data.get("certifications", [])]
+        )
         skills_list = [SkillCategory(**cat) for cat in data.get("skills", [])]
         
         if not experience_list and not skills_list and not projects_list:
@@ -164,10 +179,24 @@ class LLMResumeTailor(ResumeTailor):
             phone=data.get("phone", document.phone),
             links=data.get("links", document.links),
             summary=data.get("summary", document.summary),
-            experience=[ExperienceEntry(**exp) for exp in data.get("experience", [])],
-            education=[EducationEntry(**edu) for edu in data.get("education", [])] if data.get("education") is not None else document.education,
-            projects=[ProjectEntry(**proj) for proj in data.get("projects", [])] if data.get("projects") is not None else document.projects,
-            certifications=[CertificationEntry(**cert) for cert in data.get("certifications", [])] if data.get("certifications") is not None else document.certifications,
+            experience=sort_experience_entries(
+                [ExperienceEntry(**exp) for exp in data.get("experience", [])]
+            ),
+            education=sort_education_entries(
+                [EducationEntry(**edu) for edu in data.get("education", [])]
+            )
+            if data.get("education") is not None
+            else document.education,
+            projects=sort_project_entries(
+                [ProjectEntry(**proj) for proj in data.get("projects", [])]
+            )
+            if data.get("projects") is not None
+            else document.projects,
+            certifications=sort_certification_entries(
+                [CertificationEntry(**cert) for cert in data.get("certifications", [])]
+            )
+            if data.get("certifications") is not None
+            else document.certifications,
             skills=[SkillCategory(**cat) for cat in data.get("skills", [])] if data.get("skills") is not None else document.skills,
             metadata={**document.metadata, "mode": mode, "tailored": "true"}
         )
@@ -216,6 +245,7 @@ Use the provided job description and source notes to prioritize the most relevan
 Rules:
 - Make the summary sharp, targeted, and outcome-oriented.
 - Reorder and rewrite bullets to match the target role more aggressively.
+- Keep experience, education, projects, and certifications sorted with the most recent entry first within each section.
 - Surface skills that directly support the target role and job description.
 - Keep the content truthful and grounded in the source material.
 - Preserve start and end dates when they are already present in the source data.
@@ -247,6 +277,7 @@ Rules:
 - Keep the resume balanced and broadly applicable.
 - Improve clarity, structure, and impact without making it feel overly targeted.
 - Preserve a wide view of the candidate's experience and skills.
+- Keep experience, education, projects, and certifications sorted with the most recent entry first within each section.
 - Preserve start and end dates when they are already present in the source data.
 - Do not invent dates or remove dates that were present in the original resume.
 - Preserve name, email, phone, and links unless the source notes explicitly provide corrections.

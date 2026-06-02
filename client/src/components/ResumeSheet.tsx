@@ -66,6 +66,7 @@ type ResumeSheetProps = {
   title?: string;
   subtitle?: string;
   isLoading?: boolean;
+  showEmptyPlaceholders?: boolean;
   activeRewritePath?: string | null;
   canUndoPath?: (path: string) => boolean;
   onUndo?: (path: string) => void;
@@ -84,11 +85,45 @@ type EditableTextProps = {
   className?: string;
   multiline?: boolean;
   commitOnChange?: boolean;
+  placeholder?: string;
   onInlineEdit?: (path: string, value: string) => void;
 };
 
 function isDateField(path: string) {
   return /(?:start_date|end_date|date_obtained)$/.test(path);
+}
+
+function getPlaceholder(path: string) {
+  if (path === "contact.full_name") return "Add name";
+  if (path === "contact.email") return "Add email";
+  if (path === "contact.phone") return "Add phone";
+  if (path.startsWith("contact.links[")) return "Add link";
+
+  if (/^experience\[\d+\]\.role$/.test(path)) return "Add role";
+  if (/^experience\[\d+\]\.company$/.test(path)) return "Add company";
+  if (/^experience\[\d+\]\.(start_date|end_date)$/.test(path)) return "Add date";
+
+  if (/^education\[\d+\]\.degree$/.test(path)) return "Add degree";
+  if (/^education\[\d+\]\.institution$/.test(path)) return "Add school";
+  if (/^education\[\d+\]\.field_of_study$/.test(path)) return "Add major";
+  if (/^education\[\d+\]\.start_date$/.test(path)) return "Add start date";
+  if (/^education\[\d+\]\.end_date$/.test(path)) return "Add end date";
+  if (/^education\[\d+\]\.gpa$/.test(path)) return "Add GPA";
+  if (/^education\[\d+\]\.description$/.test(path)) return "Add details";
+
+  if (/^projects\[\d+\]\.name$/.test(path)) return "Add project name";
+  if (/^projects\[\d+\]\.role$/.test(path)) return "Add role";
+  if (/^projects\[\d+\]\.description$/.test(path)) return "Add project summary";
+  if (/^projects\[\d+\]\.(start_date|end_date)$/.test(path)) return "Add date";
+  if (/^projects\[\d+\]\.bullets\[\d+\]$/.test(path)) return "Add bullet";
+
+  if (/^certifications\[\d+\]\.name$/.test(path)) return "Add certification";
+  if (/^certifications\[\d+\]\.issuer$/.test(path)) return "Add issuer";
+  if (/^certifications\[\d+\]\.date_obtained$/.test(path)) return "Add date";
+
+  if (path === "summary") return "Add summary";
+  if (path.includes(".bullets[")) return "Add bullet";
+  return "Add content";
 }
 
 function EditableText({
@@ -97,6 +132,7 @@ function EditableText({
   className,
   multiline,
   commitOnChange,
+  placeholder,
   onInlineEdit,
 }: EditableTextProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -137,6 +173,7 @@ function EditableText({
         ref={textareaRef}
         className={`${className ?? ""} resume-sheet__inline-editor resume-sheet__inline-editor--multiline${isDateField(path) ? " resume-sheet__inline-editor--date" : ""}`.trim()}
         defaultValue={value}
+        placeholder={placeholder}
         onChange={(event) => {
           resizeTextarea(event.currentTarget);
           if (commitOnChange && onInlineEdit) {
@@ -166,6 +203,7 @@ function EditableText({
       ref={inputRef}
       className={`${className ?? ""} resume-sheet__inline-editor${isDateField(path) ? " resume-sheet__inline-editor--date" : ""}`.trim()}
       defaultValue={value}
+      placeholder={placeholder}
       onBlur={(event) => commitIfChanged(event.currentTarget.value)}
       onKeyDown={(event) => {
         if (event.key === "Enter") {
@@ -197,6 +235,7 @@ function ResumeSheet({
   undoSkillRemovalCategoryIndex,
   onUndoSkillRemoval,
   onInlineEdit,
+  showEmptyPlaceholders = false,
 }: ResumeSheetProps) {
   const [addingSkillToCategory, setAddingSkillToCategory] = useState<
     string | null
@@ -260,22 +299,25 @@ function ResumeSheet({
               value={document.full_name}
               path="contact.full_name"
               className="resume-sheet__inline-name"
+              placeholder={showEmptyPlaceholders ? getPlaceholder("contact.full_name") : undefined}
               onInlineEdit={onInlineEdit}
             />
             <span>|</span>
-            <EditableText
-              value={document.email}
-              path="contact.email"
-              className="resume-sheet__inline-company"
-              onInlineEdit={onInlineEdit}
-            />
+              <EditableText
+                value={document.email}
+                path="contact.email"
+                className="resume-sheet__inline-company"
+                placeholder={showEmptyPlaceholders ? getPlaceholder("contact.email") : undefined}
+                onInlineEdit={onInlineEdit}
+              />
             <span>|</span>
-            <EditableText
-              value={document.phone}
-              path="contact.phone"
-              className="resume-sheet__inline-company"
-              onInlineEdit={onInlineEdit}
-            />
+              <EditableText
+                value={document.phone}
+                path="contact.phone"
+                className="resume-sheet__inline-company"
+                placeholder={showEmptyPlaceholders ? getPlaceholder("contact.phone") : undefined}
+                onInlineEdit={onInlineEdit}
+              />
             {document.links.map((link, linkIndex) => (
               <span key={linkIndex} style={{ display: "contents" }}>
                 <span>|</span>
@@ -283,6 +325,7 @@ function ResumeSheet({
                   value={link}
                   path={`contact.links[${linkIndex}]`}
                   className="resume-sheet__inline-company"
+                  placeholder={showEmptyPlaceholders ? getPlaceholder(`contact.links[${linkIndex}]`) : undefined}
                   onInlineEdit={onInlineEdit}
                 />
               </span>
@@ -304,13 +347,14 @@ function ResumeSheet({
             />
           </div>
           <div className="resume-sheet__rewrite-target">
-            <EditableText
-              value={document.summary}
-              path="summary"
-              className="resume-sheet__summary-text"
-              multiline
-              onInlineEdit={onInlineEdit}
-            />
+              <EditableText
+                value={document.summary}
+                path="summary"
+                className="resume-sheet__summary-text"
+                multiline
+                placeholder={showEmptyPlaceholders ? getPlaceholder("summary") : undefined}
+                onInlineEdit={onInlineEdit}
+              />
           </div>
         </section>
 
@@ -323,12 +367,14 @@ function ResumeSheet({
                   value={exp.role}
                   path={`experience[${idx}].role`}
                   className="resume-sheet__inline-strong"
+                  placeholder={showEmptyPlaceholders ? getPlaceholder(`experience[${idx}].role`) : undefined}
                   onInlineEdit={onInlineEdit}
                 />
                 <EditableText
                   value={exp.company}
                   path={`experience[${idx}].company`}
                   className="resume-sheet__inline-company"
+                  placeholder={showEmptyPlaceholders ? getPlaceholder(`experience[${idx}].company`) : undefined}
                   onInlineEdit={onInlineEdit}
                 />
               </div>
@@ -338,6 +384,7 @@ function ResumeSheet({
                     value={exp.start_date ?? ""}
                     path={`experience[${idx}].start_date`}
                     className="resume-sheet__inline-left"
+                    placeholder={showEmptyPlaceholders ? getPlaceholder(`experience[${idx}].start_date`) : undefined}
                     onInlineEdit={onInlineEdit}
                   />
                   <span> - </span>
@@ -345,6 +392,7 @@ function ResumeSheet({
                     value={exp.end_date ?? ""}
                     path={`experience[${idx}].end_date`}
                     className="resume-sheet__inline-left"
+                    placeholder={showEmptyPlaceholders ? getPlaceholder(`experience[${idx}].end_date`) : undefined}
                     onInlineEdit={onInlineEdit}
                   />
                 </p>
@@ -359,6 +407,7 @@ function ResumeSheet({
                         className="resume-sheet__bullet-text"
                         multiline
                         commitOnChange
+                        placeholder={showEmptyPlaceholders ? getPlaceholder(`experience[${idx}].bullets[${bIdx}]`) : undefined}
                         onInlineEdit={onInlineEdit}
                       />
                     </div>
@@ -422,12 +471,14 @@ function ResumeSheet({
                     value={edu.degree}
                     path={`education[${idx}].degree`}
                     className="resume-sheet__inline-strong resume-sheet__inline-left"
+                    placeholder={showEmptyPlaceholders ? getPlaceholder(`education[${idx}].degree`) : undefined}
                     onInlineEdit={onInlineEdit}
                   />
                   <EditableText
                     value={edu.institution}
                     path={`education[${idx}].institution`}
                     className="resume-sheet__inline-company"
+                    placeholder={showEmptyPlaceholders ? getPlaceholder(`education[${idx}].institution`) : undefined}
                     onInlineEdit={onInlineEdit}
                   />
                 </div>
@@ -436,6 +487,7 @@ function ResumeSheet({
                     value={edu.field_of_study ?? ""}
                     path={`education[${idx}].field_of_study`}
                     className="resume-sheet__inline-left"
+                    placeholder={showEmptyPlaceholders ? getPlaceholder(`education[${idx}].field_of_study`) : undefined}
                     onInlineEdit={onInlineEdit}
                   />
                 </p>
@@ -444,6 +496,7 @@ function ResumeSheet({
                     value={edu.start_date ?? ""}
                     path={`education[${idx}].start_date`}
                     className="resume-sheet__inline-left"
+                    placeholder={showEmptyPlaceholders ? getPlaceholder(`education[${idx}].start_date`) : undefined}
                     onInlineEdit={onInlineEdit}
                   />
                   <span> - </span>
@@ -451,6 +504,7 @@ function ResumeSheet({
                     value={edu.end_date ?? ""}
                     path={`education[${idx}].end_date`}
                     className="resume-sheet__inline-left"
+                    placeholder={showEmptyPlaceholders ? getPlaceholder(`education[${idx}].end_date`) : undefined}
                     onInlineEdit={onInlineEdit}
                   />
                 </p>
@@ -460,6 +514,7 @@ function ResumeSheet({
                     value={edu.gpa ?? ""}
                     path={`education[${idx}].gpa`}
                     className="resume-sheet__inline-left"
+                    placeholder={showEmptyPlaceholders ? getPlaceholder(`education[${idx}].gpa`) : undefined}
                     onInlineEdit={onInlineEdit}
                   />
                 </p>
@@ -468,6 +523,7 @@ function ResumeSheet({
                   path={`education[${idx}].description`}
                   className="resume-sheet__summary-text"
                   multiline
+                  placeholder={showEmptyPlaceholders ? getPlaceholder(`education[${idx}].description`) : undefined}
                   onInlineEdit={onInlineEdit}
                 />
               </div>
@@ -485,12 +541,14 @@ function ResumeSheet({
                     value={proj.name}
                     path={`projects[${idx}].name`}
                     className="resume-sheet__inline-strong"
+                    placeholder={showEmptyPlaceholders ? getPlaceholder(`projects[${idx}].name`) : undefined}
                     onInlineEdit={onInlineEdit}
                   />
                   <EditableText
                     value={proj.role ?? ""}
                     path={`projects[${idx}].role`}
                     className="resume-sheet__inline-company"
+                    placeholder={showEmptyPlaceholders ? getPlaceholder(`projects[${idx}].role`) : undefined}
                     onInlineEdit={onInlineEdit}
                   />
                 </div>
@@ -499,6 +557,7 @@ function ResumeSheet({
                     value={proj.start_date ?? ""}
                     path={`projects[${idx}].start_date`}
                     className="resume-sheet__inline-left"
+                    placeholder={showEmptyPlaceholders ? getPlaceholder(`projects[${idx}].start_date`) : undefined}
                     onInlineEdit={onInlineEdit}
                   />
                   <span> - </span>
@@ -506,6 +565,7 @@ function ResumeSheet({
                     value={proj.end_date ?? ""}
                     path={`projects[${idx}].end_date`}
                     className="resume-sheet__inline-left"
+                    placeholder={showEmptyPlaceholders ? getPlaceholder(`projects[${idx}].end_date`) : undefined}
                     onInlineEdit={onInlineEdit}
                   />
                 </p>
@@ -549,6 +609,7 @@ function ResumeSheet({
                     path={`projects[${idx}].description`}
                     className="resume-sheet__summary-text"
                     multiline
+                    placeholder={showEmptyPlaceholders ? getPlaceholder(`projects[${idx}].description`) : undefined}
                     onInlineEdit={onInlineEdit}
                   />
                 </div>
@@ -562,6 +623,7 @@ function ResumeSheet({
                           className="resume-sheet__bullet-text"
                           multiline
                           commitOnChange
+                          placeholder={showEmptyPlaceholders ? getPlaceholder(`projects[${idx}].bullets[${bIdx}]`) : undefined}
                           onInlineEdit={onInlineEdit}
                         />
                       </div>
@@ -612,12 +674,14 @@ function ResumeSheet({
                     value={cert.name}
                     path={`certifications[${idx}].name`}
                     className="resume-sheet__inline-strong"
+                    placeholder={showEmptyPlaceholders ? getPlaceholder(`certifications[${idx}].name`) : undefined}
                     onInlineEdit={onInlineEdit}
                   />
                   <EditableText
                     value={cert.issuer ?? ""}
                     path={`certifications[${idx}].issuer`}
                     className="resume-sheet__inline-company"
+                    placeholder={showEmptyPlaceholders ? getPlaceholder(`certifications[${idx}].issuer`) : undefined}
                     onInlineEdit={onInlineEdit}
                   />
                 </div>
@@ -626,6 +690,7 @@ function ResumeSheet({
                     value={cert.date_obtained ?? ""}
                     path={`certifications[${idx}].date_obtained`}
                     className="resume-sheet__inline-left"
+                    placeholder={showEmptyPlaceholders ? getPlaceholder(`certifications[${idx}].date_obtained`) : undefined}
                     onInlineEdit={onInlineEdit}
                   />
                 </p>

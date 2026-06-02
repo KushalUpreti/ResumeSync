@@ -18,9 +18,22 @@ function TemplateCard({
   onSelect,
   title,
 }: TemplateCardProps) {
+  function handleActivate() {
+    onSelect?.();
+  }
+
   return (
     <article
       className={isSelected ? "template-card is-selected" : "template-card"}
+      onClick={handleActivate}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          handleActivate();
+        }
+      }}
+      role="button"
+      tabIndex={0}
     >
       <div className="template-card__preview" style={{ background: accent }}>
         <img src={imgSrc ?? '/template.png'} alt="Template preview" className="template-card__preview-image" />
@@ -40,7 +53,10 @@ function TemplateCard({
           className={
             isSelected ? "button button--accent" : "button button--ghost"
           }
-          onClick={onSelect}
+          onClick={(event) => {
+            event.stopPropagation();
+            handleActivate();
+          }}
           type="button"
         >
           {isSelected ? "Selected" : "Select"}

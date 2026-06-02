@@ -1460,6 +1460,11 @@ strong {
   box-shadow: 0 0 0 2px rgba(219, 231, 255, 0.72);
 }
 
+.resume-sheet__inline-editor::placeholder {
+  color: rgba(107, 114, 128, 0.58);
+  font-style: italic;
+}
+
 .resume-sheet__date-line {
   margin: 0 0 6px;
   color: #6b7280;
@@ -1745,12 +1750,46 @@ strong {
   border-radius: var(--radius-xl);
   background: var(--color-surface-card);
   box-shadow: var(--color-shadow);
+  cursor: pointer;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease;
 }
 
 .template-card.is-selected {
   height: 500px;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  border-color: #111111;
+  box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.12);
+}
+
+.template-card:hover {
+  transform: translateY(-2px);
+}
+
+.template-card:focus-visible {
+  outline: none;
+  border-color: #111111;
+  box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.16);
+}
+
+.template-card .button--ghost {
+  border-color: #111111;
+  color: #111111;
+  background: #ffffff;
+}
+
+.template-card .button--ghost:hover {
+  background: #f3f4f6;
+}
+
+.template-card .button--accent {
+  color: #ffffff;
+  background: #111111;
+}
+
+.template-card .button--accent:hover {
+  background: #000000;
 }
 
 .template-card__preview {
@@ -1811,8 +1850,8 @@ strong {
   gap: 6px;
   padding: 8px 14px;
   border-radius: var(--radius-round);
-  color: var(--color-primary-contrast);
-  background: var(--color-accent);
+  color: #ffffff;
+  background: #111111;
 }
 
 .template-card__content,

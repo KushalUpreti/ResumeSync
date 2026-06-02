@@ -711,6 +711,7 @@ function ReviewStep({ onNext }: ReviewStepProps) {
             <ResumeSheet
               document={workingDocument}
               isLoading={isGenerating}
+              showEmptyPlaceholders
               title="Tailored Resume"
               subtitle="AI enhanced for target role"
               activeRewritePath={activeRewritePath}
