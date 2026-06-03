@@ -6,6 +6,7 @@ import './App.css'
 import { useAuth } from './context/useAuth'
 import AuthCallbackPage from './pages/AuthCallbackPage'
 import LandingPage from './pages/LandingPage'
+import ProfilePage from './pages/ProfilePage'
 import PrototypePage from './pages/PrototypePage'
 import ProcessPage from './pages/ProcessPage'
 
@@ -50,6 +51,7 @@ function App() {
               />
             }
           />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route
             path="/prototype"
             element={<PrototypePage isLoggedIn={isLoggedIn} />}

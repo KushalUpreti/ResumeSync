@@ -24,9 +24,9 @@ function AppHeader({ auth, onOpenAuthModal, onSignOut }: AppHeaderProps) {
             <span className="status-badge">Auth config issue</span>
           ) : isLoggedIn ? (
             <>
-              <button className="button button--ghost" type="button">
+              <Link className="button button--ghost" to="/profile">
                 {userName}
-              </button>
+              </Link>
               <button
                 className="button button--ghost"
                 onClick={onSignOut}

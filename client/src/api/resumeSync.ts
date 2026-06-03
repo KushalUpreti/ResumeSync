@@ -66,6 +66,10 @@ export async function getMasterResume() {
   return response.data
 }
 
+export async function deleteMasterResume() {
+  await apiClient.delete('/master-resume')
+}
+
 export async function getResumeHistory() {
   const response = await apiClient.get<ResumeHistoryResponse>('/resumes/history')
   return response.data
@@ -73,6 +77,13 @@ export async function getResumeHistory() {
 
 export async function getResume(resumeId: string) {
   const response = await apiClient.get<ResumeDocument>(`/resume/${resumeId}`)
+  return response.data
+}
+
+export async function getResumeByKey(jsonKey: string) {
+  const response = await apiClient.get<ResumeDocument>('/resume-by-key', {
+    params: { json_key: jsonKey },
+  })
   return response.data
 }
 

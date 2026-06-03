@@ -1,18 +1,57 @@
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { flowSteps } from "../data/mockData";
 import FlowStepper from "../components/FlowStepper";
 import IngestionStep from "./IngestionStep";
 import ConfigStep from "./ConfigStep";
 import ReviewStep from "./ReviewStep";
 import ExportStep from "./ExportStep";
+import { getResume, getResumeByKey } from "../api/resumeSync";
+import { useNotification } from "../context/useNotification";
 import { useWorkspace } from "../context/useWorkspace";
 
 const REVIEW_EXPORT_TRANSITION_MS = 560;
 
+function resolveStepFromQuery(stepParam: string | null, hasResumeId: boolean) {
+  if (stepParam === "config") {
+    return 1;
+  }
+
+  if (stepParam === "ingestion") {
+    return 2;
+  }
+
+  if (stepParam === "review") {
+    return 3;
+  }
+
+  if (stepParam === "export") {
+    return 4;
+  }
+
+  return hasResumeId ? 3 : 1;
+}
+
 function ProcessPage() {
-  const { generatedResumeId } = useWorkspace();
-  const [currentStep, setCurrentStep] = useState(1);
+  const { addNotification } = useNotification();
+  const [searchParams] = useSearchParams();
+  const resumeId = searchParams.get("resumeId");
+  const resumeKey = searchParams.get("resumeKey");
+  const requestedStep = searchParams.get("step");
+  const {
+    generatedResumeId,
+    setMasterResume,
+    setDraftResume,
+    setGeneratedResume,
+    setGeneratedFileBaseName,
+    setLastGenerateJob,
+    setLastRenderJob,
+  } = useWorkspace();
+  const [currentStep, setCurrentStep] = useState(() =>
+    resolveStepFromQuery(requestedStep, Boolean(resumeId || resumeKey)),
+  );
   const [transitionTarget, setTransitionTarget] = useState<number | null>(null);
+  const [isHydratingResume, setIsHydratingResume] = useState(Boolean(resumeId || resumeKey));
   const transitionTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -22,6 +61,79 @@ function ProcessPage() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    setCurrentStep(resolveStepFromQuery(requestedStep, Boolean(resumeId || resumeKey)));
+    setTransitionTarget(null);
+  }, [requestedStep, resumeId, resumeKey]);
+
+  useEffect(() => {
+    if (!resumeId && !resumeKey) {
+      setIsHydratingResume(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsHydratingResume(true);
+    setMasterResume(null);
+    setDraftResume(null);
+    setGeneratedResume(null, null);
+    setGeneratedFileBaseName("Tailored Resume");
+    setLastGenerateJob(null);
+    setLastRenderJob(null);
+
+    void (async () => {
+      try {
+        const document = resumeKey
+          ? await getResumeByKey(resumeKey)
+          : await getResume(resumeId as string);
+        if (cancelled) {
+          return;
+        }
+
+        setMasterResume(null);
+        setDraftResume(document);
+        setGeneratedResume(document.resume_id, resumeKey ?? null);
+        setGeneratedFileBaseName("Tailored Resume");
+        setLastGenerateJob(null);
+        setLastRenderJob(null);
+      } catch {
+        if (cancelled) {
+          return;
+        }
+
+        setMasterResume(null);
+        setDraftResume(null);
+        setGeneratedResume(null, null);
+        setLastGenerateJob(null);
+        setLastRenderJob(null);
+        setCurrentStep(1);
+        addNotification({
+          type: "error",
+          message: "Resume Load Failed",
+          description: "We couldn't load the selected resume right now.",
+        });
+      } finally {
+        if (!cancelled) {
+          setIsHydratingResume(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    addNotification,
+    resumeId,
+    resumeKey,
+    setDraftResume,
+    setGeneratedFileBaseName,
+    setGeneratedResume,
+    setLastGenerateJob,
+    setLastRenderJob,
+    setMasterResume,
+  ]);
 
   const isTransitioning = transitionTarget !== null;
   const displayStep = transitionTarget ?? currentStep;
@@ -117,7 +229,19 @@ function ProcessPage() {
             : "process-content"
         }
       >
-        {isReviewExportTransition && transitionTarget !== null ? (
+        {isHydratingResume ? (
+          <div
+            className="generation-backdrop"
+            role="status"
+            aria-live="polite"
+            aria-label="Loading saved resume"
+          >
+            <div className="generation-backdrop__card">
+              <h2>Loading saved resume</h2>
+              <p>Please wait while we open the selected resume for review.</p>
+            </div>
+          </div>
+        ) : isReviewExportTransition && transitionTarget !== null ? (
           <div className={`process-transition-stack is-${transitionDirection}`}>
             <div className="process-transition-stack__layer process-transition-stack__layer--exit">
               {renderStep(currentStep)}

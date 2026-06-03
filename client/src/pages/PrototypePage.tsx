@@ -312,53 +312,6 @@ function PrototypePage({ isLoggedIn }: PrototypePageProps) {
 
   return (
     <div className="page-stack prototype-shell prototype-shell--light">
-      <section className="landing-hero landing-hero--rings">
-        <div className="landing-hero__kicker">System version 2.4.0 / Active</div>
-        <div className="landing-hero__ring-stage" aria-hidden="true">
-          <div className="landing-hero__rings">
-            {heroRings.map((ring) => (
-              <span
-                className="landing-hero__ring"
-                key={`${ring.size}-${ring.delay}`}
-                style={{
-                  animationDelay: ring.delay,
-                  inset: `${ring.size * 34}px`,
-                }}
-              />
-            ))}
-          </div>
-          <div className="landing-hero__core">
-            <span className="landing-hero__core-dot" />
-          </div>
-        </div>
-        <div className="landing-hero__metrics" aria-label="Performance metrics">
-          {heroMetrics.map((metric) => (
-            <div className="landing-hero__metric" key={metric.label}>
-              <span>{metric.label}</span>
-              <strong>{metric.value}</strong>
-            </div>
-          ))}
-        </div>
-        <h1 className="landing-hero__title">
-          ENGINEERED
-          <br />
-          RESULTS
-        </h1>
-        <p className="landing-hero__copy">
-          ResumeSync turns a rough resume into a structured, role-focused export
-          with clear review steps and polished output.
-        </p>
-        <div className="landing-hero__actions">
-          <Link className="button button--primary" to="/process">
-            {isLoggedIn ? "Open Workspace" : "Get Started"}
-            <FontAwesomeIcon icon={faArrowRight} />
-          </Link>
-          <Link className="button button--ghost" to="/">
-            Back to homepage
-          </Link>
-        </div>
-      </section>
-
       <section className="prototype-hero prototype-hero--light">
         <div className="prototype-hero__copy">
           <p className="eyebrow prototype-kicker">
@@ -367,8 +320,7 @@ function PrototypePage({ isLoggedIn }: PrototypePageProps) {
           </p>
           <h1 className="page-title prototype-title">
             Turn a resume draft into
-            <br />
-            a polished export
+            <br />a polished export
           </h1>
           <p className="page-copy prototype-copy">
             ResumeSync helps users move from rough input to a tailored resume
@@ -427,8 +379,20 @@ function PrototypePage({ isLoggedIn }: PrototypePageProps) {
               aria-label="Resume preview"
             >
               <defs>
-                <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="18" stdDeviation="18" floodColor="#111827" floodOpacity="0.12" />
+                <filter
+                  id="softShadow"
+                  x="-20%"
+                  y="-20%"
+                  width="140%"
+                  height="140%"
+                >
+                  <feDropShadow
+                    dx="0"
+                    dy="18"
+                    stdDeviation="18"
+                    floodColor="#111827"
+                    floodOpacity="0.12"
+                  />
                 </filter>
               </defs>
 
@@ -498,7 +462,7 @@ function PrototypePage({ isLoggedIn }: PrototypePageProps) {
                 height="10"
                 rx="5"
                 fill="rgba(17,24,39,0.34)"
-                opacity={clamp((progress - 0.50) / 0.20, 0, 1)}
+                opacity={clamp((progress - 0.5) / 0.2, 0, 1)}
               />
 
               <rect
@@ -508,7 +472,7 @@ function PrototypePage({ isLoggedIn }: PrototypePageProps) {
                 height="110"
                 rx="18"
                 fill="rgba(17,24,39,0.94)"
-                opacity={clamp((progress - 0.60) / 0.16, 0, 1)}
+                opacity={clamp((progress - 0.6) / 0.16, 0, 1)}
               />
               <rect
                 x="552"
@@ -535,7 +499,7 @@ function PrototypePage({ isLoggedIn }: PrototypePageProps) {
                 height="8"
                 rx="4"
                 fill="#ffffff"
-                opacity={clamp((progress - 0.68) / 0.10, 0, 1)}
+                opacity={clamp((progress - 0.68) / 0.1, 0, 1)}
               />
 
               <rect
@@ -555,7 +519,7 @@ function PrototypePage({ isLoggedIn }: PrototypePageProps) {
                 height="10"
                 rx="5"
                 fill="rgba(17,24,39,0.90)"
-                opacity={clamp((progress - 0.76) / 0.10, 0, 1)}
+                opacity={clamp((progress - 0.76) / 0.1, 0, 1)}
               />
               <rect
                 x="540"
@@ -564,7 +528,7 @@ function PrototypePage({ isLoggedIn }: PrototypePageProps) {
                 height="10"
                 rx="5"
                 fill="rgba(17,24,39,0.70)"
-                opacity={clamp((progress - 0.80) / 0.08, 0, 1)}
+                opacity={clamp((progress - 0.8) / 0.08, 0, 1)}
               />
               <rect
                 x="540"
@@ -583,7 +547,7 @@ function PrototypePage({ isLoggedIn }: PrototypePageProps) {
                 height="10"
                 rx="5"
                 fill="rgba(17,24,39,0.88)"
-                opacity={clamp((progress - 0.84) / 0.10, 0, 1)}
+                opacity={clamp((progress - 0.84) / 0.1, 0, 1)}
               />
               <rect
                 x="186"
@@ -596,11 +560,19 @@ function PrototypePage({ isLoggedIn }: PrototypePageProps) {
               />
 
               {fragments.map((fragment) => {
-                const local = clamp((progress - fragment.burstAt + 0.12) / 0.54, 0, 1);
+                const local = clamp(
+                  (progress - fragment.burstAt + 0.12) / 0.54,
+                  0,
+                  1,
+                );
                 const eased = easeInOutCubic(local);
                 const x = lerp(fragment.from.x, fragment.to.x, eased);
                 const y = lerp(fragment.from.y, fragment.to.y, eased);
-                const rotate = lerp(fragment.from.rotate, fragment.to.rotate, eased);
+                const rotate = lerp(
+                  fragment.from.rotate,
+                  fragment.to.rotate,
+                  eased,
+                );
                 const opacity = clamp(local * 1.25, 0.14, 1);
                 const scale = lerp(0.92, 1, eased);
 
@@ -613,53 +585,211 @@ function PrototypePage({ isLoggedIn }: PrototypePageProps) {
                   >
                     {fragment.kind === "masthead" ? (
                       <>
-                        <rect x="0" y="3" width="160" height="18" rx="9" fill="#111827" />
-                        <rect x="190" y="7" width="18" height="10" rx="5" fill="rgba(17,24,39,0.48)" />
+                        <rect
+                          x="0"
+                          y="3"
+                          width="160"
+                          height="18"
+                          rx="9"
+                          fill="#111827"
+                        />
+                        <rect
+                          x="190"
+                          y="7"
+                          width="18"
+                          height="10"
+                          rx="5"
+                          fill="rgba(17,24,39,0.48)"
+                        />
                       </>
                     ) : null}
 
                     {fragment.kind === "title" ? (
                       <>
-                        <rect x="0" y="0" width="212" height="18" rx="9" fill="#111827" />
-                        <rect x="0" y="30" width="180" height="14" rx="7" fill="rgba(17,24,39,0.70)" />
-                        <rect x="0" y="54" width="154" height="14" rx="7" fill="rgba(17,24,39,0.46)" />
-                        <rect x="0" y="78" width="132" height="10" rx="5" fill="rgba(17,24,39,0.28)" />
+                        <rect
+                          x="0"
+                          y="0"
+                          width="212"
+                          height="18"
+                          rx="9"
+                          fill="#111827"
+                        />
+                        <rect
+                          x="0"
+                          y="30"
+                          width="180"
+                          height="14"
+                          rx="7"
+                          fill="rgba(17,24,39,0.70)"
+                        />
+                        <rect
+                          x="0"
+                          y="54"
+                          width="154"
+                          height="14"
+                          rx="7"
+                          fill="rgba(17,24,39,0.46)"
+                        />
+                        <rect
+                          x="0"
+                          y="78"
+                          width="132"
+                          height="10"
+                          rx="5"
+                          fill="rgba(17,24,39,0.28)"
+                        />
                       </>
                     ) : null}
 
                     {fragment.kind === "summary" ? (
                       <>
-                        <rect x="0" y="0" width="252" height="10" rx="5" fill="rgba(17,24,39,0.84)" />
-                        <rect x="0" y="20" width="228" height="10" rx="5" fill="rgba(17,24,39,0.52)" />
-                        <rect x="0" y="40" width="214" height="10" rx="5" fill="rgba(17,24,39,0.42)" />
-                        <rect x="0" y="60" width="170" height="10" rx="5" fill="rgba(17,24,39,0.30)" />
+                        <rect
+                          x="0"
+                          y="0"
+                          width="252"
+                          height="10"
+                          rx="5"
+                          fill="rgba(17,24,39,0.84)"
+                        />
+                        <rect
+                          x="0"
+                          y="20"
+                          width="228"
+                          height="10"
+                          rx="5"
+                          fill="rgba(17,24,39,0.52)"
+                        />
+                        <rect
+                          x="0"
+                          y="40"
+                          width="214"
+                          height="10"
+                          rx="5"
+                          fill="rgba(17,24,39,0.42)"
+                        />
+                        <rect
+                          x="0"
+                          y="60"
+                          width="170"
+                          height="10"
+                          rx="5"
+                          fill="rgba(17,24,39,0.30)"
+                        />
                       </>
                     ) : null}
 
                     {fragment.kind === "metrics" ? (
                       <>
-                        <rect x="0" y="0" width="134" height="122" rx="18" fill="#111827" />
-                        <rect x="18" y="20" width="24" height="24" rx="7" fill="#ffffff" />
-                        <rect x="18" y="58" width="86" height="8" rx="4" fill="#ffffff" opacity="0.88" />
-                        <rect x="18" y="78" width="70" height="8" rx="4" fill="#ffffff" opacity="0.68" />
-                        <rect x="18" y="98" width="94" height="8" rx="4" fill="#ffffff" opacity="0.48" />
+                        <rect
+                          x="0"
+                          y="0"
+                          width="134"
+                          height="122"
+                          rx="18"
+                          fill="#111827"
+                        />
+                        <rect
+                          x="18"
+                          y="20"
+                          width="24"
+                          height="24"
+                          rx="7"
+                          fill="#ffffff"
+                        />
+                        <rect
+                          x="18"
+                          y="58"
+                          width="86"
+                          height="8"
+                          rx="4"
+                          fill="#ffffff"
+                          opacity="0.88"
+                        />
+                        <rect
+                          x="18"
+                          y="78"
+                          width="70"
+                          height="8"
+                          rx="4"
+                          fill="#ffffff"
+                          opacity="0.68"
+                        />
+                        <rect
+                          x="18"
+                          y="98"
+                          width="94"
+                          height="8"
+                          rx="4"
+                          fill="#ffffff"
+                          opacity="0.48"
+                        />
                       </>
                     ) : null}
 
                     {fragment.kind === "sidebar" ? (
                       <>
-                        <rect x="0" y="0" width="168" height="154" rx="20" fill="#ffffff" stroke="rgba(17,24,39,0.10)" />
-                        <rect x="18" y="18" width="124" height="12" rx="6" fill="#111827" />
-                        <rect x="18" y="42" width="116" height="10" rx="5" fill="rgba(17,24,39,0.58)" />
-                        <rect x="18" y="62" width="132" height="10" rx="5" fill="rgba(17,24,39,0.40)" />
-                        <rect x="18" y="92" width="98" height="10" rx="5" fill="rgba(17,24,39,0.30)" />
-                        <rect x="18" y="118" width="76" height="10" rx="5" fill="rgba(17,24,39,0.22)" />
+                        <rect
+                          x="0"
+                          y="0"
+                          width="168"
+                          height="154"
+                          rx="20"
+                          fill="#ffffff"
+                          stroke="rgba(17,24,39,0.10)"
+                        />
+                        <rect
+                          x="18"
+                          y="18"
+                          width="124"
+                          height="12"
+                          rx="6"
+                          fill="#111827"
+                        />
+                        <rect
+                          x="18"
+                          y="42"
+                          width="116"
+                          height="10"
+                          rx="5"
+                          fill="rgba(17,24,39,0.58)"
+                        />
+                        <rect
+                          x="18"
+                          y="62"
+                          width="132"
+                          height="10"
+                          rx="5"
+                          fill="rgba(17,24,39,0.40)"
+                        />
+                        <rect
+                          x="18"
+                          y="92"
+                          width="98"
+                          height="10"
+                          rx="5"
+                          fill="rgba(17,24,39,0.30)"
+                        />
+                        <rect
+                          x="18"
+                          y="118"
+                          width="76"
+                          height="10"
+                          rx="5"
+                          fill="rgba(17,24,39,0.22)"
+                        />
                       </>
                     ) : null}
 
                     {fragment.kind === "footer" ? (
                       <>
-                        <rect x="0" y="0" width="332" height="18" rx="9" fill="#111827" />
+                        <rect
+                          x="0"
+                          y="0"
+                          width="332"
+                          height="18"
+                          rx="9"
+                          fill="#111827"
+                        />
                       </>
                     ) : null}
                   </g>
@@ -690,7 +820,10 @@ function PrototypePage({ isLoggedIn }: PrototypePageProps) {
             ) : null}
           </div>
           <div className="prototype-stage__footer">
-            <strong>The workspace keeps the resume organized from intake through export.</strong>
+            <strong>
+              The workspace keeps the resume organized from intake through
+              export.
+            </strong>
             <p>
               Users can focus on the content, compare versions, and export the
               final resume without losing the underlying structure.
@@ -710,7 +843,10 @@ function PrototypePage({ isLoggedIn }: PrototypePageProps) {
         </div>
         <div className="prototype-assembly__grid">
           {assemblyCards.map((card, index) => (
-            <SectionCard className="prototype-card prototype-card--light" key={card.title}>
+            <SectionCard
+              className="prototype-card prototype-card--light"
+              key={card.title}
+            >
               <p className="prototype-card__step">0{index + 1}</p>
               <h3>{card.title}</h3>
               <p className="section-copy">{card.copy}</p>
@@ -730,7 +866,10 @@ function PrototypePage({ isLoggedIn }: PrototypePageProps) {
         </div>
         <div className="prototype-proof__grid">
           {proofCards.map((card) => (
-            <SectionCard className="prototype-proof-card prototype-proof-card--light" key={card.title}>
+            <SectionCard
+              className="prototype-proof-card prototype-proof-card--light"
+              key={card.title}
+            >
               <div className="prototype-proof-card__top">
                 <span className="prototype-proof-card__icon">
                   <FontAwesomeIcon icon={card.icon} />

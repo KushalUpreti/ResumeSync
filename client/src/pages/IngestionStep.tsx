@@ -174,7 +174,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
       return cleaned;
     }
 
-    return `${cleaned.slice(0, maxLength - 1)}…`;
+    return `${cleaned.slice(0, maxLength - 3)}...`;
   }
 
   const selectedModeData = savedModes.find(

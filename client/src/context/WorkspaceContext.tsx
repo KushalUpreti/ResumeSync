@@ -2,6 +2,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useCallback,
   type ReactNode,
 } from 'react'
 import { WorkspaceContext, type WorkspaceContextValue, type WorkspaceState } from './workspaceShared'
@@ -55,34 +56,101 @@ function WorkspaceProvider({ children }: { children: ReactNode }) {
     window.sessionStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(persistentState))
   }, [state])
 
+  const resetWorkspace = useCallback(() => setState(initialState), [])
+  const setMasterResume = useCallback(
+    (document: ResumeDocument | null) =>
+      setState((current) => ({ ...current, masterResume: document })),
+    [],
+  )
+  const setDraftResume = useCallback(
+    (document: ResumeDocument | null) =>
+      setState((current) => ({ ...current, draftResume: document })),
+    [],
+  )
+  const setGeneratedResume = useCallback(
+    (resumeId: string | null, jsonKey: string | null) =>
+      setState((current) => ({
+        ...current,
+        generatedResumeId: resumeId,
+        generatedJsonKey: jsonKey,
+        generatedFileBaseName: resumeId ? 'Tailored Resume' : current.generatedFileBaseName,
+      })),
+    [],
+  )
+  const setGeneratedFileBaseName = useCallback(
+    (value: string) =>
+      setState((current) => ({
+        ...current,
+        generatedFileBaseName: value,
+      })),
+    [],
+  )
+  const setSelectedTemplateId = useCallback(
+    (templateId: string) =>
+      setState((current) => ({ ...current, selectedTemplateId: templateId })),
+    [],
+  )
+  const setTailoringMode = useCallback(
+    (mode: TailoringMode) =>
+      setState((current) => ({ ...current, tailoringMode: mode })),
+    [],
+  )
+  const setTargetRole = useCallback(
+    (value: string) => setState((current) => ({ ...current, targetRole: value })),
+    [],
+  )
+  const setTargetCompany = useCallback(
+    (value: string) =>
+      setState((current) => ({ ...current, targetCompany: value })),
+    [],
+  )
+  const setJobDescription = useCallback(
+    (value: string) =>
+      setState((current) => ({ ...current, jobDescription: value })),
+    [],
+  )
+  const setLastGenerateJob = useCallback(
+    (job: JobState | CreateJobResponse | null) =>
+      setState((current) => ({ ...current, lastGenerateJob: job })),
+    [],
+  )
+  const setLastRenderJob = useCallback(
+    (job: JobState | null) =>
+      setState((current) => ({ ...current, lastRenderJob: job })),
+    [],
+  )
+
   const value = useMemo<WorkspaceContextValue>(
     () => ({
       ...state,
-      resetWorkspace: () => setState(initialState),
-      setMasterResume: (document) => setState((current) => ({ ...current, masterResume: document })),
-      setDraftResume: (document) => setState((current) => ({ ...current, draftResume: document })),
-      setGeneratedResume: (resumeId, jsonKey) =>
-        setState((current) => ({
-          ...current,
-          generatedResumeId: resumeId,
-          generatedJsonKey: jsonKey,
-          generatedFileBaseName: resumeId ? 'Tailored Resume' : current.generatedFileBaseName,
-        })),
-      setGeneratedFileBaseName: (value) =>
-        setState((current) => ({
-          ...current,
-          generatedFileBaseName: value,
-        })),
-      setSelectedTemplateId: (templateId) =>
-        setState((current) => ({ ...current, selectedTemplateId: templateId })),
-      setTailoringMode: (mode) => setState((current) => ({ ...current, tailoringMode: mode })),
-      setTargetRole: (value) => setState((current) => ({ ...current, targetRole: value })),
-      setTargetCompany: (value) => setState((current) => ({ ...current, targetCompany: value })),
-      setJobDescription: (value) => setState((current) => ({ ...current, jobDescription: value })),
-      setLastGenerateJob: (job) => setState((current) => ({ ...current, lastGenerateJob: job })),
-      setLastRenderJob: (job) => setState((current) => ({ ...current, lastRenderJob: job })),
+      resetWorkspace,
+      setMasterResume,
+      setDraftResume,
+      setGeneratedResume,
+      setGeneratedFileBaseName,
+      setSelectedTemplateId,
+      setTailoringMode,
+      setTargetRole,
+      setTargetCompany,
+      setJobDescription,
+      setLastGenerateJob,
+      setLastRenderJob,
     }),
-    [state],
+    [
+      state,
+      resetWorkspace,
+      setMasterResume,
+      setDraftResume,
+      setGeneratedResume,
+      setGeneratedFileBaseName,
+      setSelectedTemplateId,
+      setTailoringMode,
+      setTargetRole,
+      setTargetCompany,
+      setJobDescription,
+      setLastGenerateJob,
+      setLastRenderJob,
+    ],
   )
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>

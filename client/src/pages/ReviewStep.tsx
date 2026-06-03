@@ -36,13 +36,8 @@ function truncateFileName(value: string, maxLength = 34) {
   const hasExtension = lastDot > 0 && lastDot < cleaned.length - 1;
   const extension = hasExtension ? cleaned.slice(lastDot) : "";
   const stem = hasExtension ? cleaned.slice(0, lastDot) : cleaned;
-  const available = Math.max(10, maxLength - extension.length - 1);
-
-  if (stem.length <= available) {
-    return `${stem.slice(0, Math.max(1, maxLength - extension.length - 1))}…${extension}`;
-  }
-
-  return `${stem.slice(0, available - 1)}…${extension}`;
+  const available = Math.max(10, maxLength - extension.length - 3);
+  return `${stem.slice(0, available)}...${extension}`;
 }
 
 function getBulletPath(
@@ -180,7 +175,6 @@ function ReviewStep({ onNext }: ReviewStepProps) {
 
   const {
     draftResume,
-    generatedResumeId,
     generatedFileBaseName,
     masterResume,
     tailoringMode,
@@ -194,7 +188,7 @@ function ReviewStep({ onNext }: ReviewStepProps) {
     lastGenerateJob,
   } = useWorkspace();
 
-  // Determine if we are in the single‑resume scenario (no master resume present)
+  // Determine if we are in the single-resume scenario (no master resume present)
   const singleResume = !masterResume && !!draftResume;
   const undoSkillRemovalCategoryIndex =
     removedSkillsHistory.length > 0 && draftResume

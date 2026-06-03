@@ -1,4 +1,4 @@
-import React, { type FC } from "react";
+import { type FC } from "react";
 import TemplateCard from "../components/TemplateCard";
 import { useWorkspace } from "../context/useWorkspace";
 import { templates } from "../data/mockData";
@@ -95,7 +95,7 @@ const ExportStep: FC<ExportStepProps> = () => {
           ) : (
             <FontAwesomeIcon icon={faFileArrowDown} />
           )}
-          {isDownloading ? "Downloading…" : "Export .docx"}
+          {isDownloading ? "Downloading..." : "Export .docx"}
         </button>
       </div>
     </div>

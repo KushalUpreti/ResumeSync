@@ -5,7 +5,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import litellm
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, status
 from fastapi.responses import FileResponse, StreamingResponse
 
 from app.api.deps import get_services, get_user_context
@@ -202,6 +202,25 @@ def get_resume(
     return ResumeDocument.model_validate(document_data)
 
 
+@router.get("/resume-by-key", response_model=ResumeDocument)
+def get_resume_by_key(
+    json_key: str = Query(..., description="Exact storage key for the resume JSON document."),
+    user: UserContext = Depends(get_user_context),
+    services: ServiceContainer = Depends(get_services),
+) -> ResumeDocument:
+    actor_id = user.user_id or user.session_id
+    is_session = not bool(user.user_id)
+    expected_prefix = f"{'temp' if is_session else 'users'}/{actor_id}/json/"
+
+    if not json_key.startswith(expected_prefix):
+        raise HTTPException(status_code=403, detail="Invalid resume key for this user.")
+    if not services.object_store.exists(json_key):
+        raise HTTPException(status_code=404, detail="Resume JSON not found.")
+
+    document_data = services.object_store.get_json(json_key)
+    return ResumeDocument.model_validate(document_data)
+
+
 @router.get("/resume/{resume_id}/download")
 def download_rendered_resume(
     resume_id: str,
@@ -352,6 +371,22 @@ def get_master_resume(
         return MasterResumeResponse(exists=False)
     document = services.object_store.get_json(key)
     return MasterResumeResponse(exists=True, document=document)
+
+
+@router.delete("/master-resume", status_code=status.HTTP_204_NO_CONTENT)
+def delete_master_resume(
+    user: UserContext = Depends(get_user_context),
+    services: ServiceContainer = Depends(get_services),
+) -> Response:
+    actor_id = user.user_id or user.session_id
+    is_session = not bool(user.user_id)
+
+    key = master_resume_key(actor_id, is_session)
+    if not services.object_store.exists(key):
+        raise HTTPException(status_code=404, detail="Master resume not found.")
+
+    services.object_store.delete(key)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/resumes/history", response_model=ResumeHistoryResponse)
