@@ -369,11 +369,17 @@ def get_resume_history(
         try:
             document_data = services.object_store.get_json(key)
             document = ResumeDocument.model_validate(document_data)
+            source_filename = None
+            if isinstance(document.metadata, dict):
+                raw_source = document.metadata.get("source")
+                if isinstance(raw_source, str) and raw_source.strip():
+                    source_filename = Path(raw_source).name
             history_items.append(
                 ResumeHistoryItem(
                     resume_id=document.resume_id,
                     json_key=key,
                     summary=document.summary,
+                    source_filename=source_filename,
                     created_at=document.created_at,
                     updated_at=document.updated_at,
                 )

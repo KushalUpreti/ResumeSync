@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ResumeDocument } from "../types/resume";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -82,8 +83,8 @@ function RewriteButton({
 
 type ResumeSheetProps = {
   document: ResumeDocument | null;
-  title?: string;
-  subtitle?: string;
+  title?: ReactNode;
+  subtitle?: ReactNode;
   isLoading?: boolean;
   showEmptyPlaceholders?: boolean;
   activeRewritePath?: string | null;
@@ -520,9 +521,9 @@ function ResumeSheet({
       }${suppressBulletControls ? " resume-sheet--suppress-bullet-controls" : ""}`}
     >
       <header className="resume-sheet__header">
-        <h2 className="resume-sheet__title">{title || "Resume Preview"}</h2>
+        <h2 className="resume-sheet__title">{title ?? "Resume Preview"}</h2>
         <p className="resume-sheet__subtitle">
-          {subtitle || "Document Preview"}
+          {subtitle ?? "Document Preview"}
         </p>
       </header>
 

@@ -65,6 +65,7 @@ export type ResumeHistoryItem = {
   resume_id: string
   json_key: string
   summary: string
+  source_filename?: string | null
   updated_at: string
   created_at: string
 }

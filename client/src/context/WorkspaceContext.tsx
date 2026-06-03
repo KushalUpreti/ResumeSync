@@ -13,6 +13,7 @@ const initialState: WorkspaceState = {
   draftResume: null,
   generatedResumeId: null,
   generatedJsonKey: null,
+  generatedFileBaseName: 'Tailored Resume',
   selectedTemplateId: 'executive',
   tailoringMode: 'polisher',
   targetRole: '',
@@ -35,7 +36,10 @@ function WorkspaceProvider({ children }: { children: ReactNode }) {
         ...initialState,
         ...parsed,
         masterResume: null,
-        draftResume: null
+        draftResume: null,
+        generatedFileBaseName: typeof parsed.generatedFileBaseName === 'string' && parsed.generatedFileBaseName.trim()
+          ? parsed.generatedFileBaseName
+          : initialState.generatedFileBaseName,
       }
     } catch {
       return initialState
@@ -62,6 +66,12 @@ function WorkspaceProvider({ children }: { children: ReactNode }) {
           ...current,
           generatedResumeId: resumeId,
           generatedJsonKey: jsonKey,
+          generatedFileBaseName: resumeId ? 'Tailored Resume' : current.generatedFileBaseName,
+        })),
+      setGeneratedFileBaseName: (value) =>
+        setState((current) => ({
+          ...current,
+          generatedFileBaseName: value,
         })),
       setSelectedTemplateId: (templateId) =>
         setState((current) => ({ ...current, selectedTemplateId: templateId })),

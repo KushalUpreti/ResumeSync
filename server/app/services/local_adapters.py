@@ -7,7 +7,7 @@ from pathlib import Path
 from app.core.exceptions import NotFoundError
 from app.domain.storage_keys import job_state_key
 from app.models.jobs import JobEnvelope, JobState, QueuedJob
-from app.models.resume import ExperienceEntry, ResumeDocument, RewriteTarget
+from app.models.resume import ExperienceEntry, ResumeDocument, RewriteTarget, SkillCategory
 from app.services.interfaces import DocumentRenderer, JobStateStore, ObjectStore, PresignedUpload, QueueService, ResumeParser, ResumeTailor
 
 
@@ -134,8 +134,8 @@ class LocalResumeParser(ResumeParser):
                     bullets=bullets or ["Review imported content and replace with parsed experience bullets."],
                 )
             ],
-            skills=["Communication", "Execution"],
-            metadata={"source": "local_parser"},
+            skills=[SkillCategory(category="Skills", items=["Communication", "Execution"])],
+            metadata={"source": filename or "local_parser"},
         )
 
     def _extract_date_range(self, text: str) -> tuple[str | None, str | None]:
@@ -165,7 +165,14 @@ class LocalResumeTailor(ResumeTailor):
         role = context.get("target_role") or "target role"
         company = context.get("target_company") or "target company"
         updated.summary = f"{mode_prefix} summary tailored for {role} at {company}. {document.summary}".strip()
-        updated.skills = sorted(set(updated.skills + ["ATS Optimization", "Stakeholder Management"]))
+        if updated.skills:
+            updated.skills[0].items = sorted(
+                set(updated.skills[0].items + ["ATS Optimization", "Stakeholder Management"])
+            )
+        else:
+            updated.skills = [
+                SkillCategory(category="Skills", items=["ATS Optimization", "Stakeholder Management"])
+            ]
         updated.metadata |= {k: v for k, v in context.items() if v}
         return updated
 
@@ -200,7 +207,8 @@ class LocalDocumentRenderer(DocumentRenderer):
             f"Template: {template_id}",
             f"Resume ID: {document.resume_id}",
             f"Summary: {document.summary}",
-            "Skills: " + ", ".join(document.skills),
+            "Skills: "
+            + ", ".join(skill for category in document.skills for skill in category.items),
         ]
         for entry in document.experience:
             lines.append(f"{entry.role} @ {entry.company}")

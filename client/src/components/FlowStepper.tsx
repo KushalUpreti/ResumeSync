@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react'
+
 export type FlowStep = {
   label: string
   step: number
@@ -24,8 +26,21 @@ function FlowStepper({
       {steps.map((step, index) => {
         const isComplete = index < activeIndex
         const isActive = step.step === activeStep
+        const isReached = isComplete || isActive
+        const isConnectorReached = index < activeIndex
         const canNavigate = isComplete || isActive
         const warningMessage = getWarningMessage?.(step.step) ?? null
+        const connectorStyle = {
+          '--step-index': index,
+          '--connector-delay': `${index * 980}ms`,
+          '--connector-duration': `1.05s`,
+          '--connector-from': `${-42 - index * 5}px`,
+          '--connector-mid': `${96 + index * 6}px`,
+          '--connector-to': `${108 + index * 7}px`,
+          '--connector-scale-from': `${0.7 - index * 0.03}`,
+          '--connector-scale-mid': `${1.08 + index * 0.03}`,
+          '--connector-scale-to': `${1.14 + index * 0.04}`,
+        } as CSSProperties
 
         return (
           <div className="flow-stepper__item" key={step.step}>
@@ -38,6 +53,8 @@ function FlowStepper({
                       ? 'flow-stepper__link is-complete'
                       : 'flow-stepper__link'
                 }
+                data-reached={isReached ? 'true' : 'false'}
+                style={{ '--step-index': index } as CSSProperties}
                 onClick={() => onStepClick?.(step.step)}
                 type="button"
                 disabled={!onStepClick && !isComplete}
@@ -61,12 +78,25 @@ function FlowStepper({
               <span
                 aria-disabled="true"
                 className="flow-stepper__link is-disabled"
+                data-reached="false"
+                style={{ '--step-index': index } as CSSProperties}
               >
                 <span className="flow-stepper__count">{step.step}</span>
                 <span>{step.label}</span>
               </span>
             )}
-            {index < steps.length - 1 ? <span className="flow-stepper__rule" /> : null}
+            {index < steps.length - 1 ? (
+              <span
+                key={`connector-${step.step}-${activeStep}`}
+                className={
+                  isConnectorReached
+                    ? 'flow-stepper__rule is-reached'
+                    : 'flow-stepper__rule'
+                }
+                data-reached={isConnectorReached ? 'true' : 'false'}
+                style={connectorStyle}
+              />
+            ) : null}
           </div>
         )
       })}

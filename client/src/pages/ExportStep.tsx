@@ -13,7 +13,12 @@ type ExportStepProps = {
 };
 
 const ExportStep: FC<ExportStepProps> = () => {
-  const { selectedTemplateId, setSelectedTemplateId, generatedResumeId } = useWorkspace();
+  const {
+    selectedTemplateId,
+    setSelectedTemplateId,
+    generatedResumeId,
+    generatedFileBaseName,
+  } = useWorkspace();
   const { addNotification } = useNotification();
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -30,7 +35,7 @@ const ExportStep: FC<ExportStepProps> = () => {
     const templateName = selectedTemplateId || "modern";
     setIsDownloading(true);
     try {
-      await downloadTemplate(generatedResumeId, templateName);
+      await downloadTemplate(generatedResumeId, templateName, generatedFileBaseName);
     } catch (error) {
       addNotification({
         type: "error",

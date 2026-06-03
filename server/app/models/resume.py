@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any
 from uuid import uuid4
 
 from pydantic import BaseModel, Field, model_validator
@@ -55,6 +56,25 @@ class SkillCategory(BaseModel):
     category: str
     items: list[str] = Field(default_factory=list)
 
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_skill_category(cls, data: Any) -> Any:
+        if isinstance(data, str):
+            skill = data.strip()
+            return {"category": "Skills", "items": [skill] if skill else []}
+
+        if isinstance(data, dict):
+            normalized = dict(data)
+            if "items" not in normalized and "skills" in normalized:
+                normalized["items"] = normalized["skills"]
+            if "category" not in normalized or not str(normalized["category"]).strip():
+                normalized["category"] = "Skills"
+            if isinstance(normalized.get("items"), str):
+                normalized["items"] = [normalized["items"]]
+            return normalized
+
+        return data
+
 
 class ResumeDocument(BaseModel):
     resume_id: str = Field(default_factory=lambda: str(uuid4()))
@@ -71,6 +91,24 @@ class ResumeDocument(BaseModel):
     metadata: dict[str, str] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_legacy_skills(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+
+        skills = data.get("skills")
+        if not isinstance(skills, list):
+            return data
+
+        flat_skills = [skill.strip() for skill in skills if isinstance(skill, str) and skill.strip()]
+        if flat_skills and len(flat_skills) == len(skills):
+            normalized = dict(data)
+            normalized["skills"] = [{"category": "Skills", "items": flat_skills}]
+            return normalized
+
+        return data
 
     @model_validator(mode="after")
     def apply_contact_placeholders(self) -> "ResumeDocument":
@@ -114,6 +152,7 @@ class ResumeHistoryItem(BaseModel):
     resume_id: str
     json_key: str
     summary: str = ""
+    source_filename: str | None = None
     updated_at: datetime
     created_at: datetime
 

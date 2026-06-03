@@ -15,6 +15,11 @@ from app.services.date_sorting import (
 )
 from app.services.interfaces import ResumeParser, ResumeTailor
 
+
+def parse_skill_categories(skills: Any) -> list[SkillCategory]:
+    return ResumeDocument.model_validate({"skills": skills}).skills
+
+
 class LLMResumeParser(ResumeParser):
     def parse(self, source_bytes: bytes, filename: str = "", *, content_type: str | None = None, ai_provider: str | None = None, ai_model: str | None = None, ai_api_key: str | None = None) -> ResumeDocument:
         raw_text = self._extract_text(source_bytes, filename, content_type)
@@ -107,7 +112,7 @@ RAW RESUME TEXT:
         certifications_list = sort_certification_entries(
             [CertificationEntry(**cert) for cert in data.get("certifications", [])]
         )
-        skills_list = [SkillCategory(**cat) for cat in data.get("skills", [])]
+        skills_list = parse_skill_categories(data.get("skills", []))
         
         if not experience_list and not skills_list and not projects_list:
             raise ValueError(
@@ -197,7 +202,7 @@ class LLMResumeTailor(ResumeTailor):
             )
             if data.get("certifications") is not None
             else document.certifications,
-            skills=[SkillCategory(**cat) for cat in data.get("skills", [])] if data.get("skills") is not None else document.skills,
+            skills=parse_skill_categories(data.get("skills", [])) if data.get("skills") is not None else document.skills,
             metadata={**document.metadata, "mode": mode, "tailored": "true"}
         )
 

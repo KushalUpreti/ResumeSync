@@ -98,14 +98,29 @@ export async function renderResume(resumeId: string, payload: RenderResumeReques
  * @param resumeId      the ID of the current resume
  * @param templateName  lowercase template name, e.g. "modern" | "executive" | "professional"
  */
-export async function downloadTemplate(resumeId: string, templateName: string): Promise<void> {
+function sanitizeDownloadBaseName(value: string) {
+  const cleaned = value
+    .trim()
+    .replace(/\.docx$/i, "")
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "")
+    .replace(/\s+/g, " ");
+
+  return cleaned || "resume";
+}
+
+export async function downloadTemplate(
+  resumeId: string,
+  templateName: string,
+  downloadBaseName?: string,
+): Promise<void> {
   const response = await apiClient.get<Blob>(`/resume/${resumeId}/download?template_id=${encodeURIComponent(templateName)}`, {
     responseType: 'blob',
   })
   const url = URL.createObjectURL(response.data)
   const anchor = document.createElement('a')
   anchor.href = url
-  anchor.download = `resume_${templateName}.docx`
+  const safeBaseName = sanitizeDownloadBaseName(downloadBaseName || `resume_${templateName}`)
+  anchor.download = `${safeBaseName}.docx`
   document.body.appendChild(anchor)
   anchor.click()
   document.body.removeChild(anchor)

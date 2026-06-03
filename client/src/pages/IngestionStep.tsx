@@ -6,7 +6,6 @@ import {
   faCircle,
   faCircleDot,
   faSpinner,
-  faWandMagicSparkles,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -36,7 +35,7 @@ const savedModes = [
     value: "general",
     label: "General",
     description:
-      "Build a balanced master resume that keeps the full career story intact.",
+      "Build a balanced master resume that keeps the full career story intact. Add any relevant context in the notes for better tailoring.",
   },
   {
     value: "sniper",
@@ -133,6 +132,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
       return;
     }
 
+    setUseMasterResume(false);
     setSelectedFile(nextFile);
     setSelectedHistoryKey(null);
   }
@@ -148,8 +148,49 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     handleFilePick(event.dataTransfer.files);
   }
 
+  function handleSelectHistory(jsonKey: string) {
+    setSelectedHistoryKey(jsonKey);
+    setSelectedFile(null);
+    setUseMasterResume(false);
+  }
+
+  function handleRestoreMasterResume() {
+    setUseMasterResume(true);
+    setSelectedFile(null);
+    setSelectedHistoryKey(null);
+  }
+
+  function handleClearMasterResume() {
+    setUseMasterResume(false);
+    setSelectedFile(null);
+    setSelectedHistoryKey(null);
+    setMasterResume(null);
+    setDraftResume(null);
+  }
+
+  function truncateDisplayName(value: string, maxLength = 36) {
+    const cleaned = value.trim();
+    if (cleaned.length <= maxLength) {
+      return cleaned;
+    }
+
+    return `${cleaned.slice(0, maxLength - 1)}…`;
+  }
+
   const selectedModeData = savedModes.find(
     (mode) => mode.value === selectedMode,
+  );
+  const selectedHistoryItem = selectedHistoryKey
+    ? resumeHistory.find((item) => item.json_key === selectedHistoryKey) ?? null
+    : null;
+  const selectedHistoryDisplayName =
+    selectedHistoryItem?.source_filename?.trim() ||
+    selectedHistoryItem?.summary?.trim() ||
+    (selectedHistoryItem ? `Resume ${selectedHistoryItem.resume_id.slice(0, 8)}` : "");
+  const hasSelectedAnalysisSource = Boolean(
+    selectedFile ||
+    (auth.status === "authenticated" && masterResume && useMasterResume) ||
+    selectedHistoryKey,
   );
 
   async function handleProceed() {
@@ -374,7 +415,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
   }
 
   return (
-    <div className="page-stack">
+    <div className="page-stack ingestion-page">
       {isPreparingReview ? (
         <div
           className="generation-backdrop"
@@ -489,7 +530,9 @@ function IngestionStep({ onNext }: IngestionStepProps) {
             </button>
           </label>
           <div className="queue-block">
-            <p className="section-label">Selected for Analysis</p>
+            {hasSelectedAnalysisSource ? (
+              <p className="section-label">Selected for Analysis</p>
+            ) : null}
             <div className="queue-list">
               {selectedFile ? (
                 <article className="queue-item">
@@ -515,6 +558,60 @@ function IngestionStep({ onNext }: IngestionStepProps) {
                     </button>
                   </div>
                 </article>
+              ) : selectedHistoryKey ? (
+                <article className="queue-item">
+                  <div className="queue-item__meta">
+                    <div className="queue-item__icon">
+                      <FontAwesomeIcon icon={faFileLines} />
+                    </div>
+                    <div>
+                      <h3>Resume selected from history</h3>
+                      <p>Ready for analysis</p>
+                    </div>
+                  </div>
+                  <div className="queue-item__status">
+                    <button
+                      className="queue-item__remove"
+                      onClick={() => setSelectedHistoryKey(null)}
+                      type="button"
+                    >
+                      <FontAwesomeIcon icon={faXmark} />
+                    </button>
+                  </div>
+                </article>
+              ) : selectedHistoryItem ? (
+                <article className="queue-item">
+                  <div className="queue-item__meta">
+                    <div className="queue-item__icon">
+                      <FontAwesomeIcon icon={faFileLines} />
+                    </div>
+                    <div>
+                      <h3
+                        title={selectedHistoryDisplayName}
+                        style={{
+                          maxWidth: "26ch",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {truncateDisplayName(selectedHistoryDisplayName)}
+                      </h3>
+                      <p>Loaded from processed history / Ready</p>
+                    </div>
+                  </div>
+                  <div className="queue-item__status">
+                    <button
+                      className="queue-item__remove"
+                      onClick={() => {
+                        setSelectedHistoryKey(null);
+                      }}
+                      type="button"
+                    >
+                      <FontAwesomeIcon icon={faXmark} />
+                    </button>
+                  </div>
+                </article>
               ) : auth.status === "authenticated" &&
                 masterResume &&
                 useMasterResume ? (
@@ -526,10 +623,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
                   }}
                 >
                   <div className="queue-item__meta">
-                    <div
-                      className="queue-item__icon"
-                      style={{ color: "var(--color-success)" }}
-                    >
+                    <div className="queue-item__icon queue-item__icon--success">
                       <FontAwesomeIcon icon={faFileLines} />
                     </div>
                     <div>
@@ -540,10 +634,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
                   <div className="queue-item__status">
                     <button
                       className="queue-item__remove"
-                      onClick={() => {
-                        setUseMasterResume(false);
-                        setMasterResume(null);
-                      }}
+                      onClick={handleClearMasterResume}
                       type="button"
                     >
                       <FontAwesomeIcon icon={faXmark} />
@@ -565,7 +656,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
                   </p>
                   <button
                     className="button button--ghost"
-                    onClick={() => setUseMasterResume(true)}
+                    onClick={handleRestoreMasterResume}
                     type="button"
                     style={{ alignSelf: "flex-start" }}
                   >
@@ -589,10 +680,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
                         : "resume-history__row"
                     }
                     key={item.json_key}
-                    onClick={() => {
-                      setSelectedHistoryKey(item.json_key);
-                      setSelectedFile(null);
-                    }}
+                    onClick={() => handleSelectHistory(item.json_key)}
                     type="button"
                   >
                     <span className="resume-history__dot">
@@ -606,9 +694,11 @@ function IngestionStep({ onNext }: IngestionStepProps) {
                     </span>
                     <span className="resume-history__name">
                       <FontAwesomeIcon icon={faFileLines} />
-                      {item.summary?.trim()
-                        ? item.summary.split(".").slice(0, 1)[0]
-                        : `Resume ${item.resume_id.slice(0, 8)}`}
+                      {item.source_filename?.trim()
+                        ? item.source_filename
+                        : item.summary?.trim()
+                          ? item.summary.split(".").slice(0, 1)[0]
+                          : `Resume ${item.resume_id.slice(0, 8)}`}
                     </span>
                     <span>
                       {new Date(item.updated_at).toLocaleDateString()}
@@ -695,8 +785,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
                   }
                   key={item.json_key}
                   onClick={() => {
-                    setSelectedHistoryKey(item.json_key);
-                    setSelectedFile(null);
+                    handleSelectHistory(item.json_key);
                     setIsHistoryModalOpen(false);
                   }}
                   type="button"
@@ -712,9 +801,11 @@ function IngestionStep({ onNext }: IngestionStepProps) {
                   </span>
                   <span className="resume-history__name">
                     <FontAwesomeIcon icon={faFileLines} />
-                    {item.summary?.trim()
-                      ? item.summary.split(".").slice(0, 1)[0]
-                      : `Resume ${item.resume_id.slice(0, 8)}`}
+                    {item.source_filename?.trim()
+                      ? item.source_filename
+                      : item.summary?.trim()
+                        ? item.summary.split(".").slice(0, 1)[0]
+                        : `Resume ${item.resume_id.slice(0, 8)}`}
                   </span>
                   <span>{new Date(item.updated_at).toLocaleDateString()}</span>
                 </button>

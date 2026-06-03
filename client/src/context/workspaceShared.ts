@@ -9,6 +9,7 @@ export type WorkspaceState = {
   draftResume: ResumeDocument | null
   generatedResumeId: string | null
   generatedJsonKey: string | null
+  generatedFileBaseName: string
   selectedTemplateId: string
   tailoringMode: TailoringMode
   targetRole: string
@@ -23,6 +24,7 @@ export type WorkspaceContextValue = WorkspaceState & {
   setMasterResume: (document: ResumeDocument | null) => void
   setDraftResume: (document: ResumeDocument | null) => void
   setGeneratedResume: (resumeId: string | null, jsonKey: string | null) => void
+  setGeneratedFileBaseName: (value: string) => void
   setSelectedTemplateId: (templateId: string) => void
   setTailoringMode: (mode: TailoringMode) => void
   setTargetRole: (value: string) => void

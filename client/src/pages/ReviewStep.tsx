@@ -18,6 +18,33 @@ type ReviewStepProps = {
 
 type BulletSection = "experience" | "projects";
 
+function getBaseFileName(value: string | null | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  return value.split(/[\\/]/).pop()?.trim() ?? "";
+}
+
+function truncateFileName(value: string, maxLength = 34) {
+  const cleaned = value.trim();
+  if (cleaned.length <= maxLength) {
+    return cleaned;
+  }
+
+  const lastDot = cleaned.lastIndexOf(".");
+  const hasExtension = lastDot > 0 && lastDot < cleaned.length - 1;
+  const extension = hasExtension ? cleaned.slice(lastDot) : "";
+  const stem = hasExtension ? cleaned.slice(0, lastDot) : cleaned;
+  const available = Math.max(10, maxLength - extension.length - 1);
+
+  if (stem.length <= available) {
+    return `${stem.slice(0, Math.max(1, maxLength - extension.length - 1))}…${extension}`;
+  }
+
+  return `${stem.slice(0, available - 1)}…${extension}`;
+}
+
 function getBulletPath(
   section: BulletSection,
   entryIndex: number,
@@ -154,6 +181,7 @@ function ReviewStep({ onNext }: ReviewStepProps) {
   const {
     draftResume,
     generatedResumeId,
+    generatedFileBaseName,
     masterResume,
     tailoringMode,
     targetRole,
@@ -161,6 +189,7 @@ function ReviewStep({ onNext }: ReviewStepProps) {
     jobDescription,
     setDraftResume,
     setGeneratedResume,
+    setGeneratedFileBaseName,
     setLastGenerateJob,
     lastGenerateJob,
   } = useWorkspace();
@@ -850,6 +879,40 @@ function ReviewStep({ onNext }: ReviewStepProps) {
 
   const originalDocument = masterResume;
   const workingDocument = draftResume;
+  const sourceFileName =
+    originalDocument?.metadata?.source &&
+    getBaseFileName(originalDocument.metadata.source)
+      ? truncateFileName(
+          getBaseFileName(originalDocument.metadata.source),
+          36,
+        )
+      : "Uploaded document";
+
+  const generatedTitle = (
+    <span className="resume-name-field">
+      <input
+        aria-label="Resume file name"
+        className="resume-name-field__input"
+        maxLength={48}
+        onBlur={(event) => {
+          const rawValue = event.currentTarget.value.trim();
+          const nextValue = rawValue.replace(/\.docx$/i, "").trim();
+          if (!nextValue) {
+            setGeneratedFileBaseName("Tailored Resume");
+            return;
+          }
+          if (nextValue !== event.currentTarget.value) {
+            setGeneratedFileBaseName(nextValue);
+          }
+        }}
+        onChange={(event) => setGeneratedFileBaseName(event.currentTarget.value)}
+        placeholder="Tailored Resume"
+        spellCheck={false}
+        value={generatedFileBaseName}
+      />
+      <span className="resume-name-field__suffix">.docx</span>
+    </span>
+  );
 
   return (
     <div className="page-stack">
@@ -892,7 +955,7 @@ function ReviewStep({ onNext }: ReviewStepProps) {
             <div style={{ flex: 1, minHeight: 0 }}>
               <ResumeSheet
                 document={originalDocument}
-                title="Master Resume"
+                title={sourceFileName}
                 subtitle="Uploaded document data"
               />
             </div>
@@ -927,7 +990,7 @@ function ReviewStep({ onNext }: ReviewStepProps) {
               document={workingDocument}
               isLoading={isGenerating}
               showEmptyPlaceholders
-              title="Tailored Resume"
+              title={generatedTitle}
               subtitle="AI enhanced for target role"
               activeRewritePath={activeRewritePath}
               canUndoPath={canUndoPath}
