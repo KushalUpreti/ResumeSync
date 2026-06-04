@@ -152,6 +152,7 @@ class ResumeHistoryItem(BaseModel):
     resume_id: str
     json_key: str
     summary: str = ""
+    display_name: str | None = None
     source_filename: str | None = None
     updated_at: datetime
     created_at: datetime

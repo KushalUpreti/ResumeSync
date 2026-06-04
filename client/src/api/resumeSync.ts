@@ -70,6 +70,10 @@ export async function deleteMasterResume() {
   await apiClient.delete('/master-resume')
 }
 
+export async function deleteResume(resumeId: string) {
+  await apiClient.delete(`/resume/${resumeId}`)
+}
+
 export async function getResumeHistory() {
   const response = await apiClient.get<ResumeHistoryResponse>('/resumes/history')
   return response.data

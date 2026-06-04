@@ -2,13 +2,23 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFileLines, faWandMagicSparkles } from "@fortawesome/free-solid-svg-icons";
-import { getResume, rewritePreview, waitForJob } from "../api/resumeSync";
+import {
+  commitResume,
+  getResume,
+  rewritePreview,
+  waitForJob,
+} from "../api/resumeSync";
 import './ReviewStep.css';
 import { arrayMove } from "@dnd-kit/sortable";
 import { useNotification } from "../context/useNotification";
 import SectionCard from "../components/SectionCard";
 import ResumeSheet from "../components/ResumeSheet";
 import { useWorkspace } from "../context/useWorkspace";
+import {
+  deriveResumeFileBaseName,
+  isGeneratedDefaultFileBaseName,
+  stripDocxExtension,
+} from "../lib/resumeFileName";
 import type { ResumeDocument } from "../types/resume";
 
 type ReviewStepProps = {
@@ -162,6 +172,7 @@ function remapBulletHistoryAfterDelete(
 function ReviewStep({ onNext }: ReviewStepProps) {
   const { addNotification } = useNotification();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
 
   const [activeRewritePath, setActiveRewritePath] = useState<string | null>(
     null,
@@ -175,6 +186,7 @@ function ReviewStep({ onNext }: ReviewStepProps) {
 
   const {
     draftResume,
+    generatedResumeId,
     generatedFileBaseName,
     masterResume,
     tailoringMode,
@@ -233,6 +245,7 @@ function ReviewStep({ onNext }: ReviewStepProps) {
           if (newResumeId) {
             const tailoredDoc = await getResume(newResumeId);
             setGeneratedResume(newResumeId, finalJob.output_s3_key);
+            setGeneratedFileBaseName(deriveResumeFileBaseName(tailoredDoc));
             setDraftResume(tailoredDoc);
             addNotification({
               type: "success",
@@ -693,6 +706,14 @@ function ReviewStep({ onNext }: ReviewStepProps) {
     const nextValue = value;
     const currentValue = getCurrentValue(draftResume, path);
     if (currentValue === nextValue) return;
+    if (
+      path === "contact.full_name" &&
+      nextValue.trim() &&
+      (isGeneratedDefaultFileBaseName(generatedFileBaseName) ||
+        generatedFileBaseName === draftResume.full_name)
+    ) {
+      setGeneratedFileBaseName(stripDocxExtension(nextValue.trim()));
+    }
     setDraftResume(applyRewrite(draftResume, path, nextValue));
   }
 
@@ -745,6 +766,43 @@ function ReviewStep({ onNext }: ReviewStepProps) {
       });
     } finally {
       setActiveRewritePath(null);
+    }
+  }
+
+  async function handleApproveAndContinue() {
+    if (!draftResume || !generatedResumeId) {
+      onNext();
+      return;
+    }
+
+    setIsApproving(true);
+    try {
+      const downloadName = stripDocxExtension(generatedFileBaseName.trim());
+      const documentToCommit = {
+        ...draftResume,
+        metadata: {
+          ...(draftResume.metadata ?? {}),
+          ...(downloadName ? { download_name: downloadName } : {}),
+        },
+      };
+      const commitJob = await commitResume(generatedResumeId, documentToCommit);
+      const finalJob = await waitForJob(commitJob.job_id);
+      if (finalJob.status === "failed") {
+        throw new Error(finalJob.error || "Unable to save review changes.");
+      }
+      setDraftResume(documentToCommit);
+      onNext();
+    } catch (error) {
+      addNotification({
+        type: "error",
+        message: "Save Failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Unable to save your review changes before export.",
+      });
+    } finally {
+      setIsApproving(false);
     }
   }
 
@@ -915,10 +973,11 @@ function ReviewStep({ onNext }: ReviewStepProps) {
           <div style={{ width: "10px" }} />
           <button
             className="button button--primary"
-            onClick={onNext}
+            disabled={isApproving}
+            onClick={() => void handleApproveAndContinue()}
             type="button"
           >
-            Approve & Continue
+            {isApproving ? "Saving..." : "Approve & Continue"}
           </button>
         </div>,
         document.getElementById("header-actions-portal")!,

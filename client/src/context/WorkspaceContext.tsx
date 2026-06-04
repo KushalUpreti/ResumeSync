@@ -6,6 +6,9 @@ import {
   type ReactNode,
 } from 'react'
 import { WorkspaceContext, type WorkspaceContextValue, type WorkspaceState } from './workspaceShared'
+import type { CreateJobResponse, JobState } from '../types/api'
+import type { ResumeDocument } from '../types/resume'
+import type { TailoringMode } from './workspaceShared'
 
 const WORKSPACE_STORAGE_KEY = 'resumesync-workspace'
 
@@ -73,7 +76,6 @@ function WorkspaceProvider({ children }: { children: ReactNode }) {
         ...current,
         generatedResumeId: resumeId,
         generatedJsonKey: jsonKey,
-        generatedFileBaseName: resumeId ? 'Tailored Resume' : current.generatedFileBaseName,
       })),
     [],
   )

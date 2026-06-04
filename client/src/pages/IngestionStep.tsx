@@ -23,6 +23,10 @@ import { getApiErrorMessage } from "../api/client";
 import SectionCard from "../components/SectionCard";
 import { useAuth } from "../context/useAuth";
 import { useWorkspace } from "../context/useWorkspace";
+import {
+  deriveResumeFileBaseName,
+  isInternalResumeSourceFileName,
+} from "../lib/resumeFileName";
 import { useNotification } from "../context/useNotification";
 import type { ResumeHistoryItem } from "../types/api";
 
@@ -53,6 +57,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
   const {
     masterResume,
     setDraftResume,
+    setGeneratedFileBaseName,
     setMasterResume,
     setGeneratedResume,
     setLastGenerateJob,
@@ -177,6 +182,23 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     return `${cleaned.slice(0, maxLength - 3)}...`;
   }
 
+  function getHistoryDisplayName(item: ResumeHistoryItem) {
+    if (item.display_name?.trim()) {
+      return item.display_name;
+    }
+
+    if (
+      item.source_filename?.trim() &&
+      !isInternalResumeSourceFileName(item.source_filename)
+    ) {
+      return item.source_filename;
+    }
+
+    return item.summary?.trim()
+      ? item.summary.split(".").slice(0, 1)[0]
+      : `Resume ${item.resume_id.slice(0, 8)}`;
+  }
+
   const selectedModeData = savedModes.find(
     (mode) => mode.value === selectedMode,
   );
@@ -184,9 +206,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     ? resumeHistory.find((item) => item.json_key === selectedHistoryKey) ?? null
     : null;
   const selectedHistoryDisplayName =
-    selectedHistoryItem?.source_filename?.trim() ||
-    selectedHistoryItem?.summary?.trim() ||
-    (selectedHistoryItem ? `Resume ${selectedHistoryItem.resume_id.slice(0, 8)}` : "");
+    selectedHistoryItem ? getHistoryDisplayName(selectedHistoryItem) : "";
   const hasSelectedAnalysisSource = Boolean(
     selectedFile ||
     (auth.status === "authenticated" && masterResume && useMasterResume) ||
@@ -235,6 +255,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
       }
       const tailoredDoc = await getResume(newResumeId);
       setGeneratedResume(newResumeId, finalJob.output_s3_key);
+      setGeneratedFileBaseName(deriveResumeFileBaseName(tailoredDoc));
       setDraftResume(tailoredDoc);
     }
 
@@ -694,11 +715,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
                     </span>
                     <span className="resume-history__name">
                       <FontAwesomeIcon icon={faFileLines} />
-                      {item.source_filename?.trim()
-                        ? item.source_filename
-                        : item.summary?.trim()
-                          ? item.summary.split(".").slice(0, 1)[0]
-                          : `Resume ${item.resume_id.slice(0, 8)}`}
+                      {getHistoryDisplayName(item)}
                     </span>
                     <span>
                       {new Date(item.updated_at).toLocaleDateString()}
@@ -801,11 +818,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
                   </span>
                   <span className="resume-history__name">
                     <FontAwesomeIcon icon={faFileLines} />
-                    {item.source_filename?.trim()
-                      ? item.source_filename
-                      : item.summary?.trim()
-                        ? item.summary.split(".").slice(0, 1)[0]
-                        : `Resume ${item.resume_id.slice(0, 8)}`}
+                    {getHistoryDisplayName(item)}
                   </span>
                   <span>{new Date(item.updated_at).toLocaleDateString()}</span>
                 </button>

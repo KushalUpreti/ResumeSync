@@ -7,9 +7,11 @@ import {
   faFileLines,
   faPenToSquare,
   faSpinner,
+  faTrash,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import {
+  deleteResume,
   deleteMasterResume,
   getMasterResume,
   getResumeHistory,
@@ -24,6 +26,7 @@ import SectionCard from "../components/SectionCard";
 import { useAuth } from "../context/useAuth";
 import { useNotification } from "../context/useNotification";
 import { useWorkspace } from "../context/useWorkspace";
+import { isInternalResumeSourceFileName } from "../lib/resumeFileName";
 import type { ResumeHistoryItem } from "../types/api";
 
 function getBaseFileName(value: string | null | undefined) {
@@ -49,8 +52,18 @@ function truncateFileName(value: string, maxLength = 42) {
 }
 
 function getResumeDisplayName(item: ResumeHistoryItem) {
+  if (item.display_name?.trim()) {
+    return item.display_name;
+  }
+
+  if (
+    item.source_filename?.trim() &&
+    !isInternalResumeSourceFileName(item.source_filename)
+  ) {
+    return item.source_filename;
+  }
+
   return (
-    item.source_filename?.trim() ||
     item.summary?.trim() ||
     `Resume ${item.resume_id.slice(0, 8)}`
   );
@@ -62,6 +75,7 @@ function ProfilePage() {
   const { addNotification } = useNotification();
   const {
     masterResume,
+    generatedResumeId,
     setMasterResume,
     setDraftResume,
     setGeneratedResume,
@@ -75,6 +89,9 @@ function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [resumePendingDelete, setResumePendingDelete] =
+    useState<ResumeHistoryItem | null>(null);
+  const [deletingResumeId, setDeletingResumeId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState(
     "Loading your profile and stored resume library...",
   );
@@ -238,6 +255,37 @@ function ProfilePage() {
       });
     } finally {
       setIsUploading(false);
+    }
+  }
+
+  async function handleDeleteGeneratedResume(item: ResumeHistoryItem) {
+    setDeletingResumeId(item.resume_id);
+
+    try {
+      await deleteResume(item.resume_id);
+      setResumeHistory((current) =>
+        current.filter((resume) => resume.resume_id !== item.resume_id),
+      );
+      if (generatedResumeId === item.resume_id) {
+        setGeneratedResume(null, null);
+      }
+      setResumePendingDelete(null);
+      addNotification({
+        type: "success",
+        message: "Generated Resume Deleted",
+        description: `${getResumeDisplayName(item)} has been removed from your library.`,
+      });
+    } catch (error) {
+      addNotification({
+        type: "error",
+        message: "Delete Failed",
+        description: getApiErrorMessage(
+          error,
+          "Unable to delete the generated resume.",
+        ),
+      });
+    } finally {
+      setDeletingResumeId(null);
     }
   }
 
@@ -433,7 +481,7 @@ function ProfilePage() {
                         </div>
                         <div className="profile-resume-row__copy">
                           <h3 title={displayName}>
-                            {truncateFileName(displayName)}
+                            {truncateFileName(displayName, 34)}
                           </h3>
                           <small>
                             Updated{" "}
@@ -459,6 +507,22 @@ function ProfilePage() {
                           <FontAwesomeIcon icon={faDownload} />
                           Export
                         </button>
+                        <button
+                          className="button button--danger profile-resume-row__button"
+                          disabled={deletingResumeId === item.resume_id}
+                          onClick={() => setResumePendingDelete(item)}
+                          type="button"
+                        >
+                          <FontAwesomeIcon
+                            icon={
+                              deletingResumeId === item.resume_id
+                                ? faSpinner
+                                : faTrash
+                            }
+                            spin={deletingResumeId === item.resume_id}
+                          />
+                          Delete
+                        </button>
                       </div>
                     </article>
                   );
@@ -479,6 +543,65 @@ function ProfilePage() {
           </SectionCard>
         </div>
       )}
+
+      {resumePendingDelete ? (
+        <div
+          className="modal-backdrop"
+          onClick={() => {
+            if (!deletingResumeId) {
+              setResumePendingDelete(null);
+            }
+          }}
+          role="presentation"
+        >
+          <section
+            className="auth-modal profile-confirm-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="auth-modal__header">
+              <h2 className="auth-modal__title">Delete generated resume?</h2>
+              <button
+                className="icon-button"
+                disabled={Boolean(deletingResumeId)}
+                onClick={() => setResumePendingDelete(null)}
+                type="button"
+                aria-label="Close confirmation"
+              >
+                <FontAwesomeIcon icon={faXmark} />
+              </button>
+            </div>
+            <p className="section-copy">
+              This will permanently remove{" "}
+              <strong>{getResumeDisplayName(resumePendingDelete)}</strong> from
+              your generated resume library. Your master resume will not be
+              changed.
+            </p>
+            <div className="profile-confirm-modal__actions">
+              <button
+                className="button button--ghost"
+                disabled={Boolean(deletingResumeId)}
+                onClick={() => setResumePendingDelete(null)}
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                className="button button--primary"
+                disabled={Boolean(deletingResumeId)}
+                onClick={() => void handleDeleteGeneratedResume(resumePendingDelete)}
+                type="button"
+              >
+                {deletingResumeId ? (
+                  <FontAwesomeIcon icon={faSpinner} spin />
+                ) : (
+                  <FontAwesomeIcon icon={faTrash} />
+                )}
+                {deletingResumeId ? "Deleting..." : "Delete Resume"}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       {isDeleteConfirmOpen ? (
         <div

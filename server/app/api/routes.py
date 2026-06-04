@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 
 from app.api.deps import get_services, get_user_context
 from app.core.exceptions import NotFoundError
-from app.domain.storage_keys import master_resume_key, resume_json_key, temp_upload_key
+from app.domain.storage_keys import master_resume_key, output_docx_key, resume_json_key, temp_upload_key
 from app.models.auth import UserContext
 from app.models.jobs import (
     CommitJobPayload,
@@ -32,6 +32,33 @@ from app.models.resume import CommitResumeRequest, MasterResumeResponse, ResumeD
 from app.services.container import ServiceContainer
 
 router = APIRouter()
+
+INTERNAL_SOURCE_FILENAMES = {"notes_ingestion", "notes_ingestion.txt"}
+
+
+def _public_source_filename(raw_source: str | None) -> str | None:
+    if not raw_source or not raw_source.strip():
+        return None
+
+    source_filename = Path(raw_source).name
+    if (
+        source_filename.lower() in INTERNAL_SOURCE_FILENAMES
+        or Path(source_filename).stem.lower() in INTERNAL_SOURCE_FILENAMES
+    ):
+        return None
+
+    return source_filename
+
+
+def _metadata_display_name(metadata: dict | None) -> str | None:
+    if not isinstance(metadata, dict):
+        return None
+
+    raw_name = metadata.get("download_name") or metadata.get("file_name")
+    if not isinstance(raw_name, str) or not raw_name.strip():
+        return None
+
+    return raw_name.removesuffix(".docx").strip()
 
 
 def _normalize_provider(provider: str | None) -> str:
@@ -200,6 +227,28 @@ def get_resume(
 
     document_data = services.object_store.get_json(key)
     return ResumeDocument.model_validate(document_data)
+
+
+@router.delete("/resume/{resume_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_resume(
+    resume_id: str,
+    user: UserContext = Depends(get_user_context),
+    services: ServiceContainer = Depends(get_services),
+) -> Response:
+    actor_id = user.user_id or user.session_id
+    is_session = not bool(user.user_id)
+
+    json_key = resume_json_key(actor_id, resume_id, is_session)
+    if not services.object_store.exists(json_key):
+        raise HTTPException(status_code=404, detail="Resume not found.")
+
+    services.object_store.delete(json_key)
+
+    rendered_key = output_docx_key(actor_id, resume_id, is_session)
+    if services.object_store.exists(rendered_key):
+        services.object_store.delete(rendered_key)
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/resume-by-key", response_model=ResumeDocument)
@@ -404,16 +453,18 @@ def get_resume_history(
         try:
             document_data = services.object_store.get_json(key)
             document = ResumeDocument.model_validate(document_data)
+            display_name = _metadata_display_name(document.metadata)
             source_filename = None
             if isinstance(document.metadata, dict):
                 raw_source = document.metadata.get("source")
-                if isinstance(raw_source, str) and raw_source.strip():
-                    source_filename = Path(raw_source).name
+                if isinstance(raw_source, str):
+                    source_filename = _public_source_filename(raw_source)
             history_items.append(
                 ResumeHistoryItem(
                     resume_id=document.resume_id,
                     json_key=key,
                     summary=document.summary,
+                    display_name=display_name,
                     source_filename=source_filename,
                     created_at=document.created_at,
                     updated_at=document.updated_at,
@@ -623,6 +674,28 @@ def get_resume(
     return ResumeDocument.model_validate(document_data)
 
 
+@router.delete("/resume/{resume_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_resume(
+    resume_id: str,
+    user: UserContext = Depends(get_user_context),
+    services: ServiceContainer = Depends(get_services),
+) -> Response:
+    actor_id = user.user_id or user.session_id
+    is_session = not bool(user.user_id)
+
+    json_key = resume_json_key(actor_id, resume_id, is_session)
+    if not services.object_store.exists(json_key):
+        raise HTTPException(status_code=404, detail="Resume not found.")
+
+    services.object_store.delete(json_key)
+
+    rendered_key = output_docx_key(actor_id, resume_id, is_session)
+    if services.object_store.exists(rendered_key):
+        services.object_store.delete(rendered_key)
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @router.post("/resume/{resume_id}/commit", response_model=CreateJobResponse, status_code=status.HTTP_202_ACCEPTED)
 def commit_resume(
     resume_id: str,
@@ -754,11 +827,19 @@ def get_resume_history(
         try:
             document_data = services.object_store.get_json(key)
             document = ResumeDocument.model_validate(document_data)
+            display_name = _metadata_display_name(document.metadata)
+            source_filename = None
+            if isinstance(document.metadata, dict):
+                raw_source = document.metadata.get("source")
+                if isinstance(raw_source, str):
+                    source_filename = _public_source_filename(raw_source)
             history_items.append(
                 ResumeHistoryItem(
                     resume_id=document.resume_id,
                     json_key=key,
                     summary=document.summary,
+                    display_name=display_name,
+                    source_filename=source_filename,
                     created_at=document.created_at,
                     updated_at=document.updated_at,
                 )
