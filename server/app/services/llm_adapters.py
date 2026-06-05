@@ -8,6 +8,7 @@ import litellm
 from docx import Document
 from pypdf import PdfReader
 
+from app.core.config import get_settings
 from app.models.resume import (
     AiImprovement,
     CertificationEntry,
@@ -42,6 +43,13 @@ ALLOWED_AI_MODELS = {
         "gemini/gemini-3-flash",
         "gemini/gemini-2.5-flash",
     },
+    "bedrock": {
+        "bedrock/converse/amazon.nova-2-lite-v1:0",
+        "bedrock/converse/amazon.nova-premier-v1:0",
+        "bedrock/converse/amazon.nova-pro-v1:0",
+        "bedrock/converse/amazon.nova-lite-v1:0",
+        "bedrock/converse/amazon.nova-micro-v1:0",
+    },
 }
 
 
@@ -49,9 +57,23 @@ def normalize_provider(provider: str | None) -> str:
     raw = (provider or "").strip().lower()
     if raw in {"google", "gemini"}:
         return "gemini"
+    if raw in {"aws", "aws bedrock", "bedrock"}:
+        return "bedrock"
     if raw in {"openai", "anthropic"}:
         return raw
     return "gemini"
+
+
+def litellm_completion_kwargs(provider: str | None, api_key: str | None = None) -> dict[str, str]:
+    normalized_provider = normalize_provider(provider)
+    kwargs: dict[str, str] = {}
+    if normalized_provider == "bedrock" and not api_key:
+        raise ValueError("AWS Bedrock requires a user-provided API key.")
+    if api_key:
+        kwargs["api_key"] = api_key
+    if normalized_provider == "bedrock":
+        kwargs["aws_region_name"] = get_settings().aws_region
+    return kwargs
 
 
 def parse_skill_categories(skills: Any) -> list[SkillCategory]:
@@ -98,8 +120,8 @@ class LLMResumeParser(ResumeParser):
         response = litellm.completion(
             model=self._get_model(ai_provider, ai_model),
             messages=messages,
-            api_key=ai_api_key,
             response_format={"type": "json_object"} if normalize_provider(ai_provider) == "openai" else None,
+            **litellm_completion_kwargs(ai_provider, ai_api_key),
         )
 
         content = response.choices[0].message.content
@@ -172,6 +194,8 @@ class LLMResumeParser(ResumeParser):
             return "openai/gpt-4o-mini"
         if provider == "anthropic":
             return "anthropic/claude-3-5-haiku-20241022"
+        if provider == "bedrock":
+            return "bedrock/converse/amazon.nova-2-lite-v1:0"
         return "gemini/gemini-2.5-flash"
 
     def _clean_json(self, content: str) -> dict:
@@ -202,8 +226,8 @@ class LLMResumeTailor(ResumeTailor):
         response = litellm.completion(
             model=self._get_model(ai_provider, ai_model),
             messages=prompt,
-            api_key=ai_api_key,
             response_format={"type": "json_object"} if normalize_provider(ai_provider) == "openai" else None,
+            **litellm_completion_kwargs(ai_provider, ai_api_key),
         )
 
         data = self._clean_json(response.choices[0].message.content)
@@ -337,7 +361,7 @@ Text:
         response = litellm.completion(
             model=self._get_model(ai_provider, ai_model),
             messages=[{"role": "user", "content": prompt}],
-            api_key=ai_api_key,
+            **litellm_completion_kwargs(ai_provider, ai_api_key),
         )
         return response.choices[0].message.content.strip()
 
@@ -377,6 +401,8 @@ Text:
             return "openai/gpt-4o-mini"
         if provider == "anthropic":
             return "anthropic/claude-3-5-haiku-20241022"
+        if provider == "bedrock":
+            return "bedrock/converse/amazon.nova-2-lite-v1:0"
         return "gemini/gemini-2.5-flash"
 
     def _clean_json(self, content: str) -> dict:

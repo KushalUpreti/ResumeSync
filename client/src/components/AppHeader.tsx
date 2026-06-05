@@ -44,13 +44,12 @@ function AppHeader({ auth, onOpenAuthModal, onSignOut }: AppHeaderProps) {
               >
                 Login
               </button>
-              <button
+              <Link
                 className="button button--primary"
-                onClick={() => onOpenAuthModal("signUp")}
-                type="button"
+                to="/process"
               >
                 Get Started
-              </button>
+              </Link>
             </>
           )}
         </div>

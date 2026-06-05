@@ -12,14 +12,6 @@ export function getApiErrorMessage(error: unknown, fallback: string) {
     const responseData = error.response?.data as any
     const status = error.response?.status
 
-    // Friendly messages for common status codes
-    if (status === 429) {
-      return "Rate limit exceeded. Please wait a moment and try again."
-    }
-    if (status === 401) {
-      return "Invalid API key. Please verify your credentials."
-    }
-
     // FastAPI / Pydantic validation errors are often under `detail`
     const detail = responseData?.detail
     if (detail !== undefined) {
@@ -31,6 +23,14 @@ export function getApiErrorMessage(error: unknown, fallback: string) {
       } catch {
         return String(detail)
       }
+    }
+
+    // Friendly messages for common status codes when the API did not provide detail.
+    if (status === 429) {
+      return "Rate limit exceeded. Please wait a moment and try again."
+    }
+    if (status === 401) {
+      return "Invalid API key. Please verify your credentials."
     }
 
     // Fallback to response data if present

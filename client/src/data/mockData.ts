@@ -32,6 +32,14 @@ export const providerCards = [
     badges: ['High Speed', 'Large context'],
     selected: false,
   },
+  {
+    name: 'AWS Bedrock',
+    model: 'Amazon Nova 1 & 2',
+    description:
+      'Amazon Nova models on Bedrock for teams that prefer IAM, VPC, and cloud-native controls.',
+    badges: ['AWS', 'Private'],
+    selected: false,
+  },
 ]
 
 export const templates = [

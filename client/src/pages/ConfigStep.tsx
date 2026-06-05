@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faBrain,
@@ -7,7 +7,7 @@ import {
   faEyeSlash,
   faMemory,
   faMicrochip,
-  faPlus, faWandMagicSparkles,
+  faCloud,
 } from '@fortawesome/free-solid-svg-icons'
 import SectionCard from '../components/SectionCard'
 import { useNotification } from '../context/useNotification'
@@ -17,6 +17,7 @@ const providerIconMap = {
   OpenAI: faBrain,
   Anthropic: faMicrochip,
   'Google Gemini': faMemory,
+  'AWS Bedrock': faCloud,
 } as const
 
 const modelMappings: Record<string, { label: string; value: string }[]> = {
@@ -36,6 +37,20 @@ const modelMappings: Record<string, { label: string; value: string }[]> = {
     { label: 'Gemini 3 Flash (High TPM bottleneck)', value: 'gemini/gemini-3-flash' },
     { label: 'Gemini 2.5 Flash (Older version)', value: 'gemini/gemini-2.5-flash' },
   ],
+  'AWS Bedrock': [
+    { label: 'Nova 2 Lite on Bedrock (Latest, efficient)', value: 'bedrock/converse/amazon.nova-2-lite-v1:0' },
+    { label: 'Nova Premier on Bedrock (Most capable v1)', value: 'bedrock/converse/amazon.nova-premier-v1:0' },
+    { label: 'Nova Pro on Bedrock (Balanced v1)', value: 'bedrock/converse/amazon.nova-pro-v1:0' },
+    { label: 'Nova Lite on Bedrock (Low cost v1)', value: 'bedrock/converse/amazon.nova-lite-v1:0' },
+    { label: 'Nova Micro on Bedrock (Fast text v1)', value: 'bedrock/converse/amazon.nova-micro-v1:0' },
+  ],
+}
+
+const providerSlugMappings: Record<string, string> = {
+  OpenAI: 'openai',
+  Anthropic: 'anthropic',
+  'Google Gemini': 'google',
+  'AWS Bedrock': 'bedrock',
 }
 
 type ConfigStepProps = {
@@ -50,23 +65,24 @@ function ConfigStep({ onNext }: ConfigStepProps) {
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('ai_api_key') || '')
   const [selectedModel, setSelectedModel] = useState(() => {
     const savedProvider = localStorage.getItem('ai_provider_display') || 'OpenAI'
-    return localStorage.getItem('ai_model') || modelMappings[savedProvider][0].value
+    return localStorage.getItem('ai_model') || modelMappings[savedProvider]?.[0].value || modelMappings.OpenAI[0].value
   })
 
+  const isBedrockSelected = selectedProvider === 'AWS Bedrock'
+
+  useEffect(() => {
+    localStorage.setItem('ai_provider_display', selectedProvider)
+    localStorage.setItem('ai_provider', providerSlugMappings[selectedProvider] || 'openai')
+    localStorage.setItem('ai_model', selectedModel)
+  }, [selectedModel, selectedProvider])
 
   const handleProviderChange = (providerName: string) => {
     setSelectedProvider(providerName)
-    localStorage.setItem('ai_provider_display', providerName)
+    setApiKey('')
+    localStorage.removeItem('ai_api_key')
 
     const defaultModel = modelMappings[providerName][0].value
     setSelectedModel(defaultModel)
-    localStorage.setItem('ai_model', defaultModel)
-
-    // Map display name to backend slug
-    let slug = 'openai'
-    if (providerName === 'Anthropic') slug = 'anthropic'
-    if (providerName === 'Google Gemini') slug = 'google'
-    localStorage.setItem('ai_provider', slug)
   }
 
   const handleModelChange = (value: string) => {
@@ -158,7 +174,7 @@ function ConfigStep({ onNext }: ConfigStepProps) {
                   type={showApiKey ? 'text' : 'password'}
                   value={apiKey}
                   onChange={(e) => handleApiKeyChange(e.target.value)}
-                  placeholder={`Enter your ${selectedProvider} API key`}
+                  placeholder={isBedrockSelected ? 'Enter your AWS Bedrock API key' : `Enter your ${selectedProvider} API key`}
                 />
                 <button
                   aria-label={showApiKey ? 'Hide API key' : 'Show API key'}

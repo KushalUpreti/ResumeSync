@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from io import BytesIO
 from pathlib import Path
+import re
 from uuid import uuid4
 
 import litellm
@@ -9,6 +10,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, 
 from fastapi.responses import FileResponse, StreamingResponse
 
 from app.api.deps import get_services, get_user_context
+from app.core.config import get_settings
 from app.core.exceptions import NotFoundError
 from app.domain.storage_keys import master_resume_key, output_docx_key, resume_json_key, temp_upload_key
 from app.models.auth import UserContext
@@ -48,7 +50,95 @@ ALLOWED_AI_MODELS = {
         "gemini/gemini-3-flash",
         "gemini/gemini-2.5-flash",
     },
+    "bedrock": {
+        "bedrock/converse/amazon.nova-2-lite-v1:0",
+        "bedrock/converse/amazon.nova-premier-v1:0",
+        "bedrock/converse/amazon.nova-pro-v1:0",
+        "bedrock/converse/amazon.nova-lite-v1:0",
+        "bedrock/converse/amazon.nova-micro-v1:0",
+    },
 }
+
+SECRET_PATTERN = re.compile(r"\b(?:sk|sk-proj|sk-ant|AIza)[A-Za-z0-9_\-]{12,}\b")
+
+
+def _redact_secret(value: str) -> str:
+    return SECRET_PATTERN.sub(lambda match: f"{match.group(0)[:6]}...{match.group(0)[-4:]}", value)
+
+
+def _extract_upstream_status_code(exc: Exception) -> int | None:
+    status_code = getattr(exc, "status_code", None)
+    if isinstance(status_code, int):
+        return status_code
+
+    response = getattr(exc, "response", None)
+    response_status = getattr(response, "status_code", None)
+    if isinstance(response_status, int):
+        return response_status
+
+    return None
+
+
+def _classify_ai_validation_error(exc: Exception) -> tuple[int, str]:
+    error_type = exc.__class__.__name__
+    message = str(exc).lower()
+    upstream_status_code = _extract_upstream_status_code(exc)
+
+    if upstream_status_code in {400, 401, 402, 403, 404, 408, 409, 422, 429, 500, 502, 503, 504}:
+        status_code = upstream_status_code
+    elif error_type in {"AuthenticationError", "OpenAIError"} and "api key" in message:
+        status_code = 401
+    elif error_type in {"PermissionDeniedError"}:
+        status_code = 403
+    elif error_type in {"RateLimitError"} or "rate limit" in message or "429" in message:
+        status_code = 429
+    elif "quota" in message or "billing" in message or "credit" in message:
+        status_code = 402
+    elif error_type in {"Timeout", "APITimeoutError"} or "timeout" in message or "timed out" in message:
+        status_code = 503
+    elif error_type in {"APIConnectionError", "ServiceUnavailableError"}:
+        status_code = 503
+    elif error_type in {"BadRequestError", "InvalidRequestError", "ContextWindowExceededError"}:
+        status_code = 400
+    elif "model" in message and ("not found" in message or "does not exist" in message or "unsupported" in message):
+        status_code = 404
+    else:
+        status_code = 502
+
+    if status_code == 401:
+        reason = "Authentication failed. Check that the API key belongs to the selected provider/project and has not been revoked."
+    elif status_code == 402:
+        reason = "Billing or quota is not available. Add API credits/payment details or check the project's usage limits."
+    elif status_code == 403:
+        reason = "Access was forbidden. Check project permissions, organization/project headers, model access, or IP allowlists."
+    elif status_code == 404:
+        reason = "The selected model was not found or is not available for this provider/project."
+    elif status_code == 429:
+        reason = "Rate limit exceeded. Wait and retry, or choose a lower-throughput model/project."
+    elif status_code == 503:
+        reason = "The provider request timed out or the provider is temporarily unavailable."
+    elif status_code == 400:
+        reason = "The provider rejected the validation request. Check the selected model and provider configuration."
+    else:
+        reason = "The provider returned an unexpected error while validating credentials."
+
+    return status_code, reason
+
+
+def _ai_validation_error_detail(provider: str, model: str, exc: Exception) -> str:
+    status_code, reason = _classify_ai_validation_error(exc)
+    upstream_status_code = _extract_upstream_status_code(exc)
+    provider_message = _redact_secret(getattr(exc, "message", None) or str(exc))
+    error_type = exc.__class__.__name__
+
+    status_label = f"status {status_code}"
+    if upstream_status_code and upstream_status_code != status_code:
+        status_label = f"status {status_code}, upstream status {upstream_status_code}"
+
+    return (
+        f"AI credential validation failed for provider '{provider}' using model '{model}' "
+        f"({error_type}, {status_label}). {reason} Provider message: {provider_message}"
+    )
 
 
 def _public_source_filename(raw_source: str | None) -> str | None:
@@ -80,6 +170,8 @@ def _normalize_provider(provider: str | None) -> str:
     raw = (provider or "").strip().lower()
     if raw in {"google", "gemini"}:
         return "gemini"
+    if raw in {"aws", "aws bedrock", "bedrock"}:
+        return "bedrock"
     if raw in {"openai", "anthropic"}:
         return raw
     return raw
@@ -92,7 +184,18 @@ def _resolve_validation_model(provider: str) -> str:
         return "anthropic/claude-3-5-haiku-20241022"
     if provider == "gemini":
         return "gemini/gemini-2.5-flash"
+    if provider == "bedrock":
+        return "bedrock/converse/amazon.nova-2-lite-v1:0"
     return "gemini/gemini-2.5-flash"
+
+
+def _litellm_completion_kwargs(provider: str, api_key: str | None) -> dict[str, str]:
+    kwargs: dict[str, str] = {}
+    if api_key:
+        kwargs["api_key"] = api_key
+    if provider == "bedrock":
+        kwargs["aws_region_name"] = get_settings().aws_region
+    return kwargs
 
 
 def _resolve_requested_model(provider: str, requested_model: str | None) -> str:
@@ -117,19 +220,14 @@ def _validate_ai_credentials_or_400(x_ai_provider: str | None, x_ai_model: str |
     try:
         litellm.completion(
             model=model,
-            api_key=api_key,
             messages=[{"role": "user", "content": "Respond with exactly: ok"}],
             max_tokens=3,
             timeout=15,
+            **_litellm_completion_kwargs(provider, api_key),
         )
     except Exception as exc:
-        message = str(exc)
-        status_code = 401
-        if "rate limit" in message.lower() or "429" in message:
-            status_code = 429
-        elif "timeout" in message.lower():
-            status_code = 503
-        raise HTTPException(status_code=status_code, detail=f"AI credential validation failed for provider '{provider}': {message}") from exc
+        status_code, _reason = _classify_ai_validation_error(exc)
+        raise HTTPException(status_code=status_code, detail=_ai_validation_error_detail(provider, model, exc)) from exc
     return provider, model
 
 
@@ -570,6 +668,8 @@ def _normalize_provider(provider: str | None) -> str:
     raw = (provider or "").strip().lower()
     if raw in {"google", "gemini"}:
         return "gemini"
+    if raw in {"aws", "aws bedrock", "bedrock"}:
+        return "bedrock"
     if raw in {"openai", "anthropic"}:
         return raw
     return raw
@@ -582,6 +682,8 @@ def _resolve_validation_model(provider: str) -> str:
         return "anthropic/claude-3-5-haiku-20241022"
     if provider == "gemini":
         return "gemini/gemini-2.5-flash"
+    if provider == "bedrock":
+        return "bedrock/converse/amazon.nova-2-lite-v1:0"
     return "gemini/gemini-2.5-flash"
 
 
@@ -607,19 +709,14 @@ def _validate_ai_credentials_or_400(x_ai_provider: str | None, x_ai_model: str |
     try:
         litellm.completion(
             model=model,
-            api_key=api_key,
             messages=[{"role": "user", "content": "Respond with exactly: ok"}],
             max_tokens=3,
             timeout=15,
+            **_litellm_completion_kwargs(provider, api_key),
         )
     except Exception as exc:
-        message = str(exc)
-        status_code = 401
-        if "rate limit" in message.lower() or "429" in message:
-            status_code = 429
-        elif "timeout" in message.lower():
-            status_code = 503
-        raise HTTPException(status_code=status_code, detail=f"AI credential validation failed for provider '{provider}': {message}") from exc
+        status_code, _reason = _classify_ai_validation_error(exc)
+        raise HTTPException(status_code=status_code, detail=_ai_validation_error_detail(provider, model, exc)) from exc
     return provider, model
 
 
