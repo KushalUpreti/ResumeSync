@@ -51,11 +51,11 @@ ALLOWED_AI_MODELS = {
         "gemini/gemini-2.5-flash",
     },
     "bedrock": {
-        "bedrock/converse/amazon.nova-2-lite-v1:0",
-        "bedrock/converse/amazon.nova-premier-v1:0",
-        "bedrock/converse/amazon.nova-pro-v1:0",
-        "bedrock/converse/amazon.nova-lite-v1:0",
-        "bedrock/converse/amazon.nova-micro-v1:0",
+        "bedrock/converse/us.amazon.nova-2-lite-v1:0",
+        "bedrock/converse/us.amazon.nova-premier-v1:0",
+        "bedrock/converse/us.amazon.nova-pro-v1:0",
+        "bedrock/converse/us.amazon.nova-lite-v1:0",
+        "bedrock/converse/us.amazon.nova-micro-v1:0",
     },
 }
 
@@ -185,7 +185,7 @@ def _resolve_validation_model(provider: str) -> str:
     if provider == "gemini":
         return "gemini/gemini-2.5-flash"
     if provider == "bedrock":
-        return "bedrock/converse/amazon.nova-2-lite-v1:0"
+        return "bedrock/converse/us.amazon.nova-2-lite-v1:0"
     return "gemini/gemini-2.5-flash"
 
 
@@ -683,7 +683,7 @@ def _resolve_validation_model(provider: str) -> str:
     if provider == "gemini":
         return "gemini/gemini-2.5-flash"
     if provider == "bedrock":
-        return "bedrock/converse/amazon.nova-2-lite-v1:0"
+        return "bedrock/converse/us.amazon.nova-2-lite-v1:0"
     return "gemini/gemini-2.5-flash"
 
 

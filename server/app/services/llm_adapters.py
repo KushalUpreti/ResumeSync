@@ -44,11 +44,11 @@ ALLOWED_AI_MODELS = {
         "gemini/gemini-2.5-flash",
     },
     "bedrock": {
-        "bedrock/converse/amazon.nova-2-lite-v1:0",
-        "bedrock/converse/amazon.nova-premier-v1:0",
-        "bedrock/converse/amazon.nova-pro-v1:0",
-        "bedrock/converse/amazon.nova-lite-v1:0",
-        "bedrock/converse/amazon.nova-micro-v1:0",
+        "bedrock/converse/us.amazon.nova-2-lite-v1:0",
+        "bedrock/converse/us.amazon.nova-premier-v1:0",
+        "bedrock/converse/us.amazon.nova-pro-v1:0",
+        "bedrock/converse/us.amazon.nova-lite-v1:0",
+        "bedrock/converse/us.amazon.nova-micro-v1:0",
     },
 }
 
@@ -195,7 +195,7 @@ class LLMResumeParser(ResumeParser):
         if provider == "anthropic":
             return "anthropic/claude-3-5-haiku-20241022"
         if provider == "bedrock":
-            return "bedrock/converse/amazon.nova-2-lite-v1:0"
+            return "bedrock/converse/us.amazon.nova-2-lite-v1:0"
         return "gemini/gemini-2.5-flash"
 
     def _clean_json(self, content: str) -> dict:
@@ -402,7 +402,7 @@ Text:
         if provider == "anthropic":
             return "anthropic/claude-3-5-haiku-20241022"
         if provider == "bedrock":
-            return "bedrock/converse/amazon.nova-2-lite-v1:0"
+            return "bedrock/converse/us.amazon.nova-2-lite-v1:0"
         return "gemini/gemini-2.5-flash"
 
     def _clean_json(self, content: str) -> dict:

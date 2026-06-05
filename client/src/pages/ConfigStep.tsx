@@ -38,11 +38,11 @@ const modelMappings: Record<string, { label: string; value: string }[]> = {
     { label: 'Gemini 2.5 Flash (Older version)', value: 'gemini/gemini-2.5-flash' },
   ],
   'AWS Bedrock': [
-    { label: 'Nova 2 Lite on Bedrock (Latest, efficient)', value: 'bedrock/converse/amazon.nova-2-lite-v1:0' },
-    { label: 'Nova Premier on Bedrock (Most capable v1)', value: 'bedrock/converse/amazon.nova-premier-v1:0' },
-    { label: 'Nova Pro on Bedrock (Balanced v1)', value: 'bedrock/converse/amazon.nova-pro-v1:0' },
-    { label: 'Nova Lite on Bedrock (Low cost v1)', value: 'bedrock/converse/amazon.nova-lite-v1:0' },
-    { label: 'Nova Micro on Bedrock (Fast text v1)', value: 'bedrock/converse/amazon.nova-micro-v1:0' },
+    { label: 'Nova 2 Lite on Bedrock (Latest, efficient)', value: 'bedrock/converse/us.amazon.nova-2-lite-v1:0' },
+    { label: 'Nova Premier on Bedrock (Most capable v1)', value: 'bedrock/converse/us.amazon.nova-premier-v1:0' },
+    { label: 'Nova Pro on Bedrock (Balanced v1)', value: 'bedrock/converse/us.amazon.nova-pro-v1:0' },
+    { label: 'Nova Lite on Bedrock (Low cost v1)', value: 'bedrock/converse/us.amazon.nova-lite-v1:0' },
+    { label: 'Nova Micro on Bedrock (Fast text v1)', value: 'bedrock/converse/us.amazon.nova-micro-v1:0' },
   ],
 }
 
