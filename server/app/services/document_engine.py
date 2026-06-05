@@ -20,7 +20,8 @@ class DocxtplDocumentRenderer(DocumentRenderer):
         )
 
     def render(self, document: ResumeDocument, *, template_id: str) -> bytes:
-        template_path = self.template_dir / f"{template_id}.docx"
+        safe_template_id = Path(template_id).name
+        template_path = self.template_dir / f"{safe_template_id}.docx"
 
         if not template_path.exists():
             raise FileNotFoundError(f"Template not found: {template_path}")

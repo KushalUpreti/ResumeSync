@@ -12,6 +12,7 @@ from app.services.local_adapters import (
 )
 from app.services.llm_adapters import LLMResumeParser, LLMResumeTailor
 from app.services.document_engine import DocxtplDocumentRenderer
+from app.services.prompts import PromptRegistry
 
 
 class ServiceContainer:
@@ -29,8 +30,9 @@ class ServiceContainer:
             self.token_verifier = None
 
         self.job_states = S3BackedJobStateStore(self.object_store)
-        self.parser = LLMResumeParser()
-        self.tailor = LLMResumeTailor()
+        self.prompts = PromptRegistry(self.object_store, settings)
+        self.parser = LLMResumeParser(self.prompts)
+        self.tailor = LLMResumeTailor(self.prompts)
         self.renderer = DocxtplDocumentRenderer()
 
 

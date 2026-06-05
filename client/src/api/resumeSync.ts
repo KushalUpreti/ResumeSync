@@ -70,8 +70,10 @@ export async function deleteMasterResume() {
   await apiClient.delete('/master-resume')
 }
 
-export async function deleteResume(resumeId: string) {
-  await apiClient.delete(`/resume/${resumeId}`)
+export async function deleteResume(resumeId: string, jsonKey?: string | null) {
+  await apiClient.delete(`/resume/${resumeId}`, {
+    params: jsonKey ? { json_key: jsonKey } : undefined,
+  })
 }
 
 export async function getResumeHistory() {

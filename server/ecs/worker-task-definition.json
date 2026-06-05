@@ -1,9 +1,7 @@
 {
   "family": "resumesync-worker",
   "networkMode": "awsvpc",
-  "requiresCompatibilities": [
-    "FARGATE"
-  ],
+  "requiresCompatibilities": ["FARGATE"],
   "cpu": "512",
   "memory": "1024",
   "executionRoleArn": "arn:aws:iam::405827713989:role/ecsTaskExecutionRole",
@@ -13,11 +11,7 @@
       "name": "worker",
       "image": "405827713989.dkr.ecr.us-east-1.amazonaws.com/resumesync-server:latest",
       "essential": true,
-      "command": [
-        "python",
-        "-m",
-        "app.worker.runner"
-      ],
+      "command": ["python", "-m", "app.worker.runner"],
       "environment": [
         {
           "name": "RESUMESYNC_ENV",
@@ -58,6 +52,10 @@
         {
           "name": "RESUMESYNC_COGNITO_APP_CLIENT_ID",
           "value": "4t01t8aev928ju9vqaj8evl6jg"
+        },
+        {
+          "name": "RESUMESYNC_PROMPT_PREFIX",
+          "value": "prompts"
         }
       ],
       "logConfiguration": {

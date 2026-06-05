@@ -262,7 +262,7 @@ function ProfilePage() {
     setDeletingResumeId(item.resume_id);
 
     try {
-      await deleteResume(item.resume_id);
+      await deleteResume(item.resume_id, item.json_key);
       setResumeHistory((current) =>
         current.filter((resume) => resume.resume_id !== item.resume_id),
       );

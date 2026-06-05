@@ -6,7 +6,4 @@ TODO:
 
 - Update landing page
 - Tweak UI throughout the app
-- Fix login redirect error bug
-- Add pdf/word support for ingestion.
-- Add success/failure indicators throughout the app.
-- Generated resumes should be editable and the user can make changes to them and save them.
+- Add expiration to certificates

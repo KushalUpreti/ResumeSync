@@ -21,6 +21,8 @@ def utcnow() -> datetime:
 class JobState(BaseModel):
     job_id: str
     status: JobStatus
+    user_id: str | None = None
+    session_id: str | None = None
     output_s3_key: str | None = None
     error: str | None = None
     created_at: datetime = Field(default_factory=utcnow)

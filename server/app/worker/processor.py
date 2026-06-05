@@ -83,6 +83,12 @@ class JobProcessor:
             return payload.session_id, True
         raise InvalidStateError("Payload must have user_id or session_id")
 
+    def _assert_actor_temp_key(self, object_key: str, payload: Any) -> None:
+        actor_id, _is_session = self._get_actor(payload)
+        expected_prefix = f"temp/{actor_id}/"
+        if not object_key.startswith(expected_prefix):
+            raise InvalidStateError("Upload key does not belong to this job actor")
+
     def _load_generate_source(self, payload: GenerateJobPayload, ai_provider: str | None, ai_model: str | None, ai_api_key: str | None) -> ResumeDocument:
         if payload.source_type == "notes_only":
             if not payload.source_notes:
@@ -100,6 +106,7 @@ class JobProcessor:
         if payload.source_type == "new_upload":
             if not payload.input_s3_key:
                 raise InvalidStateError("New upload jobs require input_s3_key")
+            self._assert_actor_temp_key(payload.input_s3_key, payload)
             source_bytes = self.services.object_store.get_bytes(payload.input_s3_key)
             document = self.services.parser.parse(source_bytes, ai_provider=ai_provider, ai_model=ai_model, ai_api_key=ai_api_key)
             self.services.object_store.delete(payload.input_s3_key)
@@ -119,6 +126,7 @@ class JobProcessor:
         raise InvalidStateError(f"Unknown source_type: {payload.source_type}")
 
     def _handle_parse_master(self, payload: ParseMasterJobPayload, ai_provider: str | None, ai_model: str | None, ai_api_key: str | None) -> str:
+        self._assert_actor_temp_key(payload.input_s3_key, payload)
         source_bytes = self.services.object_store.get_bytes(payload.input_s3_key)
         document = self.services.parser.parse(
             source_bytes,

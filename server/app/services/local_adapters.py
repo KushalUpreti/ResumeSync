@@ -17,7 +17,12 @@ class LocalObjectStore(ObjectStore):
         self.root.mkdir(parents=True, exist_ok=True)
 
     def _path(self, object_key: str) -> Path:
-        return self.root / Path(object_key)
+        path = (self.root / object_key).resolve()
+        try:
+            path.relative_to(self.root.resolve())
+        except ValueError as exc:
+            raise ValueError("Object key escapes the local object store root") from exc
+        return path
 
     def create_presigned_upload(self, object_key: str, content_type: str) -> PresignedUpload:
         return PresignedUpload(

@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     use_aws_services: bool = False
     aws_region: str = "us-east-1"
     storage_bucket: str = "resumesync-local"
+    prompt_prefix: str = "prompts"
     queue_name: str = "resumesync-jobs"
     queue_url: str | None = None
     data_root: Path = Path(__file__).resolve().parents[2] / ".runtime"

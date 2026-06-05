@@ -1,9 +1,7 @@
 {
   "family": "resumesync-api",
   "networkMode": "awsvpc",
-  "requiresCompatibilities": [
-    "FARGATE"
-  ],
+  "requiresCompatibilities": ["FARGATE"],
   "cpu": "512",
   "memory": "1024",
   "executionRoleArn": "arn:aws:iam::405827713989:role/ecsTaskExecutionRole",
@@ -63,6 +61,10 @@
         {
           "name": "RESUMESYNC_COGNITO_APP_CLIENT_ID",
           "value": "4t01t8aev928ju9vqaj8evl6jg"
+        },
+        {
+          "name": "RESUMESYNC_PROMPT_PREFIX",
+          "value": "prompts"
         }
       ],
       "logConfiguration": {

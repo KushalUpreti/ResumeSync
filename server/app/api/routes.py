@@ -34,6 +34,21 @@ from app.services.container import ServiceContainer
 router = APIRouter()
 
 INTERNAL_SOURCE_FILENAMES = {"notes_ingestion", "notes_ingestion.txt"}
+ALLOWED_AI_MODELS = {
+    "openai": {"gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo", "openai/gpt-4o-mini"},
+    "anthropic": {
+        "anthropic/claude-3-5-sonnet-20240620",
+        "anthropic/claude-3-5-haiku-20241022",
+        "anthropic/claude-3-haiku-20240307",
+        "anthropic/claude-3-opus-20240229",
+    },
+    "gemini": {
+        "gemini/gemini-3.1-flash-lite",
+        "gemini/gemini-2.5-flash-lite",
+        "gemini/gemini-3-flash",
+        "gemini/gemini-2.5-flash",
+    },
+}
 
 
 def _public_source_filename(raw_source: str | None) -> str | None:
@@ -80,14 +95,25 @@ def _resolve_validation_model(provider: str) -> str:
     return "gemini/gemini-2.5-flash"
 
 
+def _resolve_requested_model(provider: str, requested_model: str | None) -> str:
+    model = (requested_model or "").strip()
+    if not model:
+        return _resolve_validation_model(provider)
+    if model not in ALLOWED_AI_MODELS.get(provider, set()):
+        raise HTTPException(status_code=400, detail=f"Unsupported AI model '{model}' for provider '{provider}'.")
+    return model
+
+
 def _validate_ai_credentials_or_400(x_ai_provider: str | None, x_ai_model: str | None, x_ai_api_key: str | None) -> tuple[str, str]:
     provider = _normalize_provider(x_ai_provider)
     api_key = (x_ai_api_key or "").strip()
     if not provider:
         raise HTTPException(status_code=400, detail="Missing X-AI-Provider header.")
+    if provider not in ALLOWED_AI_MODELS:
+        raise HTTPException(status_code=400, detail=f"Unsupported AI provider '{provider}'.")
     if not api_key:
         raise HTTPException(status_code=400, detail="Missing X-AI-API-Key header.")
-    model = _resolve_validation_model(provider)
+    model = _resolve_requested_model(provider, x_ai_model)
     try:
         litellm.completion(
             model=model,
@@ -105,6 +131,36 @@ def _validate_ai_credentials_or_400(x_ai_provider: str | None, x_ai_model: str |
             status_code = 503
         raise HTTPException(status_code=status_code, detail=f"AI credential validation failed for provider '{provider}': {message}") from exc
     return provider, model
+
+
+def _actor_details(user: UserContext) -> tuple[str, bool]:
+    actor_id = user.user_id or user.session_id
+    if not actor_id:
+        raise HTTPException(status_code=401, detail="Missing user or session context.")
+    return actor_id, not bool(user.user_id)
+
+
+def _temp_prefix(actor_id: str) -> str:
+    return f"temp/{actor_id}/"
+
+
+def _json_prefix(actor_id: str, is_session: bool) -> str:
+    return f"{'temp' if is_session else 'users'}/{actor_id}/json/"
+
+
+def _validate_temp_upload_key_for_actor(object_key: str | None, actor_id: str) -> None:
+    if not object_key or not object_key.startswith(_temp_prefix(actor_id)):
+        raise HTTPException(status_code=403, detail="Invalid upload key for this user.")
+
+
+def _assert_job_owner(state: JobState, user: UserContext) -> None:
+    if state.user_id:
+        if user.user_id != state.user_id:
+            raise HTTPException(status_code=403, detail="Invalid job for this user.")
+        return
+    if state.session_id:
+        if user.session_id != state.session_id:
+            raise HTTPException(status_code=403, detail="Invalid job for this session.")
 
 
 @router.post("/ai/validate-key", response_model=ValidateAiKeyResponse)
@@ -127,9 +183,9 @@ def create_upload_url(
     x_ai_api_key: str | None = Header(None, alias="X-AI-API-Key"),
 ) -> UploadUrlResponse:
     _validate_ai_credentials_or_400(x_ai_provider, x_ai_model, x_ai_api_key)
-    session_id = user.session_id or user.user_id or str(uuid4())
+    actor_id, _is_session = _actor_details(user)
     suffix = Path(request.filename).suffix or ".docx"
-    object_key = temp_upload_key(session_id, f"{uuid4()}{suffix}")
+    object_key = temp_upload_key(actor_id, f"{uuid4()}{suffix}")
     upload = services.object_store.create_presigned_upload(object_key, request.content_type)
     return UploadUrlResponse(
         upload_url=upload.upload_url,
@@ -148,10 +204,9 @@ def create_generate_job(
     x_ai_model: str | None = Header(None, alias="X-AI-Model"),
     x_ai_api_key: str | None = Header(None, alias="X-AI-API-Key"),
 ) -> CreateJobResponse:
-    _validate_ai_credentials_or_400(x_ai_provider, x_ai_model, x_ai_api_key)
-    actor_id = user.user_id or user.session_id
-    is_session = not bool(user.user_id)
-    actor_prefix = f"{'temp' if is_session else 'users'}/{actor_id}/json/"
+    ai_provider, ai_model = _validate_ai_credentials_or_400(x_ai_provider, x_ai_model, x_ai_api_key)
+    actor_id, is_session = _actor_details(user)
+    actor_prefix = _json_prefix(actor_id, is_session)
 
     output_json_key: str
     if request.source_type == "previous":
@@ -161,6 +216,8 @@ def create_generate_job(
             raise HTTPException(status_code=403, detail="Invalid source_json_key for this user.")
         output_json_key = request.source_json_key
     else:
+        if request.source_type == "new_upload":
+            _validate_temp_upload_key_for_actor(request.input_s3_key, actor_id)
         new_resume_id = str(uuid4())
         output_json_key = resume_json_key(actor_id, new_resume_id, is_session)
 
@@ -178,17 +235,23 @@ def create_generate_job(
         target_company=request.target_company,
         job_description=request.job_description,
     )
-    envelope = JobEnvelope(payload=payload, ai_provider=x_ai_provider, ai_model=x_ai_model, ai_api_key=x_ai_api_key)
-    state = JobState(job_id=envelope.job_id, status="pending")
+    envelope = JobEnvelope(payload=payload, ai_provider=ai_provider, ai_model=ai_model, ai_api_key=x_ai_api_key)
+    state = JobState(job_id=envelope.job_id, status="pending", user_id=user.user_id, session_id=user.session_id)
     services.job_states.create(state)
     services.queue.send(envelope)
     return CreateJobResponse(job_id=envelope.job_id, status=state.status)
 
 
 @router.get("/jobs/{job_id}", response_model=JobState)
-def get_job(job_id: str, services: ServiceContainer = Depends(get_services)) -> JobState:
+def get_job(
+    job_id: str,
+    user: UserContext = Depends(get_user_context),
+    services: ServiceContainer = Depends(get_services),
+) -> JobState:
     try:
-        return services.job_states.get(job_id)
+        state = services.job_states.get(job_id)
+        _assert_job_owner(state, user)
+        return state
     except NotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -201,12 +264,13 @@ def rewrite_preview(
     x_ai_model: str | None = Header(None, alias="X-AI-Model"),
     x_ai_api_key: str | None = Header(None, alias="X-AI-API-Key"),
 ) -> RewritePreviewResponse:
+    ai_provider, ai_model = _validate_ai_credentials_or_400(x_ai_provider, x_ai_model, x_ai_api_key)
     rewritten = services.tailor.rewrite_text(
         request.text,
         instruction=request.instruction,
         mode=request.mode,
-        ai_provider=x_ai_provider,
-        ai_model=x_ai_model,
+        ai_provider=ai_provider,
+        ai_model=ai_model,
         ai_api_key=x_ai_api_key,
     )
     return RewritePreviewResponse(rewritten_text=rewritten)
@@ -218,8 +282,7 @@ def get_resume(
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
 ) -> ResumeDocument:
-    actor_id = user.user_id or user.session_id
-    is_session = not bool(user.user_id)
+    actor_id, is_session = _actor_details(user)
 
     key = resume_json_key(actor_id, resume_id, is_session)
     if not services.object_store.exists(key):
@@ -232,17 +295,20 @@ def get_resume(
 @router.delete("/resume/{resume_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_resume(
     resume_id: str,
+    json_key: str | None = Query(default=None, description="Exact storage key for older resume history entries."),
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
 ) -> Response:
-    actor_id = user.user_id or user.session_id
-    is_session = not bool(user.user_id)
+    actor_id, is_session = _actor_details(user)
 
-    json_key = resume_json_key(actor_id, resume_id, is_session)
-    if not services.object_store.exists(json_key):
+    expected_prefix = _json_prefix(actor_id, is_session)
+    target_json_key = json_key or resume_json_key(actor_id, resume_id, is_session)
+    if not target_json_key.startswith(expected_prefix):
+        raise HTTPException(status_code=403, detail="Invalid resume key for this user.")
+    if not services.object_store.exists(target_json_key):
         raise HTTPException(status_code=404, detail="Resume not found.")
 
-    services.object_store.delete(json_key)
+    services.object_store.delete(target_json_key)
 
     rendered_key = output_docx_key(actor_id, resume_id, is_session)
     if services.object_store.exists(rendered_key):
@@ -257,9 +323,8 @@ def get_resume_by_key(
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
 ) -> ResumeDocument:
-    actor_id = user.user_id or user.session_id
-    is_session = not bool(user.user_id)
-    expected_prefix = f"{'temp' if is_session else 'users'}/{actor_id}/json/"
+    actor_id, is_session = _actor_details(user)
+    expected_prefix = _json_prefix(actor_id, is_session)
 
     if not json_key.startswith(expected_prefix):
         raise HTTPException(status_code=403, detail="Invalid resume key for this user.")
@@ -278,8 +343,7 @@ def download_rendered_resume(
     services: ServiceContainer = Depends(get_services),
 ) -> StreamingResponse:
     """Render the resume with the chosen template and stream the .docx back for download."""
-    actor_id = user.user_id or user.session_id
-    is_session = not bool(user.user_id)
+    actor_id, is_session = _actor_details(user)
 
     key = resume_json_key(actor_id, resume_id, is_session)
     if not services.object_store.exists(key):
@@ -313,8 +377,7 @@ def commit_resume(
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
 ) -> CreateJobResponse:
-    actor_id = user.user_id or user.session_id
-    is_session = not bool(user.user_id)
+    actor_id, is_session = _actor_details(user)
 
     payload = CommitJobPayload(
         resume_id=resume_id,
@@ -324,7 +387,7 @@ def commit_resume(
         document=request.document.model_copy(update={"resume_id": resume_id}),
     )
     envelope = JobEnvelope(payload=payload)
-    state = JobState(job_id=envelope.job_id, status="pending")
+    state = JobState(job_id=envelope.job_id, status="pending", user_id=user.user_id, session_id=user.session_id)
     services.job_states.create(state)
     services.queue.send(envelope)
     return CreateJobResponse(job_id=envelope.job_id, status=state.status)
@@ -337,8 +400,7 @@ def render_resume(
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
 ) -> CreateJobResponse:
-    actor_id = user.user_id or user.session_id
-    is_session = not bool(user.user_id)
+    actor_id, is_session = _actor_details(user)
 
     payload = RenderJobPayload(
         resume_id=resume_id,
@@ -348,7 +410,7 @@ def render_resume(
         session_id=user.session_id,
     )
     envelope = JobEnvelope(payload=payload)
-    state = JobState(job_id=envelope.job_id, status="pending")
+    state = JobState(job_id=envelope.job_id, status="pending", user_id=user.user_id, session_id=user.session_id)
     services.job_states.create(state)
     services.queue.send(envelope)
     return CreateJobResponse(job_id=envelope.job_id, status=state.status)
@@ -364,8 +426,8 @@ def rewrite_resume(
     x_ai_model: str | None = Header(None, alias="X-AI-Model"),
     x_ai_api_key: str | None = Header(None, alias="X-AI-API-Key"),
 ) -> CreateJobResponse:
-    actor_id = user.user_id or user.session_id
-    is_session = not bool(user.user_id)
+    ai_provider, ai_model = _validate_ai_credentials_or_400(x_ai_provider, x_ai_model, x_ai_api_key)
+    actor_id, is_session = _actor_details(user)
 
     payload = RewriteJobPayload(
         resume_id=resume_id,
@@ -374,8 +436,8 @@ def rewrite_resume(
         session_id=user.session_id,
         targets=request.targets,
     )
-    envelope = JobEnvelope(payload=payload, ai_provider=x_ai_provider, ai_model=x_ai_model, ai_api_key=x_ai_api_key)
-    state = JobState(job_id=envelope.job_id, status="pending")
+    envelope = JobEnvelope(payload=payload, ai_provider=ai_provider, ai_model=ai_model, ai_api_key=x_ai_api_key)
+    state = JobState(job_id=envelope.job_id, status="pending", user_id=user.user_id, session_id=user.session_id)
     services.job_states.create(state)
     services.queue.send(envelope)
     return CreateJobResponse(job_id=envelope.job_id, status=state.status)
@@ -390,8 +452,9 @@ def upload_master_resume(
     x_ai_model: str | None = Header(None, alias="X-AI-Model"),
     x_ai_api_key: str | None = Header(None, alias="X-AI-API-Key"),
 ) -> CreateJobResponse:
-    actor_id = user.user_id or user.session_id
-    is_session = not bool(user.user_id)
+    ai_provider, ai_model = _validate_ai_credentials_or_400(x_ai_provider, x_ai_model, x_ai_api_key)
+    actor_id, is_session = _actor_details(user)
+    _validate_temp_upload_key_for_actor(request.input_s3_key, actor_id)
 
     payload = ParseMasterJobPayload(
         user_id=user.user_id,
@@ -400,8 +463,8 @@ def upload_master_resume(
         filename=request.filename,
         content_type=request.content_type,
     )
-    envelope = JobEnvelope(payload=payload, ai_provider=x_ai_provider, ai_model=x_ai_model, ai_api_key=x_ai_api_key)
-    state = JobState(job_id=envelope.job_id, status="pending")
+    envelope = JobEnvelope(payload=payload, ai_provider=ai_provider, ai_model=ai_model, ai_api_key=x_ai_api_key)
+    state = JobState(job_id=envelope.job_id, status="pending", user_id=user.user_id, session_id=user.session_id)
     services.job_states.create(state)
     services.queue.send(envelope)
     return CreateJobResponse(job_id=envelope.job_id, status=state.status)
@@ -412,8 +475,7 @@ def get_master_resume(
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
 ) -> MasterResumeResponse:
-    actor_id = user.user_id or user.session_id
-    is_session = not bool(user.user_id)
+    actor_id, is_session = _actor_details(user)
 
     key = master_resume_key(actor_id, is_session)
     if not services.object_store.exists(key):
@@ -427,8 +489,7 @@ def delete_master_resume(
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
 ) -> Response:
-    actor_id = user.user_id or user.session_id
-    is_session = not bool(user.user_id)
+    actor_id, is_session = _actor_details(user)
 
     key = master_resume_key(actor_id, is_session)
     if not services.object_store.exists(key):
@@ -443,9 +504,8 @@ def get_resume_history(
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
 ) -> ResumeHistoryResponse:
-    actor_id = user.user_id or user.session_id
-    is_session = not bool(user.user_id)
-    prefix = f"{'temp' if is_session else 'users'}/{actor_id}/json/"
+    actor_id, is_session = _actor_details(user)
+    prefix = _json_prefix(actor_id, is_session)
     keys = [key for key in services.object_store.list_keys(prefix) if key.endswith(".json")]
 
     history_items: list[ResumeHistoryItem] = []
@@ -525,14 +585,25 @@ def _resolve_validation_model(provider: str) -> str:
     return "gemini/gemini-2.5-flash"
 
 
+def _resolve_requested_model(provider: str, requested_model: str | None) -> str:
+    model = (requested_model or "").strip()
+    if not model:
+        return _resolve_validation_model(provider)
+    if model not in ALLOWED_AI_MODELS.get(provider, set()):
+        raise HTTPException(status_code=400, detail=f"Unsupported AI model '{model}' for provider '{provider}'.")
+    return model
+
+
 def _validate_ai_credentials_or_400(x_ai_provider: str | None, x_ai_model: str | None, x_ai_api_key: str | None) -> tuple[str, str]:
     provider = _normalize_provider(x_ai_provider)
     api_key = (x_ai_api_key or "").strip()
     if not provider:
         raise HTTPException(status_code=400, detail="Missing X-AI-Provider header.")
+    if provider not in ALLOWED_AI_MODELS:
+        raise HTTPException(status_code=400, detail=f"Unsupported AI provider '{provider}'.")
     if not api_key:
         raise HTTPException(status_code=400, detail="Missing X-AI-API-Key header.")
-    model = _resolve_validation_model(provider)
+    model = _resolve_requested_model(provider, x_ai_model)
     try:
         litellm.completion(
             model=model,
@@ -572,7 +643,7 @@ def create_upload_url(
     x_ai_api_key: str | None = Header(None, alias="X-AI-API-Key"),
 ) -> UploadUrlResponse:
     _validate_ai_credentials_or_400(x_ai_provider, x_ai_model, x_ai_api_key)
-    session_id = user.session_id or user.user_id or str(uuid4())
+    session_id, _is_session = _actor_details(user)
     suffix = Path(request.filename).suffix or ".docx"
     object_key = temp_upload_key(session_id, f"{uuid4()}{suffix}")
     upload = services.object_store.create_presigned_upload(object_key, request.content_type)
@@ -593,10 +664,9 @@ def create_generate_job(
     x_ai_model: str | None = Header(None, alias="X-AI-Model"),
     x_ai_api_key: str | None = Header(None, alias="X-AI-API-Key"),
 ) -> CreateJobResponse:
-    _validate_ai_credentials_or_400(x_ai_provider, x_ai_model, x_ai_api_key)
-    actor_id = user.user_id or user.session_id
-    is_session = not bool(user.user_id)
-    actor_prefix = f"{'temp' if is_session else 'users'}/{actor_id}/json/"
+    ai_provider, ai_model = _validate_ai_credentials_or_400(x_ai_provider, x_ai_model, x_ai_api_key)
+    actor_id, is_session = _actor_details(user)
+    actor_prefix = _json_prefix(actor_id, is_session)
 
     output_json_key: str
     if request.source_type == "previous":
@@ -606,6 +676,8 @@ def create_generate_job(
             raise HTTPException(status_code=403, detail="Invalid source_json_key for this user.")
         output_json_key = request.source_json_key
     else:
+        if request.source_type == "new_upload":
+            _validate_temp_upload_key_for_actor(request.input_s3_key, actor_id)
         new_resume_id = str(uuid4())
         output_json_key = resume_json_key(actor_id, new_resume_id, is_session)
 
@@ -623,17 +695,23 @@ def create_generate_job(
         target_company=request.target_company,
         job_description=request.job_description,
     )
-    envelope = JobEnvelope(payload=payload, ai_provider=x_ai_provider, ai_model=x_ai_model, ai_api_key=x_ai_api_key)
-    state = JobState(job_id=envelope.job_id, status="pending")
+    envelope = JobEnvelope(payload=payload, ai_provider=ai_provider, ai_model=ai_model, ai_api_key=x_ai_api_key)
+    state = JobState(job_id=envelope.job_id, status="pending", user_id=user.user_id, session_id=user.session_id)
     services.job_states.create(state)
     services.queue.send(envelope)
     return CreateJobResponse(job_id=envelope.job_id, status=state.status)
 
 
 @router.get("/jobs/{job_id}", response_model=JobState)
-def get_job(job_id: str, services: ServiceContainer = Depends(get_services)) -> JobState:
+def get_job(
+    job_id: str,
+    user: UserContext = Depends(get_user_context),
+    services: ServiceContainer = Depends(get_services),
+) -> JobState:
     try:
-        return services.job_states.get(job_id)
+        state = services.job_states.get(job_id)
+        _assert_job_owner(state, user)
+        return state
     except NotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -646,12 +724,13 @@ def rewrite_preview(
     x_ai_model: str | None = Header(None, alias="X-AI-Model"),
     x_ai_api_key: str | None = Header(None, alias="X-AI-API-Key"),
 ) -> RewritePreviewResponse:
+    ai_provider, ai_model = _validate_ai_credentials_or_400(x_ai_provider, x_ai_model, x_ai_api_key)
     rewritten = services.tailor.rewrite_text(
         request.text,
         instruction=request.instruction,
         mode=request.mode,
-        ai_provider=x_ai_provider,
-        ai_model=x_ai_model,
+        ai_provider=ai_provider,
+        ai_model=ai_model,
         ai_api_key=x_ai_api_key,
     )
     return RewritePreviewResponse(rewritten_text=rewritten)
@@ -663,8 +742,7 @@ def get_resume(
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
 ) -> ResumeDocument:
-    actor_id = user.user_id or user.session_id
-    is_session = not bool(user.user_id)
+    actor_id, is_session = _actor_details(user)
 
     key = resume_json_key(actor_id, resume_id, is_session)
     if not services.object_store.exists(key):
@@ -677,17 +755,20 @@ def get_resume(
 @router.delete("/resume/{resume_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_resume(
     resume_id: str,
+    json_key: str | None = Query(default=None, description="Exact storage key for older resume history entries."),
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
 ) -> Response:
-    actor_id = user.user_id or user.session_id
-    is_session = not bool(user.user_id)
+    actor_id, is_session = _actor_details(user)
 
-    json_key = resume_json_key(actor_id, resume_id, is_session)
-    if not services.object_store.exists(json_key):
+    expected_prefix = _json_prefix(actor_id, is_session)
+    target_json_key = json_key or resume_json_key(actor_id, resume_id, is_session)
+    if not target_json_key.startswith(expected_prefix):
+        raise HTTPException(status_code=403, detail="Invalid resume key for this user.")
+    if not services.object_store.exists(target_json_key):
         raise HTTPException(status_code=404, detail="Resume not found.")
 
-    services.object_store.delete(json_key)
+    services.object_store.delete(target_json_key)
 
     rendered_key = output_docx_key(actor_id, resume_id, is_session)
     if services.object_store.exists(rendered_key):
@@ -703,8 +784,7 @@ def commit_resume(
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
 ) -> CreateJobResponse:
-    actor_id = user.user_id or user.session_id
-    is_session = not bool(user.user_id)
+    actor_id, is_session = _actor_details(user)
 
     payload = CommitJobPayload(
         resume_id=resume_id,
@@ -714,7 +794,7 @@ def commit_resume(
         document=request.document.model_copy(update={"resume_id": resume_id}),
     )
     envelope = JobEnvelope(payload=payload)
-    state = JobState(job_id=envelope.job_id, status="pending")
+    state = JobState(job_id=envelope.job_id, status="pending", user_id=user.user_id, session_id=user.session_id)
     services.job_states.create(state)
     services.queue.send(envelope)
     return CreateJobResponse(job_id=envelope.job_id, status=state.status)
@@ -727,8 +807,7 @@ def render_resume(
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
 ) -> CreateJobResponse:
-    actor_id = user.user_id or user.session_id
-    is_session = not bool(user.user_id)
+    actor_id, is_session = _actor_details(user)
 
     payload = RenderJobPayload(
         resume_id=resume_id,
@@ -738,7 +817,7 @@ def render_resume(
         session_id=user.session_id,
     )
     envelope = JobEnvelope(payload=payload)
-    state = JobState(job_id=envelope.job_id, status="pending")
+    state = JobState(job_id=envelope.job_id, status="pending", user_id=user.user_id, session_id=user.session_id)
     services.job_states.create(state)
     services.queue.send(envelope)
     return CreateJobResponse(job_id=envelope.job_id, status=state.status)
@@ -754,8 +833,8 @@ def rewrite_resume(
     x_ai_model: str | None = Header(None, alias="X-AI-Model"),
     x_ai_api_key: str | None = Header(None, alias="X-AI-API-Key"),
 ) -> CreateJobResponse:
-    actor_id = user.user_id or user.session_id
-    is_session = not bool(user.user_id)
+    ai_provider, ai_model = _validate_ai_credentials_or_400(x_ai_provider, x_ai_model, x_ai_api_key)
+    actor_id, is_session = _actor_details(user)
 
     payload = RewriteJobPayload(
         resume_id=resume_id,
@@ -764,8 +843,8 @@ def rewrite_resume(
         session_id=user.session_id,
         targets=request.targets,
     )
-    envelope = JobEnvelope(payload=payload, ai_provider=x_ai_provider, ai_model=x_ai_model, ai_api_key=x_ai_api_key)
-    state = JobState(job_id=envelope.job_id, status="pending")
+    envelope = JobEnvelope(payload=payload, ai_provider=ai_provider, ai_model=ai_model, ai_api_key=x_ai_api_key)
+    state = JobState(job_id=envelope.job_id, status="pending", user_id=user.user_id, session_id=user.session_id)
     services.job_states.create(state)
     services.queue.send(envelope)
     return CreateJobResponse(job_id=envelope.job_id, status=state.status)
@@ -780,8 +859,9 @@ def upload_master_resume(
     x_ai_model: str | None = Header(None, alias="X-AI-Model"),
     x_ai_api_key: str | None = Header(None, alias="X-AI-API-Key"),
 ) -> CreateJobResponse:
-    actor_id = user.user_id or user.session_id
-    is_session = not bool(user.user_id)
+    ai_provider, ai_model = _validate_ai_credentials_or_400(x_ai_provider, x_ai_model, x_ai_api_key)
+    actor_id, is_session = _actor_details(user)
+    _validate_temp_upload_key_for_actor(request.input_s3_key, actor_id)
 
     payload = ParseMasterJobPayload(
         user_id=user.user_id,
@@ -790,8 +870,8 @@ def upload_master_resume(
         filename=request.filename,
         content_type=request.content_type,
     )
-    envelope = JobEnvelope(payload=payload, ai_provider=x_ai_provider, ai_model=x_ai_model, ai_api_key=x_ai_api_key)
-    state = JobState(job_id=envelope.job_id, status="pending")
+    envelope = JobEnvelope(payload=payload, ai_provider=ai_provider, ai_model=ai_model, ai_api_key=x_ai_api_key)
+    state = JobState(job_id=envelope.job_id, status="pending", user_id=user.user_id, session_id=user.session_id)
     services.job_states.create(state)
     services.queue.send(envelope)
     return CreateJobResponse(job_id=envelope.job_id, status=state.status)
@@ -802,8 +882,7 @@ def get_master_resume(
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
 ) -> MasterResumeResponse:
-    actor_id = user.user_id or user.session_id
-    is_session = not bool(user.user_id)
+    actor_id, is_session = _actor_details(user)
 
     key = master_resume_key(actor_id, is_session)
     if not services.object_store.exists(key):
@@ -817,9 +896,8 @@ def get_resume_history(
     user: UserContext = Depends(get_user_context),
     services: ServiceContainer = Depends(get_services),
 ) -> ResumeHistoryResponse:
-    actor_id = user.user_id or user.session_id
-    is_session = not bool(user.user_id)
-    prefix = f"{'temp' if is_session else 'users'}/{actor_id}/json/"
+    actor_id, is_session = _actor_details(user)
+    prefix = _json_prefix(actor_id, is_session)
     keys = [key for key in services.object_store.list_keys(prefix) if key.endswith(".json")]
 
     history_items: list[ResumeHistoryItem] = []
