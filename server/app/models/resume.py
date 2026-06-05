@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 def utcnow() -> datetime:
@@ -23,6 +23,11 @@ class ExperienceEntry(BaseModel):
     end_date: str | None = None
     bullets: list[str] = Field(default_factory=list)
 
+    @field_validator("company", "role", mode="before")
+    @classmethod
+    def none_to_empty_string(cls, value: Any) -> Any:
+        return "" if value is None else value
+
 
 class EducationEntry(BaseModel):
     institution: str
@@ -32,6 +37,11 @@ class EducationEntry(BaseModel):
     end_date: str | None = None
     gpa: str = ""
     description: str = ""
+
+    @field_validator("institution", "degree", "field_of_study", "gpa", "description", mode="before")
+    @classmethod
+    def none_to_empty_string(cls, value: Any) -> Any:
+        return "" if value is None else value
 
 
 class ProjectEntry(BaseModel):
@@ -44,12 +54,22 @@ class ProjectEntry(BaseModel):
     end_date: str | None = None
     bullets: list[str] = Field(default_factory=list)
 
+    @field_validator("name", "description", mode="before")
+    @classmethod
+    def none_to_empty_string(cls, value: Any) -> Any:
+        return "" if value is None else value
+
 
 class CertificationEntry(BaseModel):
     name: str
     issuer: str = ""
     date_obtained: str | None = None
     url: str | None = None
+
+    @field_validator("name", "issuer", mode="before")
+    @classmethod
+    def none_to_empty_string(cls, value: Any) -> Any:
+        return "" if value is None else value
 
 
 class SkillCategory(BaseModel):

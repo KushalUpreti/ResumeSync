@@ -264,6 +264,7 @@ class LLMResumeTailor(ResumeTailor):
 
 Only output the JSON. Do not include markdown, explanations, or extra keys.
 If no education, projects, certifications, or skills data exists in the source resume, return an empty array for those fields.
+For required string fields, return an empty string when the value is unknown. Use null only for fields shown as nullable dates, URLs, or roles.
 """
 
         prompt_id = "tailor_sniper" if mode == "sniper" else "tailor_general"
