@@ -94,7 +94,7 @@ function AuthModal({
 
         <div className="auth-note">
           {authConfigError ??
-            'Cognito hosted auth is configured for email and Google sign-in. Use either to access your personalized workspace.'}
+            'Sign in to upload and manage your master resume, save generated resumes, and reopen your tailored versions anytime.'}
         </div>
       </section>
     </div>

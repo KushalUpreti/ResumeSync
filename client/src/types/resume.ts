@@ -39,9 +39,23 @@ export type SkillCategory = {
 }
 
 export type AiImprovement = {
-  category: 'summary' | 'experience' | 'ats' | 'skills' | 'structure' | 'clarity' | string
+  category:
+    | 'summary'
+    | 'experience'
+    | 'ats'
+    | 'skills'
+    | 'structure'
+    | 'clarity'
+    | 'keywords'
+    | 'metrics'
+    | 'projects'
+    | 'education'
+    | 'certifications'
+    | 'formatting'
+    | string
   title: string
   description: string
+  details?: string[]
   evidence?: string
 }
 

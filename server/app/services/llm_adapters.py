@@ -69,7 +69,7 @@ def parse_ai_improvements(improvements: Any) -> list[AiImprovement]:
         improvement = AiImprovement.model_validate(item)
         if improvement.title.strip() and improvement.description.strip():
             parsed.append(improvement)
-    return parsed
+    return parsed[:10]
 
 
 class LLMResumeParser(ResumeParser):
@@ -276,15 +276,25 @@ class LLMResumeTailor(ResumeTailor):
   "projects": [{"name": "...", "description": "...", "role": "...", "technologies": ["..."], "url": "...", "start_date": "...", "end_date": "...", "bullets": ["...", "..."]}],
   "certifications": [{"name": "...", "issuer": "...", "date_obtained": "...", "url": "..."}],
   "skills": [{"category": "...", "items": ["...", "..."]}],
-  "ai_improvements": [{"category": "summary|experience|ats|skills|structure|clarity", "title": "...", "description": "...", "evidence": "..."}]
+  "ai_improvements": [
+    {
+      "category": "summary|experience|ats|skills|structure|clarity|keywords|metrics|projects|education|certifications|formatting",
+      "title": "...",
+      "description": "...",
+      "details": ["Visible resume change 1", "Visible resume change 2", "Visible resume change 3"],
+      "evidence": "Updated: specific section or entry"
+    }
+  ]
 }
 
 Only output the JSON. Do not include markdown, explanations, or extra keys.
 If no education, projects, certifications, or skills data exists in the source resume, return an empty array for those fields.
 For required string fields, return an empty string when the value is unknown. Use null only for fields shown as nullable dates, URLs, or roles.
 The ai_improvements array must summarize only AI-generated changes you actually made compared with the source resume JSON.
-Return 3-8 ai_improvements. If you made no meaningful change, return an empty array.
-Each ai_improvements item must use one category from: summary, experience, ats, skills, structure, clarity.
+Return 4-10 ai_improvements. If you made no meaningful change, return an empty array.
+Each ai_improvements item must use one category from: summary, experience, ats, skills, structure, clarity, keywords, metrics, projects, education, certifications, formatting.
+Each ai_improvements item must include 2-3 details bullets naming concrete changes visible in the generated resume.
+Details must reference sections, role names, skill categories, rewritten bullet themes, preserved dates, added metric placeholders, or exact kinds of keywords used.
 Do not include scores, point values, percentages, external validation claims, or suggestions for changes you did not make.
 """
 
@@ -298,6 +308,7 @@ Do not include scores, point values, percentages, external validation claims, or
                 "source_notes": source_notes or "Not provided",
                 "resume_json": document.model_dump_json(),
             },
+            version="v2",
         )
 
     def rewrite_text(

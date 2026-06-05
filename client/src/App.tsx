@@ -27,9 +27,17 @@ function App() {
   } = useAuth()
   const isLoggedIn = auth.status === 'authenticated'
   const isPrototypeRoute = location.pathname === '/prototype'
+  const isProcessRoute = location.pathname === '/process'
+  const shellClassName = [
+    'app-shell',
+    isPrototypeRoute ? 'app-shell--prototype' : null,
+    isProcessRoute ? 'app-shell--process' : null,
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
-    <div className={isPrototypeRoute ? 'app-shell app-shell--prototype' : 'app-shell'}>
+    <div className={shellClassName}>
       <AppHeader
         auth={auth}
         onOpenAuthModal={openAuthModal}

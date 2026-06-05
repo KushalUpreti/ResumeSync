@@ -100,6 +100,7 @@ class AiImprovement(BaseModel):
     category: str
     title: str
     description: str
+    details: list[str] = Field(default_factory=list)
     evidence: str = ""
 
     @field_validator("category", "title", "description", "evidence", mode="before")
@@ -107,12 +108,44 @@ class AiImprovement(BaseModel):
     def none_to_empty_string(cls, value: Any) -> Any:
         return "" if value is None else value
 
+    @field_validator("details", mode="before")
+    @classmethod
+    def normalize_details(cls, value: Any) -> list[str]:
+        if value is None:
+            return []
+        if isinstance(value, str):
+            cleaned = value.strip()
+            return [cleaned] if cleaned else []
+        if isinstance(value, list):
+            return [str(item).strip() for item in value if str(item).strip()]
+        return []
+
     @field_validator("category", mode="after")
     @classmethod
     def normalize_category(cls, value: str) -> str:
         normalized = value.strip().lower()
-        allowed = {"summary", "experience", "ats", "skills", "structure", "clarity"}
+        allowed = {
+            "summary",
+            "experience",
+            "ats",
+            "skills",
+            "structure",
+            "clarity",
+            "keywords",
+            "metrics",
+            "projects",
+            "education",
+            "certifications",
+            "formatting",
+        }
         return normalized if normalized in allowed else "clarity"
+
+    @model_validator(mode="after")
+    def apply_detail_fallbacks(self) -> "AiImprovement":
+        if not self.details and self.evidence.strip():
+            self.details = [self.evidence.strip()]
+        self.details = self.details[:3]
+        return self
 
 
 class ResumeDocument(BaseModel):

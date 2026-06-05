@@ -7,7 +7,7 @@ from pathlib import Path
 from app.core.exceptions import NotFoundError
 from app.domain.storage_keys import job_state_key
 from app.models.jobs import JobEnvelope, JobState, QueuedJob
-from app.models.resume import ExperienceEntry, ResumeDocument, RewriteTarget, SkillCategory
+from app.models.resume import AiImprovement, ExperienceEntry, ResumeDocument, RewriteTarget, SkillCategory
 from app.services.interfaces import DocumentRenderer, JobStateStore, ObjectStore, PresignedUpload, QueueService, ResumeParser, ResumeTailor
 
 
@@ -109,7 +109,16 @@ class S3BackedJobStateStore(JobStateStore):
 
 
 class LocalResumeParser(ResumeParser):
-    def parse(self, source_bytes: bytes, filename: str = "", *, content_type: str | None = None, ai_provider: str | None = None, ai_api_key: str | None = None) -> ResumeDocument:
+    def parse(
+        self,
+        source_bytes: bytes,
+        filename: str = "",
+        *,
+        content_type: str | None = None,
+        ai_provider: str | None = None,
+        ai_model: str | None = None,
+        ai_api_key: str | None = None,
+    ) -> ResumeDocument:
         text = source_bytes.decode("utf-8", errors="ignore").strip()
         if not text:
             raise ValueError("The provided document or notes is empty. Please provide some professional details to proceed.")
@@ -164,7 +173,16 @@ class LocalResumeParser(ResumeParser):
 
 
 class LocalResumeTailor(ResumeTailor):
-    def tailor(self, document: ResumeDocument, *, mode: str, context: dict[str, str | None], ai_provider: str | None = None, ai_api_key: str | None = None) -> ResumeDocument:
+    def tailor(
+        self,
+        document: ResumeDocument,
+        *,
+        mode: str,
+        context: dict[str, str | None],
+        ai_provider: str | None = None,
+        ai_model: str | None = None,
+        ai_api_key: str | None = None,
+    ) -> ResumeDocument:
         updated = document.model_copy(deep=True)
         mode_prefix = "Elite" if mode == "sniper" else "Polished"
         role = context.get("target_role") or "target role"
@@ -178,14 +196,52 @@ class LocalResumeTailor(ResumeTailor):
             updated.skills = [
                 SkillCategory(category="Skills", items=["ATS Optimization", "Stakeholder Management"])
             ]
+        updated.ai_improvements = [
+            AiImprovement(
+                category="summary",
+                title="Summary sharpened",
+                description="The summary now names the target role context and keeps the candidate's original positioning visible.",
+                details=[
+                    f"Added a {mode_prefix.lower()} opening line for {role} at {company}.",
+                    "Kept the imported summary content after the new targeting sentence.",
+                ],
+                evidence="Updated: Professional Summary",
+            ),
+            AiImprovement(
+                category="skills",
+                title="Skills expanded",
+                description="The skills section now includes resume-tailoring and stakeholder language visible in the generated resume.",
+                details=[
+                    "Added ATS Optimization to the first skill category.",
+                    "Added Stakeholder Management while preserving existing skills.",
+                ],
+                evidence="Updated: Skills",
+            ),
+        ]
         updated.metadata |= {k: v for k, v in context.items() if v}
         return updated
 
-    def rewrite_text(self, text: str, *, instruction: str, mode: str, ai_provider: str | None = None, ai_api_key: str | None = None) -> str:
+    def rewrite_text(
+        self,
+        text: str,
+        *,
+        instruction: str,
+        mode: str,
+        ai_provider: str | None = None,
+        ai_model: str | None = None,
+        ai_api_key: str | None = None,
+    ) -> str:
         prefix = "Sniper rewrite" if mode == "sniper" else "Polisher rewrite"
         return f"{prefix}: {instruction}. {text}".strip()
 
-    def apply_rewrites(self, document: ResumeDocument, targets: list[RewriteTarget], ai_provider: str | None = None, ai_api_key: str | None = None) -> ResumeDocument:
+    def apply_rewrites(
+        self,
+        document: ResumeDocument,
+        targets: list[RewriteTarget],
+        ai_provider: str | None = None,
+        ai_model: str | None = None,
+        ai_api_key: str | None = None,
+    ) -> ResumeDocument:
         updated = document.model_copy(deep=True)
         for target in targets:
             if target.path.startswith("summary"):

@@ -149,6 +149,10 @@ strong {
   backdrop-filter: blur(14px);
 }
 
+.app-shell--process .site-header {
+  position: relative;
+}
+
 .site-header__inner,
 .site-footer {
   width: min(1240px, calc(100% - 56px));
@@ -525,6 +529,7 @@ strong {
 }
 
 .ingestion-page {
+  --ingestion-source-min-height: 400px;
   gap: var(--space-12);
   padding: 8px 0 4px;
 }
@@ -543,6 +548,11 @@ strong {
 .ingestion-page .dashboard-grid {
   gap: var(--space-3);
   align-items: stretch;
+}
+
+.ingestion-page .dashboard-grid > .section-card {
+  display: flex;
+  flex-direction: column;
 }
 
 .ingestion-page .stack-column {
@@ -564,7 +574,7 @@ strong {
 
 .ingestion-page .stack-column > .section-card:last-child .text-area {
   flex: 1 1 auto;
-  min-height: 0;
+  min-height: var(--ingestion-source-min-height);
   height: 100%;
 }
 
@@ -600,13 +610,29 @@ strong {
 }
 
 .ingestion-page .vault-input {
-  min-height: 440px;
+  min-height: var(--ingestion-source-min-height);
   padding: 18px 18px 20px;
 }
 
 .ingestion-page .upload-panel {
+  align-content: center;
+  flex: 1 1 auto;
   gap: var(--space-3);
-  padding: 42px clamp(24px, 4vw, 56px);
+  min-height: var(--ingestion-source-min-height);
+  padding: 36px clamp(24px, 4vw, 48px);
+  border-color: rgba(148, 163, 184, 0.58);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.98)),
+    var(--color-surface-variant);
+}
+
+.ingestion-page .upload-panel .button {
+  width: fit-content;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 0 22px;
+  margin-top: var(--space-2);
 }
 
 .ingestion-page .upload-panel strong {
@@ -618,6 +644,15 @@ strong {
   max-width: 34ch;
   font-size: 0.92rem;
   line-height: 1.55;
+}
+
+.ingestion-page .upload-panel__icon {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-xl);
+  margin-bottom: var(--space-2);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+  font-size: 1.45rem;
 }
 
 .ingestion-page .queue-block {
@@ -2717,6 +2752,14 @@ strong {
 }
 
 @media (max-width: 1120px) {
+  .ingestion-page {
+    --ingestion-source-min-height: 340px;
+  }
+
+  .ingestion-page .dashboard-grid > .section-card {
+    flex: initial;
+  }
+
   .hero-grid,
   .dashboard-grid,
   .dashboard-grid--config,

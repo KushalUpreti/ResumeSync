@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCheck,
+  faChevronDown,
   faFileLines,
   faWandMagicSparkles,
   faXmark,
@@ -24,7 +25,7 @@ import {
   isGeneratedDefaultFileBaseName,
   stripDocxExtension,
 } from "../lib/resumeFileName";
-import type { ResumeDocument } from "../types/resume";
+import type { AiImprovement, ResumeDocument } from "../types/resume";
 
 type ReviewStepProps = {
   onNext: () => void;
@@ -38,7 +39,13 @@ type ImprovementCategory =
   | "ats"
   | "skills"
   | "structure"
-  | "clarity";
+  | "clarity"
+  | "keywords"
+  | "metrics"
+  | "projects"
+  | "education"
+  | "certifications"
+  | "formatting";
 
 const aiImprovementCategoryLabels: Record<ImprovementCategory, string> = {
   summary: "Summary",
@@ -47,12 +54,26 @@ const aiImprovementCategoryLabels: Record<ImprovementCategory, string> = {
   skills: "Skills",
   structure: "Structure",
   clarity: "Clarity",
+  keywords: "Keywords",
+  metrics: "Metrics",
+  projects: "Projects",
+  education: "Education",
+  certifications: "Certifications",
+  formatting: "Formatting",
 };
 
 function normalizeImprovementCategory(category: string): ImprovementCategory {
   return category in aiImprovementCategoryLabels
     ? (category as ImprovementCategory)
     : "clarity";
+}
+
+function getImprovementDetails(improvement: AiImprovement) {
+  const details = improvement.details?.filter((detail) => detail.trim()) ?? [];
+  if (details.length > 0) {
+    return details.slice(0, 3);
+  }
+  return improvement.evidence?.trim() ? [improvement.evidence.trim()] : [];
 }
 
 function getBaseFileName(value: string | null | undefined) {
@@ -201,6 +222,9 @@ function ReviewStep({ onNext }: ReviewStepProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [isImprovementsModalOpen, setIsImprovementsModalOpen] = useState(false);
+  const [openImprovementKeys, setOpenImprovementKeys] = useState<
+    Record<string, boolean>
+  >({});
 
   const [activeRewritePath, setActiveRewritePath] = useState<string | null>(
     null,
@@ -994,6 +1018,10 @@ function ReviewStep({ onNext }: ReviewStepProps) {
     </span>
   );
   const aiImprovements = workingDocument?.ai_improvements ?? [];
+  const improvementDetailCount = aiImprovements.reduce(
+    (count, improvement) => count + getImprovementDetails(improvement).length,
+    0,
+  );
   const improvementCategoryCount = new Set(
     aiImprovements.map((improvement) =>
       normalizeImprovementCategory(improvement.category),
@@ -1043,8 +1071,8 @@ function ReviewStep({ onNext }: ReviewStepProps) {
                         AI Improvements
                       </h2>
                       <p className="ai-improvements-modal__subtitle">
-                        Here's how ResumeSync improved your resume during
-                        generation.
+                        ResumeSync grouped the visible resume changes by section
+                        so you can quickly verify what changed.
                       </p>
                     </div>
                   </div>
@@ -1061,7 +1089,7 @@ function ReviewStep({ onNext }: ReviewStepProps) {
                 <div className="ai-improvements-modal__summary">
                   <span>
                     <FontAwesomeIcon icon={faCheck} />
-                    {aiImprovements.length} improvements
+                    {improvementDetailCount} visible changes
                   </span>
                   <span>
                     <FontAwesomeIcon icon={faFileLines} />
@@ -1069,7 +1097,7 @@ function ReviewStep({ onNext }: ReviewStepProps) {
                   </span>
                   <span>
                     <FontAwesomeIcon icon={faWandMagicSparkles} />
-                    AI-generated changes
+                    AI-generated categories
                   </span>
                 </div>
 
@@ -1079,24 +1107,63 @@ function ReviewStep({ onNext }: ReviewStepProps) {
                       const category = normalizeImprovementCategory(
                         improvement.category,
                       );
+                      const details = getImprovementDetails(improvement);
+                      const evidence = improvement.evidence?.trim() ?? "";
+                      const shouldShowEvidence =
+                        evidence.length > 0 && !details.includes(evidence);
+                      const improvementKey = `${category}-${improvement.title}-${index}`;
+                      const isOpen =
+                        openImprovementKeys[improvementKey] ?? index === 0;
                       return (
                         <article
                           className={`ai-improvement-card ai-improvement-card--${category}`}
-                          key={`${category}-${improvement.title}-${index}`}
+                          key={improvementKey}
                         >
-                          <div className="ai-improvement-card__category">
-                            {aiImprovementCategoryLabels[category]}
-                          </div>
-                          <div className="ai-improvement-card__content">
-                            <h3>{improvement.title}</h3>
-                            <p>{improvement.description}</p>
-                            {improvement.evidence ? (
-                              <div className="ai-improvement-card__evidence">
-                                <FontAwesomeIcon icon={faCheck} />
-                                {improvement.evidence}
-                              </div>
-                            ) : null}
-                          </div>
+                          <button
+                            aria-expanded={isOpen}
+                            className="ai-improvement-card__trigger"
+                            onClick={() =>
+                              setOpenImprovementKeys((current) => ({
+                                ...current,
+                                [improvementKey]: !isOpen,
+                              }))
+                            }
+                            type="button"
+                          >
+                            <span className="ai-improvement-card__category">
+                              {aiImprovementCategoryLabels[category]}
+                            </span>
+                            <span className="ai-improvement-card__content">
+                              <span className="ai-improvement-card__title">
+                                {improvement.title}
+                              </span>
+                              <span className="ai-improvement-card__description">
+                                {improvement.description}
+                              </span>
+                            </span>
+                            <span className="ai-improvement-card__chevron">
+                              <FontAwesomeIcon icon={faChevronDown} />
+                            </span>
+                          </button>
+                          {isOpen ? (
+                            <div className="ai-improvement-card__panel">
+                              {details.length > 0 ? (
+                                <ul className="ai-improvement-card__details">
+                                  {details.map((detail, detailIndex) => (
+                                    <li key={`${improvementKey}-detail-${detailIndex}`}>
+                                      {detail}
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : null}
+                              {shouldShowEvidence ? (
+                                <div className="ai-improvement-card__evidence">
+                                  <FontAwesomeIcon icon={faCheck} />
+                                  {evidence}
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : null}
                         </article>
                       );
                     })
