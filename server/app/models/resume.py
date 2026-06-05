@@ -64,6 +64,7 @@ class CertificationEntry(BaseModel):
     name: str
     issuer: str = ""
     date_obtained: str | None = None
+    expiration_date: str | None = None
     url: str | None = None
 
     @field_validator("name", "issuer", mode="before")

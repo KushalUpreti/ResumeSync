@@ -2041,25 +2041,25 @@ strong {
 }
 
 .resume-sheet__inline-company.resume-sheet__inline-editor.resume-sheet__inline-editor--date {
-  width: 9ch;
-  min-width: 8ch;
-  max-width: 12ch;
+  width: 14ch;
+  min-width: 12ch;
+  max-width: 18ch;
   text-align: right;
   flex: 0 0 auto;
 }
 
 .resume-sheet__inline-left.resume-sheet__inline-editor.resume-sheet__inline-editor--date {
-  width: 9ch;
-  min-width: 8ch;
-  max-width: 12ch;
+  width: 14ch;
+  min-width: 12ch;
+  max-width: 18ch;
   text-align: left;
   flex: 0 0 auto;
 }
 
 .resume-sheet__inline-editor--date {
-  width: 9ch;
-  min-width: 8ch;
-  max-width: 12ch;
+  width: 14ch;
+  min-width: 12ch;
+  max-width: 18ch;
   text-align: right;
   flex: 0 0 auto;
 }
@@ -2450,6 +2450,18 @@ strong {
 
 .template-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.export-template-notice {
+  max-width: 760px;
+  margin: calc(var(--space-4) * -1) 0 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.42);
+  border-radius: var(--radius-md);
+  background: rgba(248, 250, 252, 0.86);
+  color: var(--color-text-muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
 }
 
 .template-card {

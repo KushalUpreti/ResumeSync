@@ -31,6 +31,7 @@ export type CertificationEntry = {
   name: string
   issuer?: string
   date_obtained?: string | null
+  expiration_date?: string | null
   url?: string
 }
 export type SkillCategory = {

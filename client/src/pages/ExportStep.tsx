@@ -76,6 +76,11 @@ const ExportStep: FC<ExportStepProps> = () => {
         ))}
       </div>
 
+      <p className="export-template-notice">
+        Minor spacing tweaks may be needed after export. These are safe edits
+        that do not break ATS compatibility.
+      </p>
+
       <div
         className="page-intro__actions"
         style={{

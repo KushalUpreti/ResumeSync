@@ -274,7 +274,7 @@ class LLMResumeTailor(ResumeTailor):
   "experience": [{"company": "...", "role": "...", "start_date": "...", "end_date": "...", "bullets": ["...", "..."]}],
   "education": [{"institution": "...", "degree": "...", "field_of_study": "...", "start_date": "...", "end_date": "...", "gpa": "...", "description": "..."}],
   "projects": [{"name": "...", "description": "...", "role": "...", "technologies": ["..."], "url": "...", "start_date": "...", "end_date": "...", "bullets": ["...", "..."]}],
-  "certifications": [{"name": "...", "issuer": "...", "date_obtained": "...", "url": "..."}],
+  "certifications": [{"name": "...", "issuer": "...", "date_obtained": "...", "expiration_date": "...", "url": "..."}],
   "skills": [{"category": "...", "items": ["...", "..."]}],
   "ai_improvements": [
     {

@@ -83,6 +83,15 @@ class DocxtplDocumentRenderer(DocumentRenderer):
                     "name": cert.name,
                     "issuer": cert.issuer or "",
                     "date_obtained": cert.date_obtained or "",
+                    "expiration_date": cert.expiration_date or "",
+                    "date_text": " | ".join(
+                        part
+                        for part in [
+                            cert.date_obtained or "",
+                            f"Expires: {cert.expiration_date}" if cert.expiration_date else "",
+                        ]
+                        if part
+                    ),
                     "url": cert.url or "",
                 }
                 for cert in document.certifications

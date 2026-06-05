@@ -121,7 +121,7 @@ type EditableTextProps = {
 };
 
 function isDateField(path: string) {
-  return /(?:start_date|end_date|date_obtained)$/.test(path);
+  return /(?:start_date|end_date|date_obtained|expiration_date)$/.test(path);
 }
 
 function getPlaceholder(path: string) {
@@ -151,6 +151,7 @@ function getPlaceholder(path: string) {
   if (/^certifications\[\d+\]\.name$/.test(path)) return "Add certification";
   if (/^certifications\[\d+\]\.issuer$/.test(path)) return "Add issuer";
   if (/^certifications\[\d+\]\.date_obtained$/.test(path)) return "Add date";
+  if (/^certifications\[\d+\]\.expiration_date$/.test(path)) return "Add expiration date";
 
   if (path === "summary") return "Add summary";
   if (path.includes(".bullets[")) return "Add bullet";
@@ -909,11 +910,20 @@ function ResumeSheet({
                   />
                 </div>
                 <p className="resume-sheet__date-line">
+                  <span>Issued: </span>
                   <EditableText
                     value={cert.date_obtained ?? ""}
                     path={`certifications[${idx}].date_obtained`}
                     className="resume-sheet__inline-left"
                     placeholder={showEmptyPlaceholders ? getPlaceholder(`certifications[${idx}].date_obtained`) : undefined}
+                    onInlineEdit={onInlineEdit}
+                  />
+                  <span> | Expires: </span>
+                  <EditableText
+                    value={cert.expiration_date ?? ""}
+                    path={`certifications[${idx}].expiration_date`}
+                    className="resume-sheet__inline-left"
+                    placeholder={showEmptyPlaceholders ? getPlaceholder(`certifications[${idx}].expiration_date`) : undefined}
                     onInlineEdit={onInlineEdit}
                   />
                 </p>

@@ -542,14 +542,15 @@ function ReviewStep({ onNext }: ReviewStepProps) {
     }
 
     const certificationFieldMatch = path.match(
-      /^certifications\[(\d+)\]\.(name|issuer|date_obtained)$/,
+      /^certifications\[(\d+)\]\.(name|issuer|date_obtained|expiration_date)$/,
     );
     if (certificationFieldMatch) {
       const certIndex = Number(certificationFieldMatch[1]);
       const field = certificationFieldMatch[2] as
         | "name"
         | "issuer"
-        | "date_obtained";
+        | "date_obtained"
+        | "expiration_date";
 
       return {
         ...document,
@@ -738,14 +739,15 @@ function ReviewStep({ onNext }: ReviewStepProps) {
       return entry[field] ?? null;
     }
     const certificationFieldMatch = path.match(
-      /^certifications\[(\d+)\]\.(name|issuer|date_obtained)$/,
+      /^certifications\[(\d+)\]\.(name|issuer|date_obtained|expiration_date)$/,
     );
     if (certificationFieldMatch) {
       const certIndex = Number(certificationFieldMatch[1]);
       const field = certificationFieldMatch[2] as
         | "name"
         | "issuer"
-        | "date_obtained";
+        | "date_obtained"
+        | "expiration_date";
       const entry = document.certifications?.[certIndex];
       if (!entry) return null;
       return entry[field] ?? null;
