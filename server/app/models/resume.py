@@ -96,6 +96,25 @@ class SkillCategory(BaseModel):
         return data
 
 
+class AiImprovement(BaseModel):
+    category: str
+    title: str
+    description: str
+    evidence: str = ""
+
+    @field_validator("category", "title", "description", "evidence", mode="before")
+    @classmethod
+    def none_to_empty_string(cls, value: Any) -> Any:
+        return "" if value is None else value
+
+    @field_validator("category", mode="after")
+    @classmethod
+    def normalize_category(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        allowed = {"summary", "experience", "ats", "skills", "structure", "clarity"}
+        return normalized if normalized in allowed else "clarity"
+
+
 class ResumeDocument(BaseModel):
     resume_id: str = Field(default_factory=lambda: str(uuid4()))
     full_name: str = PLACEHOLDER_NAME
@@ -108,6 +127,7 @@ class ResumeDocument(BaseModel):
     projects: list[ProjectEntry] = Field(default_factory=list)
     certifications: list[CertificationEntry] = Field(default_factory=list)
     skills: list[SkillCategory] = Field(default_factory=list)
+    ai_improvements: list[AiImprovement] = Field(default_factory=list)
     metadata: dict[str, str] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)

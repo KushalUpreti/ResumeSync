@@ -38,6 +38,13 @@ export type SkillCategory = {
   items: string[]
 }
 
+export type AiImprovement = {
+  category: 'summary' | 'experience' | 'ats' | 'skills' | 'structure' | 'clarity' | string
+  title: string
+  description: string
+  evidence?: string
+}
+
 export type ResumeDocument = {
   resume_id: string
   full_name: string
@@ -50,6 +57,7 @@ export type ResumeDocument = {
   projects?: ProjectEntry[]
   certifications?: CertificationEntry[]
   skills: SkillCategory[]
+  ai_improvements?: AiImprovement[]
   metadata?: Record<string, string>
   created_at?: string
   updated_at?: string

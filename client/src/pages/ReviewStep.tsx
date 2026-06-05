@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFileLines, faWandMagicSparkles } from "@fortawesome/free-solid-svg-icons";
+import {
+  faCheck,
+  faFileLines,
+  faWandMagicSparkles,
+  faXmark,
+} from "@fortawesome/free-solid-svg-icons";
 import {
   commitResume,
   getResume,
@@ -27,6 +32,28 @@ type ReviewStepProps = {
 };
 
 type BulletSection = "experience" | "projects";
+type ImprovementCategory =
+  | "summary"
+  | "experience"
+  | "ats"
+  | "skills"
+  | "structure"
+  | "clarity";
+
+const aiImprovementCategoryLabels: Record<ImprovementCategory, string> = {
+  summary: "Summary",
+  experience: "Experience",
+  ats: "ATS",
+  skills: "Skills",
+  structure: "Structure",
+  clarity: "Clarity",
+};
+
+function normalizeImprovementCategory(category: string): ImprovementCategory {
+  return category in aiImprovementCategoryLabels
+    ? (category as ImprovementCategory)
+    : "clarity";
+}
 
 function getBaseFileName(value: string | null | undefined) {
   if (!value) {
@@ -173,6 +200,7 @@ function ReviewStep({ onNext }: ReviewStepProps) {
   const { addNotification } = useNotification();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
+  const [isImprovementsModalOpen, setIsImprovementsModalOpen] = useState(false);
 
   const [activeRewritePath, setActiveRewritePath] = useState<string | null>(
     null,
@@ -965,6 +993,12 @@ function ReviewStep({ onNext }: ReviewStepProps) {
       <span className="resume-name-field__suffix">.docx</span>
     </span>
   );
+  const aiImprovements = workingDocument?.ai_improvements ?? [];
+  const improvementCategoryCount = new Set(
+    aiImprovements.map((improvement) =>
+      normalizeImprovementCategory(improvement.category),
+    ),
+  ).size;
 
   return (
     <div className="page-stack">
@@ -982,6 +1016,122 @@ function ReviewStep({ onNext }: ReviewStepProps) {
         </div>,
         document.getElementById("header-actions-portal")!,
       )}
+      {isImprovementsModalOpen
+        ? createPortal(
+            <div
+              className="ai-improvements-backdrop"
+              onClick={() => setIsImprovementsModalOpen(false)}
+              role="presentation"
+            >
+              <section
+                aria-labelledby="ai-improvements-title"
+                aria-modal="true"
+                className="ai-improvements-modal"
+                onClick={(event) => event.stopPropagation()}
+                role="dialog"
+              >
+                <header className="ai-improvements-modal__header">
+                  <div className="ai-improvements-modal__title-group">
+                    <div className="ai-improvements-modal__icon">
+                      <FontAwesomeIcon icon={faWandMagicSparkles} />
+                    </div>
+                    <div>
+                      <h2
+                        className="ai-improvements-modal__title"
+                        id="ai-improvements-title"
+                      >
+                        AI Improvements
+                      </h2>
+                      <p className="ai-improvements-modal__subtitle">
+                        Here's how ResumeSync improved your resume during
+                        generation.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    aria-label="Close improvements"
+                    className="ai-improvements-modal__close"
+                    onClick={() => setIsImprovementsModalOpen(false)}
+                    type="button"
+                  >
+                    <FontAwesomeIcon icon={faXmark} />
+                  </button>
+                </header>
+
+                <div className="ai-improvements-modal__summary">
+                  <span>
+                    <FontAwesomeIcon icon={faCheck} />
+                    {aiImprovements.length} improvements
+                  </span>
+                  <span>
+                    <FontAwesomeIcon icon={faFileLines} />
+                    {improvementCategoryCount} categories
+                  </span>
+                  <span>
+                    <FontAwesomeIcon icon={faWandMagicSparkles} />
+                    AI-generated changes
+                  </span>
+                </div>
+
+                <div className="ai-improvements-modal__body">
+                  {aiImprovements.length > 0 ? (
+                    aiImprovements.map((improvement, index) => {
+                      const category = normalizeImprovementCategory(
+                        improvement.category,
+                      );
+                      return (
+                        <article
+                          className={`ai-improvement-card ai-improvement-card--${category}`}
+                          key={`${category}-${improvement.title}-${index}`}
+                        >
+                          <div className="ai-improvement-card__category">
+                            {aiImprovementCategoryLabels[category]}
+                          </div>
+                          <div className="ai-improvement-card__content">
+                            <h3>{improvement.title}</h3>
+                            <p>{improvement.description}</p>
+                            {improvement.evidence ? (
+                              <div className="ai-improvement-card__evidence">
+                                <FontAwesomeIcon icon={faCheck} />
+                                {improvement.evidence}
+                              </div>
+                            ) : null}
+                          </div>
+                        </article>
+                      );
+                    })
+                  ) : (
+                    <div className="ai-improvements-empty">
+                      <FontAwesomeIcon icon={faWandMagicSparkles} />
+                      <h3>No AI improvements recorded</h3>
+                      <p>
+                        Generate a new tailored resume to see the specific
+                        AI-generated changes summarized here.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <footer className="ai-improvements-modal__footer">
+                  <p>
+                    These improvements summarize AI-generated changes only.
+                    Manual edits are not included.
+                  </p>
+                  <div className="ai-improvements-modal__actions">
+                    <button
+                      className="button button--primary"
+                      onClick={() => setIsImprovementsModalOpen(false)}
+                      type="button"
+                    >
+                      Continue Reviewing
+                    </button>
+                  </div>
+                </footer>
+              </section>
+            </div>,
+            document.body,
+          )
+        : null}
 
       <div className={`review-grid ${singleResume ? "single-resume" : ""}`}>
         {originalDocument && (
@@ -1034,8 +1184,19 @@ function ReviewStep({ onNext }: ReviewStepProps) {
               />
               AI Optimized Output
             </div>
-            <div className="ats-badge">
-              <span className="status-dot"></span> ATS OPTIMIZED
+            <div className="optimized-banner__actions">
+              <div className="ats-badge">
+                <span className="status-dot"></span> ATS OPTIMIZED
+              </div>
+              <button
+                className="view-improvements-button"
+                disabled={aiImprovements.length === 0}
+                onClick={() => setIsImprovementsModalOpen(true)}
+                type="button"
+              >
+                <FontAwesomeIcon icon={faWandMagicSparkles} />
+                View Improvements
+              </button>
             </div>
           </div>
           <div style={{ flex: 1, minHeight: 0 }}>

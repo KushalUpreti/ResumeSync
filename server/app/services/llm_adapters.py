@@ -9,6 +9,7 @@ from docx import Document
 from pypdf import PdfReader
 
 from app.models.resume import (
+    AiImprovement,
     CertificationEntry,
     EducationEntry,
     ExperienceEntry,
@@ -55,6 +56,20 @@ def normalize_provider(provider: str | None) -> str:
 
 def parse_skill_categories(skills: Any) -> list[SkillCategory]:
     return ResumeDocument.model_validate({"skills": skills}).skills
+
+
+def parse_ai_improvements(improvements: Any) -> list[AiImprovement]:
+    if not isinstance(improvements, list):
+        return []
+
+    parsed: list[AiImprovement] = []
+    for item in improvements:
+        if not isinstance(item, dict):
+            continue
+        improvement = AiImprovement.model_validate(item)
+        if improvement.title.strip() and improvement.description.strip():
+            parsed.append(improvement)
+    return parsed
 
 
 class LLMResumeParser(ResumeParser):
@@ -218,6 +233,7 @@ class LLMResumeTailor(ResumeTailor):
             if data.get("certifications") is not None
             else document.certifications,
             skills=parse_skill_categories(data.get("skills", [])) if data.get("skills") is not None else document.skills,
+            ai_improvements=parse_ai_improvements(data.get("ai_improvements", [])),
             metadata={
                 **document.metadata,
                 "mode": mode,
@@ -259,12 +275,17 @@ class LLMResumeTailor(ResumeTailor):
   "education": [{"institution": "...", "degree": "...", "field_of_study": "...", "start_date": "...", "end_date": "...", "gpa": "...", "description": "..."}],
   "projects": [{"name": "...", "description": "...", "role": "...", "technologies": ["..."], "url": "...", "start_date": "...", "end_date": "...", "bullets": ["...", "..."]}],
   "certifications": [{"name": "...", "issuer": "...", "date_obtained": "...", "url": "..."}],
-  "skills": [{"category": "...", "items": ["...", "..."]}]
+  "skills": [{"category": "...", "items": ["...", "..."]}],
+  "ai_improvements": [{"category": "summary|experience|ats|skills|structure|clarity", "title": "...", "description": "...", "evidence": "..."}]
 }
 
 Only output the JSON. Do not include markdown, explanations, or extra keys.
 If no education, projects, certifications, or skills data exists in the source resume, return an empty array for those fields.
 For required string fields, return an empty string when the value is unknown. Use null only for fields shown as nullable dates, URLs, or roles.
+The ai_improvements array must summarize only AI-generated changes you actually made compared with the source resume JSON.
+Return 3-8 ai_improvements. If you made no meaningful change, return an empty array.
+Each ai_improvements item must use one category from: summary, experience, ats, skills, structure, clarity.
+Do not include scores, point values, percentages, external validation claims, or suggestions for changes you did not make.
 """
 
         prompt_id = "tailor_sniper" if mode == "sniper" else "tailor_general"
