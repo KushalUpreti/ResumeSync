@@ -5,7 +5,6 @@ import {
   faAsterisk,
   faBullseye,
   faCloud,
-  faCrosshairs,
   faFingerprint,
   faShieldHalved,
   faWaveSquare,
