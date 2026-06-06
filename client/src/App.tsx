@@ -7,7 +7,6 @@ import { useAuth } from './context/useAuth'
 import AuthCallbackPage from './pages/AuthCallbackPage'
 import LandingPage from './pages/LandingPage'
 import ProfilePage from './pages/ProfilePage'
-import PrototypePage from './pages/PrototypePage'
 import ProcessPage from './pages/ProcessPage'
 
 function App() {
@@ -26,11 +25,9 @@ function App() {
     startGoogleSignIn,
   } = useAuth()
   const isLoggedIn = auth.status === 'authenticated'
-  const isPrototypeRoute = location.pathname === '/prototype'
   const isProcessRoute = location.pathname === '/process'
   const shellClassName = [
     'app-shell',
-    isPrototypeRoute ? 'app-shell--prototype' : null,
     isProcessRoute ? 'app-shell--process' : null,
   ]
     .filter(Boolean)
@@ -43,13 +40,7 @@ function App() {
         onOpenAuthModal={openAuthModal}
         onSignOut={signOut}
       />
-      <main
-        className={
-          isPrototypeRoute
-            ? 'app-shell__main app-shell__main--prototype'
-            : 'app-shell__main'
-        }
-      >
+      <main className="app-shell__main">
         <Routes>
           <Route
             path="/"
@@ -60,15 +51,11 @@ function App() {
             }
           />
           <Route path="/profile" element={<ProfilePage />} />
-          <Route
-            path="/prototype"
-            element={<PrototypePage isLoggedIn={isLoggedIn} />}
-          />
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route path="/process" element={<ProcessPage />} />
         </Routes>
       </main>
-      {isPrototypeRoute ? null : <AppFooter />}
+      <AppFooter />
 
       {isAuthOpen ? (
         <AuthModal

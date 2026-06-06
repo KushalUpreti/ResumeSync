@@ -1,246 +1,417 @@
+import { useEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faArrowRight,
-  faBullseye,
-  faChartLine,
-  faDatabase,
-  faRocket,
+  faAsterisk,
+  faCloud,
+  faCodeBranch,
+  faCrosshairs,
+  faFingerprint,
   faShieldHalved,
-  faSyncAlt,
+  faWaveSquare,
 } from "@fortawesome/free-solid-svg-icons";
 import { Link } from "react-router-dom";
-import SectionCard from "../components/SectionCard";
 
 type LandingPageProps = {
   isLoggedIn: boolean;
 };
 
-const featureCards = [
+const modules = [
   {
-    title: "Semantic Extraction",
-    copy: "Our engine maps your experience to industry-standard taxonomies used by Workday and Greenhouse.",
+    eyebrow: "Resume refinement",
+    icon: faAsterisk,
+    title: "Polish your resume",
+    copy: "Improve clarity, tone, and structure while keeping your experience intact and easy to scan.",
+    stats: [
+      ["Fast", "Review cycle"],
+      ["Clear", "Final copy"],
+    ],
   },
   {
-    title: "Bias Neutralization",
-    copy: "AI-driven auditing identifies and corrects subtle patterns that might trigger algorithmic filtering.",
-  },
-  {
-    title: "Impact Quantifier",
-    copy: "Automatically translates vague tasks into data-backed metrics that grab attention instantly.",
+    eyebrow: "Job targeting",
+    icon: faCrosshairs,
+    title: "Tailor to the role",
+    copy: "Adapt your bullets and summary to a specific job description with stronger keywords and sharper impact.",
+    stats: [
+      ["Focused", "Role fit"],
+      ["Simple", "Edits"],
+    ],
   },
 ];
 
-const modeCards = [
+const workflow = [
+  ["01", "Setup", "Choose your goal, template, and target role."],
+  ["02", "Import", "Add your resume or paste your professional history."],
+  ["03", "Review", "Edit tailored sections with side-by-side context."],
+  ["04", "Export", "Download a polished resume when it is ready."],
+];
+
+const infrastructure = [
   {
-    label: "Mode 01",
-    title: "The Polisher",
-    copy: "The grounded choice. Refines your existing content for maximum clarity, tone consistency, and grammatical precision without changing your core narrative.",
-    bullets: [
-      "Precision tone adjustment",
-      "Grammar & syntax scrubbing",
-      "Clarity & conciseness focus",
-    ],
-    cta: "Select Polisher",
-    icon: faShieldHalved,
+    icon: faCloud,
+    title: "Reliable processing",
+    copy: "Built to handle resume generation quickly and consistently.",
   },
   {
-    label: "Mode 02",
-    title: "The Sniper",
-    copy: "The FAANG-ready choice. Heavy-duty job targeting. We rewrite your bullets based on specific job descriptions to force-align with company values.",
-    bullets: [
-      "Job-specific keyword injection",
-      "Metric-focused bullet generation",
-      "Company culture alignment",
-    ],
-    cta: "Select Sniper",
-    featured: true,
-    icon: faBullseye,
+    icon: faShieldHalved,
+    title: "Protected workspace",
+    copy: "Your resume data is handled with care from import through export.",
+  },
+  {
+    icon: faWaveSquare,
+    title: "Clear version history",
+    copy: "Keep track of changes as you refine your resume for each opportunity.",
   },
 ];
 
 function LandingPage({ isLoggedIn }: LandingPageProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mockupRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const revealElements = Array.from(
+      document.querySelectorAll<HTMLElement>(".reveal-on-scroll"),
+    );
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+          }
+        }
+      },
+      { threshold: 0.12 },
+    );
+
+    for (const element of revealElements) {
+      observer.observe(element);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return;
+    }
+
+    const context = canvas.getContext("2d");
+    if (!context) {
+      return;
+    }
+
+    const particles = Array.from({ length: 70 }, () => ({
+      x: 0,
+      y: 0,
+      size: 0,
+      speedX: 0,
+      speedY: 0,
+    }));
+
+    const resetParticle = (particle: (typeof particles)[number]) => {
+      particle.x = Math.random() * canvas.width;
+      particle.y = Math.random() * canvas.height;
+      particle.size = Math.random() * 1.2 + 0.4;
+      particle.speedX = (Math.random() - 0.5) * 0.28;
+      particle.speedY = (Math.random() - 0.5) * 0.28;
+    };
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      particles.forEach(resetParticle);
+    };
+
+    resize();
+    window.addEventListener("resize", resize);
+
+    let animationFrame = 0;
+    const animate = () => {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (const particle of particles) {
+        particle.x += particle.speedX;
+        particle.y += particle.speedY;
+
+        if (particle.x > canvas.width) particle.x = 0;
+        if (particle.x < 0) particle.x = canvas.width;
+        if (particle.y > canvas.height) particle.y = 0;
+        if (particle.y < 0) particle.y = canvas.height;
+
+        context.fillStyle = "rgba(15, 23, 42, 0.11)";
+        context.beginPath();
+        context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        context.fill();
+      }
+
+      for (let index = 0; index < particles.length; index += 1) {
+        for (
+          let nextIndex = index + 1;
+          nextIndex < particles.length;
+          nextIndex += 1
+        ) {
+          const dx = particles[index].x - particles[nextIndex].x;
+          const dy = particles[index].y - particles[nextIndex].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < 120) {
+            context.strokeStyle = `rgba(15, 23, 42, ${0.045 * (1 - distance / 120)})`;
+            context.lineWidth = 0.5;
+            context.beginPath();
+            context.moveTo(particles[index].x, particles[index].y);
+            context.lineTo(particles[nextIndex].x, particles[nextIndex].y);
+            context.stroke();
+          }
+        }
+      }
+
+      animationFrame = window.requestAnimationFrame(animate);
+    };
+
+    animationFrame = window.requestAnimationFrame(animate);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
+
+  useEffect(() => {
+    const mockup = mockupRef.current;
+    if (!mockup) {
+      return;
+    }
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const x = (window.innerWidth / 2 - event.clientX) / 90;
+      const y = (window.innerHeight / 2 - event.clientY) / 110;
+      mockup.style.setProperty("--mockup-tilt-x", `${6 + y}deg`);
+      mockup.style.setProperty("--mockup-tilt-y", `${-13 + x}deg`);
+      mockup.style.setProperty("--mockup-tilt-z", "3deg");
+    };
+
+    const resetTilt = () => {
+      mockup.style.removeProperty("--mockup-tilt-x");
+      mockup.style.removeProperty("--mockup-tilt-y");
+      mockup.style.removeProperty("--mockup-tilt-z");
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    mockup.addEventListener("pointerleave", resetTilt);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      mockup.removeEventListener("pointerleave", resetTilt);
+    };
+  }, []);
+
   return (
-    <div className="page-stack landing-stack">
-      <section className="hero-grid">
-        <div className="hero-copy">
-          <p className="eyebrow">Version 2.4.0 live</p>
-          <h1 className="page-title">
-            Engineered Resumes for
-            <br />
-            Elite Career Results
+    <div className="industrial-landing">
+      <canvas aria-hidden="true" className="sync-node-canvas" ref={canvasRef} />
+      <div className="scanline" aria-hidden="true" />
+      <section className="industrial-hero" aria-labelledby="landing-title">
+        <div className="industrial-hero__copy reveal-on-scroll">
+          <p className="industrial-label">ResumeSync AI</p>
+          <h1 id="landing-title">
+            Engineered
+            <span>results.</span>
           </h1>
-          <p className="page-copy">
-            Precision-engineered career documentation powered by
-            enterprise-grade AI orchestration. Optimize for high-stakes ATS
-            algorithms while maintaining technical authority throughout your
-            BYOK architecture.
+          <p className="industrial-copy">
+            Build, tailor, review, and export a polished resume without
+            wrestling with formatting or rewriting every bullet from scratch.
           </p>
-          <div className="hero-actions">
-            <Link className="button button--primary" to="/process">
-              {isLoggedIn ? "Open Workspace" : "Get Started"}
+          <div className="industrial-actions">
+            <Link
+              className="industrial-button industrial-button--dark"
+              to="/process"
+            >
+              {isLoggedIn ? "Open workspace" : "Get started"}
               <FontAwesomeIcon icon={faArrowRight} />
             </Link>
-            <Link className="button button--ghost" to="/prototype">
-              View the prototype
+            <Link
+              className="industrial-button industrial-button--light"
+              to="/process"
+            >
+              See workflow
             </Link>
           </div>
-          <div className="hero-infra">
-            <div>
-              <span className="hero-infra__icon">
-                <FontAwesomeIcon icon={faShieldHalved} />
-              </span>
-              <span>BYOK security</span>
-              <small>Client-managed encryption.</small>
+        </div>
+
+        <div
+          className="industrial-hero__visual reveal-on-scroll"
+          aria-label="ResumeSync dashboard preview"
+          style={{ transitionDelay: "120ms" }}
+        >
+          <div className="system-window" ref={mockupRef}>
+            <div className="system-window__chrome">
+              <span />
+              <span />
+              <span />
+              <small>Resume workspace</small>
             </div>
-            <div>
-              <span className="hero-infra__icon">
-                <FontAwesomeIcon icon={faDatabase} />
-              </span>
-              <span>S3 persistence</span>
-              <small>Triple-redundant storage.</small>
-            </div>
-            <div>
-              <span className="hero-infra__icon">
-                <FontAwesomeIcon icon={faRocket} />
-              </span>
-              <span>Fargate compute</span>
-              <small>Isolated serverless processing.</small>
+            <div className="system-window__screen">
+              <div className="screen-grid screen-grid--top">
+                <span />
+                <span />
+                <span />
+              </div>
+              <div className="screen-panel screen-panel--wide">
+                <strong>Candidate Signal</strong>
+                <div className="micro-bars">
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                </div>
+              </div>
+              <div className="screen-panel">
+                <strong>Role Match</strong>
+                <em>98%</em>
+              </div>
+              <div className="screen-panel">
+                <strong>Keyword Delta</strong>
+                <em>+42</em>
+              </div>
+              <div className="screen-graph">
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+              </div>
+              <div className="screen-core">
+                <FontAwesomeIcon icon={faFingerprint} />
+              </div>
             </div>
           </div>
         </div>
-
-        <SectionCard className="hero-preview">
-          <div className="hero-preview__header">
-            <div>
-              <span className="hero-preview__badge">
-                <FontAwesomeIcon icon={faSyncAlt} />
-              </span>
-              <strong>ResumeSync_v2.5 Final</strong>
-              <p>Last synced: 02m ago</p>
-            </div>
-            <span>...</span>
-          </div>
-          <div className="hero-preview__score">
-            <div className="hero-preview__score-label">
-              <span>ATS Optimization Score</span>
-              <strong>98%</strong>
-            </div>
-            <div className="hero-preview__bar">
-              <span />
-            </div>
-          </div>
-          <div className="hero-preview__metrics">
-            <div>
-              <span>Parsing depth</span>
-              <strong>High</strong>
-            </div>
-            <div>
-              <span>Latency</span>
-              <strong>14ms</strong>
-            </div>
-          </div>
-          <div className="hero-preview__notice">
-            <strong>AES-256 Encryption Active</strong>
-            <p>
-              Secure tunnel established for BYOK data stream. Fargate instance
-              running in VPC isolation.
-            </p>
-          </div>
-        </SectionCard>
       </section>
 
-      <section className="feature-section">
-        <div className="section-heading">
-          <h2>Defeating the ATS Black Hole</h2>
-          <p>
-            Modern recruiters do not read resumes first. Their algorithms do. If
-            your syntax is not engineered for parsing, your expertise never
-            reaches a human eye.
-          </p>
+      <section
+        className="industrial-section industrial-section--modules"
+        id="features"
+      >
+        <div className="industrial-section__header reveal-on-scroll">
+          <div>
+            <p className="industrial-kicker">Core features</p>
+            <h2>Choose how you want to improve your resume</h2>
+          </div>
+          <p>Built for focused, practical edits.</p>
         </div>
-        <div className="feature-grid">
-          {featureCards.map((feature) => (
-            <SectionCard key={feature.title}>
-              <h3>{feature.title}</h3>
-              <p className="section-copy">{feature.copy}</p>
-            </SectionCard>
+        <div className="module-grid">
+          {modules.map((module, index) => (
+            <article
+              className="industrial-card module-card reveal-on-scroll"
+              key={module.title}
+              style={{ transitionDelay: `${index * 100}ms` }}
+            >
+              <div className="module-card__top">
+                <FontAwesomeIcon icon={module.icon} />
+                <span>{module.eyebrow}</span>
+              </div>
+              <h3>{module.title}</h3>
+              <p>{module.copy}</p>
+              <dl>
+                {module.stats.map(([value, label]) => (
+                  <div key={label}>
+                    <dt>{value}</dt>
+                    <dd>{label}</dd>
+                  </div>
+                ))}
+              </dl>
+            </article>
           ))}
         </div>
       </section>
 
-      <section className="mode-showcase">
-        {modeCards.map((mode) => (
-          <SectionCard
-            className={mode.featured ? "mode-panel is-featured" : "mode-panel"}
-            key={mode.title}
-          >
-            <div className="mode-panel__top">
-              <p className="section-label">{mode.label}</p>
-              {mode.featured ? (
-                <span className="tag tag--dark">Popular</span>
-              ) : null}
-            </div>
-            <h3>{mode.title}</h3>
-            <p className="section-copy">{mode.copy}</p>
-            <ul className="clean-list">
-              {mode.bullets.map((bullet) => (
-                <li key={bullet}>{bullet}</li>
-              ))}
-            </ul>
-            <Link
-              className={
-                mode.featured
-                  ? "button button--primary button--full"
-                  : "button button--ghost button--full"
-              }
-              to="/process"
+      <section
+        className="industrial-section industrial-section--workflow"
+        id="platform"
+      >
+        <div className="reveal-on-scroll">
+          <p className="industrial-kicker">Workflow</p>
+          <h2>From first draft to final export</h2>
+        </div>
+        <div className="workflow-line">
+          {workflow.map(([step, title, copy], index) => (
+            <article
+              className="workflow-step reveal-on-scroll"
+              key={step}
+              style={{ transitionDelay: `${index * 90}ms` }}
             >
-              <FontAwesomeIcon icon={mode.icon} />
-              {mode.cta}
-            </Link>
-          </SectionCard>
-        ))}
+              <span>{step}</span>
+              <h3>{title}</h3>
+              <p>{copy}</p>
+            </article>
+          ))}
+        </div>
       </section>
 
-      <section className="capability-grid">
-        <SectionCard className="capability-grid__large">
-          <h3>Enterprise Grade Infrastructure</h3>
-          <p className="section-copy">
-            Built on AWS Fargate for ephemeral, isolated execution environments.
-            Your data never touches a persistent disk.
-          </p>
-        </SectionCard>
-        <SectionCard>
-          <h3>LLM Agnostic</h3>
-          <p className="section-copy">
-            Switch between GPT-4o, Claude 3.5, and Gemini Pro.
-          </p>
-        </SectionCard>
-        <SectionCard>
-          <div className="capability-icon">
-            <FontAwesomeIcon icon={faShieldHalved} />
+      <section
+        className="industrial-section reliability-section"
+        id="enterprise"
+      >
+        <div className="reliability-section__copy reveal-on-scroll">
+          <p className="industrial-kicker">Workspace</p>
+          <h2>Designed for steady, confident editing</h2>
+          <div className="reliability-list">
+            {infrastructure.map((item) => (
+              <article key={item.title}>
+                <FontAwesomeIcon icon={item.icon} />
+                <div>
+                  <h3>{item.title}</h3>
+                  <p>{item.copy}</p>
+                </div>
+              </article>
+            ))}
           </div>
-          <h3>AES-256</h3>
-          <p className="section-copy">Encryption</p>
-        </SectionCard>
-        <SectionCard>
-          <div className="capability-icon">
-            <FontAwesomeIcon icon={faChartLine} />
+        </div>
+
+        <div
+          className="diagnostic-card reveal-on-scroll"
+          aria-label="System metrics card"
+          style={{ transitionDelay: "120ms" }}
+        >
+          <div className="diagnostic-card__header">
+            <span>Resume overview</span>
+            <span>Ready to export</span>
           </div>
-          <h3>&lt; 200ms</h3>
-          <p className="section-copy">Latency</p>
-        </SectionCard>
+          <div className="diagnostic-card__bars">
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
+          <div className="diagnostic-card__core">
+            <FontAwesomeIcon icon={faCodeBranch} />
+          </div>
+          <div className="diagnostic-card__footer">
+            <span>Template selected</span>
+            <span>Latest version saved</span>
+          </div>
+        </div>
       </section>
 
-      <section className="cta-band">
-        <p className="section-label">Ready to Sync?</p>
-        <h2>
-          Join 15,000+ engineers who have upgraded their careers with ResumeSync
-          AI.
-        </h2>
-        <div className="cta-band__actions">
-          <Link className="button button--light" to="/process">
-            Get Started Now
+      <section className="industrial-cta reveal-on-scroll" id="pricing">
+        <p className="industrial-kicker">Ready when you are</p>
+        <h2>Build a resume you can send with confidence.</h2>
+        <p>
+          Start with what you have, shape it for the role you want, and export a
+          clean final version.
+        </p>
+        <div className="industrial-actions industrial-actions--center">
+          <Link
+            className="industrial-button industrial-button--dark"
+            to="/process"
+          >
+            Get started
+          </Link>
+          <Link
+            className="industrial-button industrial-button--light"
+            to="/process"
+          >
+            View workflow
           </Link>
         </div>
       </section>

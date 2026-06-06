@@ -24,11 +24,11 @@ function AppHeader({ auth, onOpenAuthModal, onSignOut }: AppHeaderProps) {
             <span className="status-badge">Auth config issue</span>
           ) : isLoggedIn ? (
             <>
-              <Link className="button button--ghost" to="/profile">
+              <Link className="button button--ghost site-header__profile" to="/profile">
                 {userName}
               </Link>
               <button
-                className="button button--ghost"
+                className="button button--ghost site-header__signout"
                 onClick={onSignOut}
                 type="button"
               >
@@ -37,15 +37,16 @@ function AppHeader({ auth, onOpenAuthModal, onSignOut }: AppHeaderProps) {
             </>
           ) : (
             <>
+              <span className="status-badge">CORE_V1.9 // ONLINE</span>
               <button
-                className="button button--ghost"
+                className="button button--ghost site-header__login"
                 onClick={() => onOpenAuthModal("signIn")}
                 type="button"
               >
                 Login
               </button>
               <Link
-                className="button button--primary"
+                className="button button--primary site-header__primary"
                 to="/process"
               >
                 Get Started
