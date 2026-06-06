@@ -37,12 +37,12 @@ router = APIRouter()
 
 INTERNAL_SOURCE_FILENAMES = {"notes_ingestion", "notes_ingestion.txt"}
 ALLOWED_AI_MODELS = {
-    "openai": {"gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo", "openai/gpt-4o-mini"},
+    "openai": {"gpt-5.5", "gpt-5.4-pro", "gpt-5.4-mini", "gpt-4o-mini"},
     "anthropic": {
-        "anthropic/claude-3-5-sonnet-20240620",
+        "anthropic/claude-4-8-opus-latest",
+        "anthropic/claude-4-6-sonnet-latest",
+        "anthropic/claude-4-5-haiku-latest",
         "anthropic/claude-3-5-haiku-20241022",
-        "anthropic/claude-3-haiku-20240307",
-        "anthropic/claude-3-opus-20240229",
     },
     "gemini": {
         "gemini/gemini-3.1-flash-lite",
@@ -202,6 +202,8 @@ def _resolve_requested_model(provider: str, requested_model: str | None) -> str:
     model = (requested_model or "").strip()
     if not model:
         return _resolve_validation_model(provider)
+    if provider == "bedrock" and model.startswith("bedrock/converse/amazon.nova"):
+        model = model.replace("bedrock/converse/amazon.nova", "bedrock/converse/us.amazon.nova")
     if model not in ALLOWED_AI_MODELS.get(provider, set()):
         raise HTTPException(status_code=400, detail=f"Unsupported AI model '{model}' for provider '{provider}'.")
     return model
@@ -691,6 +693,8 @@ def _resolve_requested_model(provider: str, requested_model: str | None) -> str:
     model = (requested_model or "").strip()
     if not model:
         return _resolve_validation_model(provider)
+    if provider == "bedrock" and model.startswith("bedrock/converse/amazon.nova"):
+        model = model.replace("bedrock/converse/amazon.nova", "bedrock/converse/us.amazon.nova")
     if model not in ALLOWED_AI_MODELS.get(provider, set()):
         raise HTTPException(status_code=400, detail=f"Unsupported AI model '{model}' for provider '{provider}'.")
     return model

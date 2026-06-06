@@ -4529,3 +4529,40 @@ strong {
     max-width: 38vw;
   }
 }
+
+.workflow-step__visual {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/10;
+  margin-top: 16px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.3);
+  transform: perspective(1000px) rotateX(12deg) rotateY(-8deg);
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  will-change: transform;
+}
+
+.workflow-step:hover .workflow-step__visual {
+  transform: perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1.05);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.workflow-step__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  transition: transform 0.5s ease;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  transform: translateZ(0);
+}
+
+.workflow-step:hover .workflow-step__img {
+  transform: scale(1.03);
+}

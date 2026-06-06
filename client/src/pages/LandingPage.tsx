@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faArrowRight,
   faAsterisk,
+  faBullseye,
   faCloud,
   faCrosshairs,
   faFingerprint,
@@ -17,23 +18,23 @@ type LandingPageProps = {
 
 const modules = [
   {
-    eyebrow: "Resume refinement",
+    eyebrow: "REF: POLISHER_V4",
     icon: faAsterisk,
-    title: "Polish your resume",
-    copy: "Improve clarity, tone, and structure while keeping your experience intact and easy to scan.",
+    title: "THE POLISHER",
+    copy: "Synthesizes linguistic precision and tonal alignment. Optimized for executive clarity and semantic resonance across all ATS platforms.",
     stats: [
-      ["Fast", "Review cycle"],
-      ["Clear", "Final copy"],
+      ["+42%", "MATCH RATE"],
+      ["8.4s", "LATENCY"],
     ],
   },
   {
-    eyebrow: "Job targeting",
-    icon: faCrosshairs,
-    title: "Tailor to the role",
-    copy: "Adapt your bullets and summary to a specific job description with stronger keywords and sharper impact.",
+    eyebrow: "REF: SNIPER_V2",
+    icon: faBullseye,
+    title: "THE SNIPER",
+    copy: "Targeted keyword extraction and role-specific calibration. Maps your trajectory directly onto job descriptions with lethal accuracy.",
     stats: [
-      ["Focused", "Role fit"],
-      ["Simple", "Edits"],
+      ["98%", "RELEVANCE"],
+      ["INSTANT", "SYNTHESIS"],
     ],
   },
 ];
@@ -66,6 +67,23 @@ const infrastructure = [
 function LandingPage({ isLoggedIn }: LandingPageProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mockupRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    document.title = "ResumeSync AI - Engineered results.";
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute(
+        "content",
+        "Build, tailor, review, and export a polished resume without wrestling with formatting or rewriting every bullet from scratch."
+      );
+    } else {
+      const meta = document.createElement("meta");
+      meta.name = "description";
+      meta.content =
+        "Build, tailor, review, and export a polished resume without wrestling with formatting or rewriting every bullet from scratch.";
+      document.head.appendChild(meta);
+    }
+  }, []);
 
   useEffect(() => {
     const revealElements = Array.from(
@@ -206,7 +224,7 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
   }, []);
 
   return (
-    <div className="industrial-landing">
+    <main className="industrial-landing">
       <canvas aria-hidden="true" className="sync-node-canvas" ref={canvasRef} />
       <div className="scanline" aria-hidden="true" />
       <section className="industrial-hero" aria-labelledby="landing-title">
@@ -234,12 +252,12 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
               {isLoggedIn ? "Open workspace" : "Get started"}
               <FontAwesomeIcon icon={faArrowRight} />
             </Link>
-            <Link
+            <a
               className="industrial-button industrial-button--light"
-              to="/process"
+              href="#platform"
             >
               See workflow
-            </Link>
+            </a>
           </div>
           <div className="landing-signal-row" aria-hidden="true">
             <span />
@@ -256,7 +274,7 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
           <div className="actual-mockup-card">
             <img
               alt="ResumeSync review workspace showing original resume and optimized output"
-              src="/landing-review-mockup.png"
+              src="/landing/review.png"
             />
           </div>
         </div>
@@ -407,15 +425,15 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
           >
             Get started
           </Link>
-          <Link
+          <a
             className="industrial-button industrial-button--light"
-            to="/process"
+            href="#platform"
           >
             View workflow
-          </Link>
+          </a>
         </div>
       </section>
-    </div>
+    </main>
   );
 }
 

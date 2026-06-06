@@ -30,12 +30,12 @@ from app.services.prompts import PromptRegistry, RenderedPrompt
 
 
 ALLOWED_AI_MODELS = {
-    "openai": {"gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo", "openai/gpt-4o-mini"},
+    "openai": {"gpt-5.5", "gpt-5.4-pro", "gpt-5.4-mini", "gpt-4o-mini"},
     "anthropic": {
-        "anthropic/claude-3-5-sonnet-20240620",
+        "anthropic/claude-4-8-opus-latest",
+        "anthropic/claude-4-6-sonnet-latest",
+        "anthropic/claude-4-5-haiku-latest",
         "anthropic/claude-3-5-haiku-20241022",
-        "anthropic/claude-3-haiku-20240307",
-        "anthropic/claude-3-opus-20240229",
     },
     "gemini": {
         "gemini/gemini-3.1-flash-lite",
@@ -183,6 +183,8 @@ class LLMResumeParser(ResumeParser):
         provider = normalize_provider(provider)
         if model:
             normalized_model = model.strip()
+            if provider == "bedrock" and normalized_model.startswith("bedrock/converse/amazon.nova"):
+                normalized_model = normalized_model.replace("bedrock/converse/amazon.nova", "bedrock/converse/us.amazon.nova")
             if "/" in normalized_model:
                 return normalized_model
             if normalized_model in ALLOWED_AI_MODELS.get(provider, set()):
@@ -390,6 +392,8 @@ Text:
         provider = normalize_provider(provider)
         if model:
             normalized_model = model.strip()
+            if provider == "bedrock" and normalized_model.startswith("bedrock/converse/amazon.nova"):
+                normalized_model = normalized_model.replace("bedrock/converse/amazon.nova", "bedrock/converse/us.amazon.nova")
             if "/" in normalized_model:
                 return normalized_model
             if normalized_model in ALLOWED_AI_MODELS.get(provider, set()):

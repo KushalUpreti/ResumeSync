@@ -8,6 +8,7 @@ import {
   faMemory,
   faMicrochip,
   faCloud,
+  faExclamationTriangle,
 } from '@fortawesome/free-solid-svg-icons'
 import SectionCard from '../components/SectionCard'
 import { useNotification } from '../context/useNotification'
@@ -22,14 +23,16 @@ const providerIconMap = {
 
 const modelMappings: Record<string, { label: string; value: string }[]> = {
   OpenAI: [
-    { label: 'gpt-4o (Standard)', value: 'gpt-4o' },
-    { label: 'gpt-4o-mini (Cost Optimized)', value: 'gpt-4o-mini' },
-    { label: 'gpt-3.5-turbo (Legacy)', value: 'gpt-3.5-turbo' },
+    { label: 'GPT-5.5 (Latest Flagship)', value: 'gpt-5.5' },
+    { label: 'GPT-5.4 Pro (High Performance)', value: 'gpt-5.4-pro' },
+    { label: 'GPT-5.4 Mini (Cost Optimized)', value: 'gpt-5.4-mini' },
+    { label: 'GPT-4o Mini (Legacy/Cheap)', value: 'gpt-4o-mini' },
   ],
   Anthropic: [
-    { label: 'Claude 3.5 Sonnet (Powerful)', value: 'anthropic/claude-3-5-sonnet-20240620' },
-    { label: 'Claude 3 Haiku (Fast)', value: 'anthropic/claude-3-haiku-20240307' },
-    { label: 'Claude 3 Opus (Creative)', value: 'anthropic/claude-3-opus-20240229' },
+    { label: 'Claude 4.8 Opus (Latest Flagship)', value: 'anthropic/claude-4-8-opus-latest' },
+    { label: 'Claude 4.6 Sonnet (Powerful)', value: 'anthropic/claude-4-6-sonnet-latest' },
+    { label: 'Claude 4.5 Haiku (Fast/Cheap)', value: 'anthropic/claude-4-5-haiku-latest' },
+    { label: 'Claude 3.5 Haiku (Legacy/Cheap)', value: 'anthropic/claude-3-5-haiku-20241022' },
   ],
   'Google Gemini': [
     { label: 'Gemini 3.1 Flash Lite (Best throughput + RPM)', value: 'gemini/gemini-3.1-flash-lite' },
@@ -136,7 +139,14 @@ function ConfigStep({ onNext }: ConfigStepProps) {
                     <FontAwesomeIcon icon={providerIconMap[provider.name as keyof typeof providerIconMap]} />
                   </div>
                   <div>
-                    <h3>{provider.name}</h3>
+                    <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {provider.name}
+                      {(provider.name === 'OpenAI' || provider.name === 'Anthropic') && (
+                        <span title="These models have not been fully verified as they require paid API credits." style={{ color: '#f59e0b', fontSize: '0.8em', cursor: 'help' }}>
+                          <FontAwesomeIcon icon={faExclamationTriangle} />
+                        </span>
+                      )}
+                    </h3>
                     <p>{provider.model}</p>
                   </div>
                   {isSelected ? (
