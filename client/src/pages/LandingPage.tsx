@@ -4,7 +4,6 @@ import {
   faArrowRight,
   faAsterisk,
   faCloud,
-  faCodeBranch,
   faCrosshairs,
   faFingerprint,
   faShieldHalved,
@@ -211,6 +210,12 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
       <canvas aria-hidden="true" className="sync-node-canvas" ref={canvasRef} />
       <div className="scanline" aria-hidden="true" />
       <section className="industrial-hero" aria-labelledby="landing-title">
+        <div className="landing-orbit landing-orbit--one" aria-hidden="true">
+          <span />
+        </div>
+        <div className="landing-orbit landing-orbit--two" aria-hidden="true">
+          <span />
+        </div>
         <div className="industrial-hero__copy reveal-on-scroll">
           <p className="industrial-label">ResumeSync AI</p>
           <h1 id="landing-title">
@@ -236,6 +241,11 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
               See workflow
             </Link>
           </div>
+          <div className="landing-signal-row" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </div>
         </div>
 
         <div
@@ -243,47 +253,11 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
           aria-label="ResumeSync dashboard preview"
           style={{ transitionDelay: "120ms" }}
         >
-          <div className="system-window" ref={mockupRef}>
-            <div className="system-window__chrome">
-              <span />
-              <span />
-              <span />
-              <small>Resume workspace</small>
-            </div>
-            <div className="system-window__screen">
-              <div className="screen-grid screen-grid--top">
-                <span />
-                <span />
-                <span />
-              </div>
-              <div className="screen-panel screen-panel--wide">
-                <strong>Candidate Signal</strong>
-                <div className="micro-bars">
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                </div>
-              </div>
-              <div className="screen-panel">
-                <strong>Role Match</strong>
-                <em>98%</em>
-              </div>
-              <div className="screen-panel">
-                <strong>Keyword Delta</strong>
-                <em>+42</em>
-              </div>
-              <div className="screen-graph">
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-              </div>
-              <div className="screen-core">
-                <FontAwesomeIcon icon={faFingerprint} />
-              </div>
-            </div>
+          <div className="actual-mockup-card">
+            <img
+              alt="ResumeSync review workspace showing original resume and optimized output"
+              src="/landing-review-mockup.png"
+            />
           </div>
         </div>
       </section>
@@ -334,6 +308,7 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
           <h2>From first draft to final export</h2>
         </div>
         <div className="workflow-line">
+          <div className="workflow-line__progress" aria-hidden="true" />
           {workflow.map(([step, title, copy], index) => (
             <article
               className="workflow-step reveal-on-scroll"
@@ -369,26 +344,51 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
         </div>
 
         <div
-          className="diagnostic-card reveal-on-scroll"
-          aria-label="System metrics card"
+          className="workspace-animated-mockup reveal-on-scroll"
+          aria-label="Animated workspace preview"
           style={{ transitionDelay: "120ms" }}
         >
-          <div className="diagnostic-card__header">
-            <span>Resume overview</span>
-            <span>Ready to export</span>
-          </div>
-          <div className="diagnostic-card__bars">
-            <span />
-            <span />
-            <span />
-            <span />
-          </div>
-          <div className="diagnostic-card__core">
-            <FontAwesomeIcon icon={faCodeBranch} />
-          </div>
-          <div className="diagnostic-card__footer">
-            <span>Template selected</span>
-            <span>Latest version saved</span>
+          <div className="system-window system-window--workspace" ref={mockupRef}>
+            <div className="system-window__chrome">
+              <span />
+              <span />
+              <span />
+              <small>Resume workspace</small>
+            </div>
+            <div className="system-window__screen">
+              <div className="screen-grid screen-grid--top">
+                <span />
+                <span />
+                <span />
+              </div>
+              <div className="screen-panel screen-panel--wide">
+                <strong>Candidate Signal</strong>
+                <div className="micro-bars">
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                </div>
+              </div>
+              <div className="screen-panel">
+                <strong>Role Match</strong>
+                <em>98%</em>
+              </div>
+              <div className="screen-panel">
+                <strong>Keyword Delta</strong>
+                <em>+42</em>
+              </div>
+              <div className="screen-graph">
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+              </div>
+              <div className="screen-core">
+                <FontAwesomeIcon icon={faFingerprint} />
+              </div>
+            </div>
           </div>
         </div>
       </section>
