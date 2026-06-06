@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faArrowRight,
+  faArrowUpRightFromSquare,
   faAsterisk,
   faBullseye,
   faCloud,
@@ -17,8 +18,8 @@ type LandingPageProps = {
 
 const modules = [
   {
-    eyebrow: "REF: POLISHER_V4",
     icon: faAsterisk,
+    mode: "polisher",
     title: "THE POLISHER",
     copy: "Synthesizes linguistic precision and tonal alignment. Optimized for executive clarity and semantic resonance across all ATS platforms.",
     stats: [
@@ -27,8 +28,8 @@ const modules = [
     ],
   },
   {
-    eyebrow: "REF: SNIPER_V2",
     icon: faBullseye,
+    mode: "sniper",
     title: "THE SNIPER",
     copy: "Targeted keyword extraction and role-specific calibration. Maps your trajectory directly onto job descriptions with lethal accuracy.",
     stats: [
@@ -39,10 +40,30 @@ const modules = [
 ];
 
 const workflow = [
-  ["01", "Setup", "Choose your goal, template, and target role."],
-  ["02", "Import", "Add your resume or paste your professional history."],
-  ["03", "Review", "Edit tailored sections with side-by-side context."],
-  ["04", "Export", "Download a polished resume when it is ready."],
+  {
+    step: "01",
+    title: "Setup",
+    copy: "Choose your goal, template, and target role.",
+    image: "/landing-review-mockup.png",
+  },
+  {
+    step: "02",
+    title: "Import",
+    copy: "Add your resume or paste your professional history.",
+    image: "/landing/ingestion.png",
+  },
+  {
+    step: "03",
+    title: "Review",
+    copy: "Edit tailored sections with side-by-side context.",
+    image: "/landing/review.png",
+  },
+  {
+    step: "04",
+    title: "Export",
+    copy: "Download a polished resume when it is ready.",
+    image: "/landing/export.png",
+  },
 ];
 
 const infrastructure = [
@@ -66,6 +87,7 @@ const infrastructure = [
 function LandingPage({ isLoggedIn }: LandingPageProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mockupRef = useRef<HTMLDivElement>(null);
+  const [activeWorkflowStep, setActiveWorkflowStep] = useState(0);
 
   useEffect(() => {
     document.title = "ResumeSync AI - Engineered results.";
@@ -292,14 +314,20 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
         </div>
         <div className="module-grid">
           {modules.map((module, index) => (
-            <article
+            <Link
+              aria-label={`Start with ${module.title}`}
               className="industrial-card module-card reveal-on-scroll"
+              to={`/process?step=ingestion&mode=${module.mode}`}
               key={module.title}
               style={{ transitionDelay: `${index * 100}ms` }}
             >
               <div className="module-card__top">
                 <FontAwesomeIcon icon={module.icon} />
-                <span>{module.eyebrow}</span>
+                <FontAwesomeIcon
+                  aria-hidden="true"
+                  className="module-card__arrow"
+                  icon={faArrowUpRightFromSquare}
+                />
               </div>
               <h3>{module.title}</h3>
               <p>{module.copy}</p>
@@ -311,7 +339,7 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
                   </div>
                 ))}
               </dl>
-            </article>
+            </Link>
           ))}
         </div>
       </section>
@@ -324,19 +352,48 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
           <p className="industrial-kicker">Workflow</p>
           <h2>From first draft to final export</h2>
         </div>
-        <div className="workflow-line">
-          <div className="workflow-line__progress" aria-hidden="true" />
-          {workflow.map(([step, title, copy], index) => (
-            <article
-              className="workflow-step reveal-on-scroll"
-              key={step}
-              style={{ transitionDelay: `${index * 90}ms` }}
-            >
-              <span>{step}</span>
-              <h3>{title}</h3>
-              <p>{copy}</p>
-            </article>
-          ))}
+        <div className="workflow-showcase">
+          <div className="workflow-line">
+            <div className="workflow-line__progress" aria-hidden="true" />
+            {workflow.map(({ step, title, copy }, index) => (
+              <article
+                aria-current={activeWorkflowStep === index ? "step" : undefined}
+                className={`workflow-step${
+                  activeWorkflowStep === index ? " is-active" : ""
+                }`}
+                key={step}
+                onClick={() => setActiveWorkflowStep(index)}
+                onFocus={() => setActiveWorkflowStep(index)}
+                onMouseEnter={() => setActiveWorkflowStep(index)}
+                tabIndex={0}
+              >
+                <span>{step}</span>
+                <div>
+                  <h3>{title}</h3>
+                  <p>{copy}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div
+            className="workflow-preview reveal-on-scroll"
+            aria-label={`${workflow[activeWorkflowStep].title} workflow preview`}
+            style={{ transitionDelay: "160ms" }}
+          >
+            <div className="workflow-preview__shell">
+              {workflow.map(({ image, title }, index) => (
+                <img
+                  alt={`${title} screen preview`}
+                  className={`workflow-preview__image${
+                    activeWorkflowStep === index ? " is-active" : ""
+                  }`}
+                  key={image}
+                  src={image}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 

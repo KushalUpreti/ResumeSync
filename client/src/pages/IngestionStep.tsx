@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
+  faBullseye,
   faFileArrowUp,
   faFileLines,
   faCircle,
@@ -36,14 +37,16 @@ type IngestionStepProps = {
 
 const savedModes = [
   {
-    value: "general",
-    label: "General",
+    value: "polisher",
+    label: "Polisher",
+    icon: faFileLines,
     description:
       "Build a balanced master resume that keeps the full career story intact. Add any relevant context in the notes for better tailoring.",
   },
   {
     value: "sniper",
     label: "Sniper",
+    icon: faBullseye,
     description:
       "Sharpen the resume toward the target role with stronger keyword and relevance matching.",
   },
@@ -73,7 +76,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
   const [dragActive, setDragActive] = useState(false);
   const [useMasterResume, setUseMasterResume] = useState(true);
   const [selectedMode, setSelectedMode] = useState<SavedModeValue>(
-    tailoringMode === "sniper" ? "sniper" : "general",
+    tailoringMode === "sniper" ? "sniper" : "polisher",
   );
   const [details, setDetails] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -131,6 +134,10 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.status]);
 
+  useEffect(() => {
+    setSelectedMode(tailoringMode === "sniper" ? "sniper" : "polisher");
+  }, [tailoringMode]);
+
   function handleFilePick(fileList: FileList | null) {
     const nextFile = fileList?.[0];
     if (!nextFile) {
@@ -159,18 +166,16 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     setUseMasterResume(false);
   }
 
-  function handleRestoreMasterResume() {
+  function handleSelectMasterResume() {
     setUseMasterResume(true);
     setSelectedFile(null);
     setSelectedHistoryKey(null);
   }
 
-  function handleClearMasterResume() {
+  function handleDeselectMasterResume() {
     setUseMasterResume(false);
     setSelectedFile(null);
     setSelectedHistoryKey(null);
-    setMasterResume(null);
-    setDraftResume(null);
   }
 
   function truncateDisplayName(value: string, maxLength = 36) {
@@ -203,10 +208,12 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     (mode) => mode.value === selectedMode,
   );
   const selectedHistoryItem = selectedHistoryKey
-    ? resumeHistory.find((item) => item.json_key === selectedHistoryKey) ?? null
+    ? (resumeHistory.find((item) => item.json_key === selectedHistoryKey) ??
+      null)
     : null;
-  const selectedHistoryDisplayName =
-    selectedHistoryItem ? getHistoryDisplayName(selectedHistoryItem) : "";
+  const selectedHistoryDisplayName = selectedHistoryItem
+    ? getHistoryDisplayName(selectedHistoryItem)
+    : "";
   const hasSelectedAnalysisSource = Boolean(
     selectedFile ||
     (auth.status === "authenticated" && masterResume && useMasterResume) ||
@@ -482,24 +489,39 @@ function IngestionStep({ onNext }: IngestionStepProps) {
                   onClick={() => handleModeChange(mode.value)}
                   type="button"
                 >
-                  {mode.label}
+                  <FontAwesomeIcon icon={mode.icon} />
+                  <span>{mode.label}</span>
                 </button>
               ))}
             </div>
-            <p className="section-copy">{selectedModeData?.description}</p>
+            <p className="section-copy mode-description">
+              {selectedModeData?.description}
+            </p>
           </SectionCard>
 
-          <SectionCard>
+          <SectionCard
+            className={
+              selectedMode === "sniper"
+                ? "direction-card direction-card--required"
+                : "direction-card"
+            }
+          >
             <div className="section-card__header section-card__header--inline">
-              <h2 className="section-card__title">
-                {selectedMode === "sniper"
-                  ? "Job Description"
-                  : "Ingestion Notes"}
-              </h2>
+              <div className="direction-card__title-row">
+                <h2 className="section-card__title">
+                  {selectedMode === "sniper"
+                    ? "Job Description"
+                    : "Ingestion Notes"}
+                </h2>
+                {selectedMode === "sniper" ? (
+                  <span className="required-pill">Required</span>
+                ) : null}
+              </div>
             </div>
             <div className="vault-container">
               <textarea
                 className="text-area vault-input"
+                aria-required={selectedMode === "sniper"}
                 placeholder={
                   selectedMode === "sniper"
                     ? "Paste the target job description here (Required for Sniper mode)..."
@@ -513,6 +535,12 @@ function IngestionStep({ onNext }: IngestionStepProps) {
                 }
               />
             </div>
+            {selectedMode === "sniper" ? (
+              <p className="required-helper">
+                Sniper mode needs the target posting to tune keywords,
+                responsibilities, and emphasis.
+              </p>
+            ) : null}
           </SectionCard>
         </div>
 
@@ -520,7 +548,8 @@ function IngestionStep({ onNext }: IngestionStepProps) {
           <div className="section-card__header">
             <h2 className="section-card__title">Primary Source Upload</h2>
             <p className="section-copy">
-              Upload your latest PDF/DOCX resume for structural analysis.
+              Upload your latest PDF/DOCX resume for structural analysis. Or
+              pick from one of the sources below to get started.
             </p>
           </div>
           <label
@@ -655,44 +684,49 @@ function IngestionStep({ onNext }: IngestionStepProps) {
                   <div className="queue-item__status">
                     <button
                       className="queue-item__remove"
-                      onClick={handleClearMasterResume}
+                      onClick={handleDeselectMasterResume}
                       type="button"
                     >
                       <FontAwesomeIcon icon={faXmark} />
                     </button>
                   </div>
                 </article>
-              ) : auth.status === "authenticated" &&
-                masterResume &&
-                !useMasterResume ? (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "0.5rem",
-                  }}
-                >
-                  <p className="section-copy text-muted">
-                    No file selected yet.
-                  </p>
-                  <button
-                    className="button button--ghost"
-                    onClick={handleRestoreMasterResume}
-                    type="button"
-                    style={{ alignSelf: "flex-start" }}
-                  >
-                    Restore Master Resume
-                  </button>
-                </div>
               ) : (
                 <p className="section-copy text-muted">No file selected yet.</p>
               )}
             </div>
           </div>
-          {resumeHistory.length > 0 ? (
+          {(auth.status === "authenticated" && masterResume) ||
+          resumeHistory.length > 0 ? (
             <div className="resume-history">
               <p className="section-label">Recently Processed</p>
               <div className="resume-history__list">
+                {auth.status === "authenticated" && masterResume ? (
+                  <button
+                    className={
+                      useMasterResume && !selectedFile && !selectedHistoryKey
+                        ? "resume-history__row resume-history__row--master is-selected"
+                        : "resume-history__row resume-history__row--master"
+                    }
+                    onClick={handleSelectMasterResume}
+                    type="button"
+                  >
+                    <span className="resume-history__dot">
+                      <FontAwesomeIcon
+                        icon={
+                          useMasterResume && !selectedFile && !selectedHistoryKey
+                            ? faCircleDot
+                            : faCircle
+                        }
+                      />
+                    </span>
+                    <span className="resume-history__name">
+                      <FontAwesomeIcon icon={faFileLines} />
+                      Stored Master Resume
+                    </span>
+                    <span>Master</span>
+                  </button>
+                ) : null}
                 {resumeHistory.slice(0, 4).map((item) => (
                   <button
                     className={
@@ -744,7 +778,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
             <strong>
               Engine:{" "}
               {localStorage.getItem("ai_provider_display") || "Not Selected"} /{" "}
-              {selectedMode === "sniper" ? "Sniper" : "General"}
+              {selectedMode === "sniper" ? "Sniper" : "Polisher"}
             </strong>
             <p>Ready for high-precision tailoring</p>
           </div>
@@ -755,6 +789,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
             onClick={() => {
               setSelectedFile(null);
               setSelectedHistoryKey(null);
+              setUseMasterResume(false);
             }}
             type="button"
           >

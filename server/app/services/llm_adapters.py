@@ -324,7 +324,7 @@ Details must reference sections, role names, skill categories, rewritten bullet 
 Do not include scores, point values, percentages, external validation claims, or suggestions for changes you did not make.
 """
 
-        prompt_id = "tailor_sniper" if mode == "sniper" else "tailor_general"
+        prompt_id = "tailor_sniper" if mode == "sniper" else "tailor_polisher"
         return self.prompts.render_messages(
             prompt_id,
             {

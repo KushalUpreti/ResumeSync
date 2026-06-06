@@ -37,6 +37,7 @@ function ProcessPage() {
   const resumeId = searchParams.get("resumeId");
   const resumeKey = searchParams.get("resumeKey");
   const requestedStep = searchParams.get("step");
+  const requestedMode = searchParams.get("mode");
   const {
     generatedResumeId,
     setMasterResume,
@@ -45,6 +46,7 @@ function ProcessPage() {
     setGeneratedFileBaseName,
     setLastGenerateJob,
     setLastRenderJob,
+    setTailoringMode,
   } = useWorkspace();
   const [currentStep, setCurrentStep] = useState(() =>
     resolveStepFromQuery(requestedStep, Boolean(resumeId || resumeKey)),
@@ -54,6 +56,12 @@ function ProcessPage() {
   useEffect(() => {
     setCurrentStep(resolveStepFromQuery(requestedStep, Boolean(resumeId || resumeKey)));
   }, [requestedStep, resumeId, resumeKey]);
+
+  useEffect(() => {
+    if (requestedMode === "polisher" || requestedMode === "sniper") {
+      setTailoringMode(requestedMode);
+    }
+  }, [requestedMode, setTailoringMode]);
 
   useEffect(() => {
     if (!resumeId && !resumeKey) {
