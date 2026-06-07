@@ -248,6 +248,20 @@ def _json_prefix(actor_id: str, is_session: bool) -> str:
     return f"{'temp' if is_session else 'users'}/{actor_id}/json/"
 
 
+def _delete_rendered_outputs_for_resume(
+    services: ServiceContainer,
+    actor_id: str,
+    is_session: bool,
+    resume_id: str,
+    json_key: str,
+) -> None:
+    resume_ids = {resume_id, Path(json_key).stem}
+    for candidate_resume_id in resume_ids:
+        rendered_key = output_docx_key(actor_id, candidate_resume_id, is_session)
+        if services.object_store.exists(rendered_key):
+            services.object_store.delete(rendered_key)
+
+
 def _validate_temp_upload_key_for_actor(object_key: str | None, actor_id: str) -> None:
     if not object_key or not object_key.startswith(_temp_prefix(actor_id)):
         raise HTTPException(status_code=403, detail="Invalid upload key for this user.")
@@ -409,10 +423,7 @@ def delete_resume(
         raise HTTPException(status_code=404, detail="Resume not found.")
 
     services.object_store.delete(target_json_key)
-
-    rendered_key = output_docx_key(actor_id, resume_id, is_session)
-    if services.object_store.exists(rendered_key):
-        services.object_store.delete(rendered_key)
+    _delete_rendered_outputs_for_resume(services, actor_id, is_session, resume_id, target_json_key)
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -870,10 +881,7 @@ def delete_resume(
         raise HTTPException(status_code=404, detail="Resume not found.")
 
     services.object_store.delete(target_json_key)
-
-    rendered_key = output_docx_key(actor_id, resume_id, is_session)
-    if services.object_store.exists(rendered_key):
-        services.object_store.delete(rendered_key)
+    _delete_rendered_outputs_for_resume(services, actor_id, is_session, resume_id, target_json_key)
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 

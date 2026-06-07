@@ -6,17 +6,46 @@ export const apiClient = axios.create({
   baseURL: env.apiBaseUrl || undefined,
 })
 
+const QUOTA_LIMIT_MESSAGE =
+  "Your usage quota has been reached for the current period. Please wait until your quota resets or update your plan to continue."
+
+function isQuotaLimitMessage(value: unknown) {
+  if (typeof value !== 'string') {
+    return false
+  }
+
+  const normalized = value.toLowerCase()
+  return (
+    normalized.includes('rate limit') ||
+    normalized.includes('429') ||
+    normalized.includes('quota') ||
+    normalized.includes('current limit') ||
+    normalized.includes('usage limit') ||
+    normalized.includes('insufficient_quota') ||
+    normalized.includes('out of credits') ||
+    normalized.includes('credit balance') ||
+    normalized.includes('purchase credits')
+  )
+}
+
 export function getApiErrorMessage(error: unknown, fallback: string) {
   // Handle Axios errors with possible structured detail payloads.
   if (axios.isAxiosError(error)) {
     const responseData = error.response?.data as any
     const status = error.response?.status
 
+    if (status === 429) {
+      return QUOTA_LIMIT_MESSAGE
+    }
+
     // FastAPI / Pydantic validation errors are often under `detail`
     const detail = responseData?.detail
     if (detail !== undefined) {
       try {
         if (typeof detail === 'string') {
+          if (isQuotaLimitMessage(detail)) {
+            return QUOTA_LIMIT_MESSAGE
+          }
           return detail
         }
         return JSON.stringify(detail)
@@ -26,9 +55,6 @@ export function getApiErrorMessage(error: unknown, fallback: string) {
     }
 
     // Friendly messages for common status codes when the API did not provide detail.
-    if (status === 429) {
-      return "Rate limit exceeded. Please wait a moment and try again."
-    }
     if (status === 401) {
       return "Invalid API key. Please verify your credentials."
     }
@@ -42,11 +68,17 @@ export function getApiErrorMessage(error: unknown, fallback: string) {
       }
     }
     if (error.message) {
+      if (isQuotaLimitMessage(error.message)) {
+        return QUOTA_LIMIT_MESSAGE
+      }
       return error.message
     }
   }
   // Generic Error instance handling.
   if (error instanceof Error) {
+    if (isQuotaLimitMessage(error.message)) {
+      return QUOTA_LIMIT_MESSAGE
+    }
     return error.message
   }
   // As a final fallback, return the provided fallback message.

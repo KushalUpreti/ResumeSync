@@ -11,8 +11,12 @@ import {
   faEye,
   faEyeSlash,
   faExclamationTriangle,
+  faKey,
   faShieldHalved,
+  faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
+import { getApiErrorMessage } from "../api/client";
+import { validateAiKey } from "../api/resumeSync";
 import SectionCard from "../components/SectionCard";
 import { useNotification } from "../context/useNotification";
 import { providerCards } from "../data/mockData";
@@ -95,7 +99,7 @@ const providerSlugMappings: Record<string, string> = {
   OpenAI: "openai",
   Anthropic: "anthropic",
   "Google Gemini": "google",
-  "Amazon Bedrock": "bedrock",
+  "AWS Bedrock": "bedrock",
 };
 
 const providerApiKeyLinks: Record<string, string> = {
@@ -110,22 +114,39 @@ type ConfigStepProps = {
   onBack: () => void;
 };
 
+const getDefaultProvider = (provider: string | null) =>
+  provider && modelMappings[provider] ? provider : "OpenAI";
+
+const getDefaultModel = (provider: string) =>
+  modelMappings[provider]?.[0].value || modelMappings.OpenAI[0].value;
+
+const getValidModelForProvider = (provider: string, model: string | null) => {
+  if (
+    model &&
+    modelMappings[provider]?.some((option) => option.value === model)
+  ) {
+    return model;
+  }
+  return getDefaultModel(provider);
+};
+
 function ConfigStep({ onNext }: ConfigStepProps) {
   const { addNotification } = useNotification();
   const [showApiKey, setShowApiKey] = useState(false);
+  const [isTestingApiKey, setIsTestingApiKey] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState(
-    () => localStorage.getItem("ai_provider_display") || "OpenAI",
+    () => getDefaultProvider(localStorage.getItem("ai_provider_display")),
   );
   const [apiKey, setApiKey] = useState(
     () => localStorage.getItem("ai_api_key") || "",
   );
   const [selectedModel, setSelectedModel] = useState(() => {
-    const savedProvider =
-      localStorage.getItem("ai_provider_display") || "OpenAI";
-    return (
-      localStorage.getItem("ai_model") ||
-      modelMappings[savedProvider]?.[0].value ||
-      modelMappings.OpenAI[0].value
+    const savedProvider = getDefaultProvider(
+      localStorage.getItem("ai_provider_display"),
+    );
+    return getValidModelForProvider(
+      savedProvider,
+      localStorage.getItem("ai_model"),
     );
   });
 
@@ -141,11 +162,12 @@ function ConfigStep({ onNext }: ConfigStepProps) {
   }, [selectedModel, selectedProvider]);
 
   const handleProviderChange = (providerName: string) => {
-    setSelectedProvider(providerName);
+    const nextProvider = getDefaultProvider(providerName);
+    setSelectedProvider(nextProvider);
     setApiKey("");
     localStorage.removeItem("ai_api_key");
 
-    const defaultModel = modelMappings[providerName][0].value;
+    const defaultModel = getDefaultModel(nextProvider);
     setSelectedModel(defaultModel);
   };
 
@@ -158,6 +180,38 @@ function ConfigStep({ onNext }: ConfigStepProps) {
     setApiKey(value);
     localStorage.setItem("ai_api_key", value);
   };
+
+  async function handleTestApiKey() {
+    if (!apiKey) {
+      addNotification({
+        type: "warning",
+        message: "Missing API Key",
+        description: "Please provide an API key before testing.",
+      });
+      return;
+    }
+
+    setIsTestingApiKey(true);
+    try {
+      const result = await validateAiKey();
+      addNotification({
+        type: "success",
+        message: "API Key Valid",
+        description: `Connected to ${result.provider} using ${result.model}.`,
+      });
+    } catch (error) {
+      addNotification({
+        type: "error",
+        message: "API Key Test Failed",
+        description: getApiErrorMessage(
+          error,
+          "Could not validate the selected AI provider credentials.",
+        ),
+      });
+    } finally {
+      setIsTestingApiKey(false);
+    }
+  }
 
   async function handleSaveConfig() {
     if (!apiKey) {
@@ -324,7 +378,20 @@ function ConfigStep({ onNext }: ConfigStepProps) {
 
           <div className="action-stack">
             <button
+              className="button button--full config-test-key-button"
+              disabled={isTestingApiKey}
+              onClick={() => void handleTestApiKey()}
+              type="button"
+            >
+              <FontAwesomeIcon
+                icon={isTestingApiKey ? faSpinner : faKey}
+                spin={isTestingApiKey}
+              />
+              {isTestingApiKey ? "Testing API Key..." : "Test API Key"}
+            </button>
+            <button
               className="button button--primary button--full"
+              disabled={isTestingApiKey}
               onClick={() => void handleSaveConfig()}
               type="button"
             >

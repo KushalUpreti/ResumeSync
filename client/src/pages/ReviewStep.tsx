@@ -14,6 +14,7 @@ import {
   rewritePreview,
   waitForJob,
 } from "../api/resumeSync";
+import { getApiErrorMessage } from "../api/client";
 import './ReviewStep.css';
 import { arrayMove } from "@dnd-kit/sortable";
 import { useNotification } from "../context/useNotification";
@@ -813,10 +814,10 @@ function ReviewStep({ onNext }: ReviewStepProps) {
       addNotification({
         type: "error",
         message: "Rewrite Failed",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Unable to rewrite this part of the resume.",
+        description: getApiErrorMessage(
+          error,
+          "Unable to rewrite this part of the resume.",
+        ),
       });
     } finally {
       setActiveRewritePath(null);

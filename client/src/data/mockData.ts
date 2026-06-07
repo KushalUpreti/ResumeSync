@@ -28,8 +28,8 @@ export const providerCards = [
     name: 'Google Gemini',
     model: 'Gemini 3.1 Flash Lite',
     description:
-      'High-throughput engine optimized for speed and parallel resume processing.',
-    badges: ['High Speed', 'Large context'],
+      'High-throughput engine with a generous free tier and simple API key setup.',
+    badges: ['Free tier', 'Easiest setup'],
     selected: false,
   },
   {
