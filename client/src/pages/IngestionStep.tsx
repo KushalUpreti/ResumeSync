@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBullseye,
@@ -55,6 +56,7 @@ const savedModes = [
 type SavedModeValue = (typeof savedModes)[number]["value"];
 
 function IngestionStep({ onNext }: IngestionStepProps) {
+  const navigate = useNavigate();
   const { addNotification } = useNotification();
   const { auth } = useAuth();
   const {
@@ -442,6 +444,13 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     }
   }
 
+  function handleCancel() {
+    setSelectedFile(null);
+    setSelectedHistoryKey(null);
+    setUseMasterResume(false);
+    navigate("/");
+  }
+
   return (
     <div className="page-stack ingestion-page">
       {isPreparingReview ? (
@@ -551,6 +560,12 @@ function IngestionStep({ onNext }: IngestionStepProps) {
               Upload your latest PDF/DOCX resume for structural analysis. Or
               pick from one of the sources below to get started.
             </p>
+            {selectedMode !== "sniper" ? (
+              <p className="upload-optional-note">
+                Resume upload is optional in General Mode. You can continue
+                with notes only.
+              </p>
+            ) : null}
           </div>
           <label
             className={dragActive ? "upload-panel is-active" : "upload-panel"}
@@ -786,11 +801,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
         <div className="bottom-toolbar__actions">
           <button
             className="button button--ghost"
-            onClick={() => {
-              setSelectedFile(null);
-              setSelectedHistoryKey(null);
-              setUseMasterResume(false);
-            }}
+            onClick={handleCancel}
             type="button"
           >
             Cancel

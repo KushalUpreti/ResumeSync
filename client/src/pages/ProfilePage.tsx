@@ -307,6 +307,9 @@ function ProfilePage() {
   const selectedFileName = selectedFile?.name
     ? truncateFileName(selectedFile.name)
     : "";
+  const isProfileLoading =
+    auth.status === "loading" ||
+    (auth.status === "authenticated" && isLoading);
 
   return (
     <div className="page-stack profile-page">
@@ -325,25 +328,34 @@ function ProfilePage() {
         </div>
       ) : null}
 
+      {isProfileLoading && !isUploading ? (
+        <div
+          className="generation-backdrop"
+          role="status"
+          aria-live="polite"
+          aria-label="Loading profile"
+        >
+          <div className="generation-backdrop__card">
+            <FontAwesomeIcon icon={faSpinner} spin />
+            <h2>Loading Profile</h2>
+            <p>Preparing your resume vault...</p>
+          </div>
+        </div>
+      ) : null}
+
       <section className="page-intro page-intro--split">
         <div>
           <p className="eyebrow">Profile Library</p>
           <h1 className="page-title page-title--medium">Your Resume Vault</h1>
           <p className="page-copy">
-            Keep one authoritative master resume on file and revisit every
-            generated version from the same place.
+            Your master resume is the source document ResumeSync uses to create
+            future tailored versions. Keep it current so every generated resume
+            starts from the strongest available baseline.
           </p>
         </div>
       </section>
 
-      {auth.status === "loading" ? (
-        <SectionCard>
-          <h2 className="section-card__title">Loading session</h2>
-          <p className="section-copy">
-            Checking your account before loading the profile library...
-          </p>
-        </SectionCard>
-      ) : auth.status !== "authenticated" ? (
+      {auth.status === "loading" ? null : auth.status !== "authenticated" ? (
         <SectionCard>
           <h2 className="section-card__title">Sign in required</h2>
           <p className="section-copy">
@@ -351,22 +363,11 @@ function ProfilePage() {
             generated resume library.
           </p>
         </SectionCard>
-      ) : isLoading ? (
-        <SectionCard>
-          <h2 className="section-card__title">Loading profile</h2>
-          <p className="section-copy">
-            Fetching your stored resumes and master file...
-          </p>
-        </SectionCard>
-      ) : (
+      ) : isLoading ? null : (
         <div className="dashboard-grid profile-grid">
           <SectionCard className="profile-master-card">
             <div className="section-card__header">
               <h2 className="section-card__title">Master Resume</h2>
-              <p className="section-copy">
-                Upload or replace the source file your account should use for
-                future tailoring.
-              </p>
             </div>
 
             <div className="profile-master-card__status">

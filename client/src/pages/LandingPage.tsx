@@ -6,7 +6,6 @@ import {
   faAsterisk,
   faBullseye,
   faCloud,
-  faFingerprint,
   faShieldHalved,
   faWaveSquare,
 } from "@fortawesome/free-solid-svg-icons";
@@ -39,54 +38,107 @@ const modules = [
   },
 ];
 
+const problemSolutions = [
+  {
+    painLabel: "Pain point 01",
+    painTitle: "ATS rules feel invisible",
+    painCopy:
+      "Beginners are told to make resumes ATS friendly without knowing what that actually means.",
+    solutionLabel: "Solution",
+    solutionTitle: "Plain-language ingestion",
+    solutionCopy:
+      "Paste rough notes, drafts, or existing resume text and shape it into an ATS-aware resume with guided structure.",
+    signal: "ATS alignment active",
+    icon: faAsterisk,
+  },
+  {
+    painLabel: "Pain point 02",
+    painTitle: "Good prompts are hard to write",
+    painCopy:
+      "Generic AI output usually comes from vague instructions, missing context, and untested resume prompts.",
+    solutionLabel: "Solution",
+    solutionTitle: "Curated resume engines",
+    solutionCopy:
+      "Polisher and Sniper modes use purpose-built prompt flows tuned for broad polish or role-specific targeting.",
+    signal: "Prompt stack curated",
+    icon: faBullseye,
+  },
+  {
+    painLabel: "Pain point 03",
+    painTitle: "Every version takes time",
+    painCopy:
+      "Updating each resume by hand means reworking bullets, keywords, formatting, and exports over and over.",
+    solutionLabel: "Solution",
+    solutionTitle: "Review, diff, improve",
+    solutionCopy:
+      "Compare generated changes, inspect improvements, refine sections, and export when the version is ready.",
+    signal: "Diff review enabled",
+    icon: faWaveSquare,
+  },
+  {
+    painLabel: "Pain point 04",
+    painTitle: "Generated resumes get lost",
+    painCopy:
+      "It is hard to keep track of which resume was made for which job, model, or draft cycle.",
+    solutionLabel: "Solution",
+    solutionTitle: "Workspace history",
+    solutionCopy:
+      "Recently processed resumes stay organized so you can return to prior outputs instead of starting from scratch.",
+    signal: "History indexed",
+    icon: faCloud,
+  },
+  {
+    painLabel: "Pain point 05",
+    painTitle: "Trust is part of the workflow",
+    painCopy:
+      "AI tools can feel risky when keys, resume data, and generated documents move through unclear systems.",
+    solutionLabel: "Solution",
+    solutionTitle: "BYOK control",
+    solutionCopy:
+      "Bring your own frontier model key, keep it in your browser, send requests over encrypted HTTPS, and export fast.",
+    signal: "Local key control",
+    icon: faShieldHalved,
+  },
+];
+
 const workflow = [
   {
     step: "01",
     title: "Setup",
-    copy: "Choose your goal, template, and target role.",
-    image: "/landing-review-mockup.png",
+    copy: "Choose your frontier models and bring in your API keys.",
+    image: "/landing/models.png",
   },
   {
     step: "02",
     title: "Import",
-    copy: "Add your resume or paste your professional history.",
+    copy: "Add your resume or paste your professional history. Pick from various sources.",
     image: "/landing/ingestion.png",
   },
   {
     step: "03",
     title: "Review",
-    copy: "Edit tailored sections with side-by-side context.",
+    copy: "Edit tailored sections with side-by-side diff viewer to see changes.",
     image: "/landing/review.png",
   },
   {
     step: "04",
+    title: "View Enhancements",
+    copy: "View AI made enhancements in detail. See what was improved.",
+    image: "/landing/improvements.png",
+  },
+  {
+    step: "05",
     title: "Export",
     copy: "Download a polished resume when it is ready.",
     image: "/landing/export.png",
   },
 ];
 
-const infrastructure = [
-  {
-    icon: faCloud,
-    title: "Reliable processing",
-    copy: "Built to handle resume generation quickly and consistently.",
-  },
-  {
-    icon: faShieldHalved,
-    title: "Protected workspace",
-    copy: "Your resume data is handled with care from import through export.",
-  },
-  {
-    icon: faWaveSquare,
-    title: "Clear version history",
-    copy: "Keep track of changes as you refine your resume for each opportunity.",
-  },
-];
-
 function LandingPage({ isLoggedIn }: LandingPageProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mockupRef = useRef<HTMLDivElement>(null);
+  const problemSectionRef = useRef<HTMLDivElement>(null);
+  const workflowSectionRef = useRef<HTMLElement>(null);
+  const [activeProblemIndex, setActiveProblemIndex] = useState(0);
   const [activeWorkflowStep, setActiveWorkflowStep] = useState(0);
 
   useEffect(() => {
@@ -95,13 +147,13 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
     if (metaDescription) {
       metaDescription.setAttribute(
         "content",
-        "Build, tailor, review, and export a polished resume without wrestling with formatting or rewriting every bullet from scratch."
+        "Shape a polished, role-ready resume without fighting formatting or starting from scratch. Take control before you apply.",
       );
     } else {
       const meta = document.createElement("meta");
       meta.name = "description";
       meta.content =
-        "Build, tailor, review, and export a polished resume without wrestling with formatting or rewriting every bullet from scratch.";
+        "Shape a polished, role-ready resume without fighting formatting or starting from scratch. Take control before you apply.";
       document.head.appendChild(meta);
     }
   }, []);
@@ -216,31 +268,92 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
   }, []);
 
   useEffect(() => {
-    const mockup = mockupRef.current;
-    if (!mockup) {
+    const section = problemSectionRef.current;
+    if (!section) {
       return;
     }
 
-    const handlePointerMove = (event: PointerEvent) => {
-      const x = (window.innerWidth / 2 - event.clientX) / 90;
-      const y = (window.innerHeight / 2 - event.clientY) / 110;
-      mockup.style.setProperty("--mockup-tilt-x", `${6 + y}deg`);
-      mockup.style.setProperty("--mockup-tilt-y", `${-13 + x}deg`);
-      mockup.style.setProperty("--mockup-tilt-z", "3deg");
+    let animationFrame = 0;
+
+    const updateActiveProblem = () => {
+      const rows = Array.from(
+        section.querySelectorAll<HTMLElement>(".problem-solution__row"),
+      );
+      const viewportCenter = window.innerHeight / 2;
+      let closestIndex = 0;
+      let closestDistance = Number.POSITIVE_INFINITY;
+
+      rows.forEach((row, index) => {
+        const rect = row.getBoundingClientRect();
+        const rowCenter = rect.top + rect.height / 2;
+        const distance = Math.abs(rowCenter - viewportCenter);
+
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestIndex = index;
+        }
+      });
+
+      setActiveProblemIndex(closestIndex);
     };
 
-    const resetTilt = () => {
-      mockup.style.removeProperty("--mockup-tilt-x");
-      mockup.style.removeProperty("--mockup-tilt-y");
-      mockup.style.removeProperty("--mockup-tilt-z");
+    const requestUpdate = () => {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(updateActiveProblem);
     };
 
-    window.addEventListener("pointermove", handlePointerMove);
-    mockup.addEventListener("pointerleave", resetTilt);
+    updateActiveProblem();
+    window.addEventListener("scroll", requestUpdate, { passive: true });
+    window.addEventListener("resize", requestUpdate);
 
     return () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-      mockup.removeEventListener("pointerleave", resetTilt);
+      window.cancelAnimationFrame(animationFrame);
+      window.removeEventListener("scroll", requestUpdate);
+      window.removeEventListener("resize", requestUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
+    const section = workflowSectionRef.current;
+    if (!section) {
+      return;
+    }
+
+    let animationFrame = 0;
+
+    const updateActiveWorkflowStep = () => {
+      const rect = section.getBoundingClientRect();
+      const viewportCenter = window.innerHeight / 2;
+      const activationStart = rect.height * 0.48;
+      const activationDistance = rect.height * 0.48;
+      const progress = Math.min(
+        1,
+        Math.max(
+          0,
+          (viewportCenter - rect.top - activationStart) / activationDistance,
+        ),
+      );
+      const nextStep = Math.min(
+        workflow.length - 1,
+        Math.floor(progress * workflow.length),
+      );
+
+      setActiveWorkflowStep(nextStep);
+    };
+
+    const requestUpdate = () => {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(updateActiveWorkflowStep);
+    };
+
+    updateActiveWorkflowStep();
+    window.addEventListener("scroll", requestUpdate, { passive: true });
+    window.addEventListener("resize", requestUpdate);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      window.removeEventListener("scroll", requestUpdate);
+      window.removeEventListener("resize", requestUpdate);
     };
   }, []);
 
@@ -256,14 +369,17 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
           <span />
         </div>
         <div className="industrial-hero__copy reveal-on-scroll">
-          <p className="industrial-label">ResumeSync AI</p>
           <h1 id="landing-title">
             Engineered
             <span>results.</span>
           </h1>
           <p className="industrial-copy">
-            Build, tailor, review, and export a polished resume without
-            wrestling with formatting or rewriting every bullet from scratch.
+            Shape a polished, role-ready resume without fighting formatting or
+            starting from scratch. Take control before you apply.
+          </p>
+          <p className="industrial-copy-detail">
+            Bring your own model key, add your resume or notes, review the
+            changes, and export a clean final document when it is ready.
           </p>
           <div className="industrial-actions">
             <Link
@@ -279,6 +395,13 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
             >
               See workflow
             </a>
+          </div>
+          <div className="landing-access-note" aria-label="Account access note">
+            <span>No login required to export.</span>
+            <p>
+              Sign in only when you want master resume storage and a history of
+              previous resumes.
+            </p>
           </div>
           <div className="landing-signal-row" aria-hidden="true">
             <span />
@@ -298,6 +421,48 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
               src="/landing/review.png"
             />
           </div>
+        </div>
+      </section>
+
+      <section
+        className="industrial-section industrial-section--problem-solution"
+        aria-labelledby="problem-solution-title"
+      >
+        <div className="problem-solution__header reveal-on-scroll">
+          <p className="industrial-kicker">Problems / Solutions</p>
+          <h2 id="problem-solution-title">
+            Built around the resume work people actually avoid
+          </h2>
+        </div>
+        <div className="problem-solution" ref={problemSectionRef}>
+          {problemSolutions.map((item, index) => (
+            <article
+              className={`problem-solution__row${
+                activeProblemIndex === index ? " is-active" : ""
+              }`}
+              key={item.painTitle}
+            >
+              <div className="problem-card">
+                <span>{item.painLabel}</span>
+                <h3>{item.painTitle}</h3>
+                <p>{item.painCopy}</p>
+              </div>
+              <div className="problem-solution__connector" aria-hidden="true">
+                <FontAwesomeIcon icon={faArrowRight} />
+              </div>
+              <div className="solution-card">
+                <div className="solution-card__label">
+                  <span>{item.solutionLabel}</span>
+                </div>
+                <h3>{item.solutionTitle}</h3>
+                <p>{item.solutionCopy}</p>
+                <div className="solution-card__signal">
+                  <FontAwesomeIcon icon={item.icon} />
+                  <span>{item.signal}</span>
+                </div>
+              </div>
+            </article>
+          ))}
         </div>
       </section>
 
@@ -347,6 +512,7 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
       <section
         className="industrial-section industrial-section--workflow"
         id="platform"
+        ref={workflowSectionRef}
       >
         <div className="reveal-on-scroll">
           <p className="industrial-kicker">Workflow</p>
@@ -377,9 +543,8 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
           </div>
 
           <div
-            className="workflow-preview reveal-on-scroll"
+            className="workflow-preview"
             aria-label={`${workflow[activeWorkflowStep].title} workflow preview`}
-            style={{ transitionDelay: "160ms" }}
           >
             <div className="workflow-preview__shell">
               {workflow.map(({ image, title }, index) => (
@@ -392,76 +557,6 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
                   src={image}
                 />
               ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section
-        className="industrial-section reliability-section"
-        id="enterprise"
-      >
-        <div className="reliability-section__copy reveal-on-scroll">
-          <p className="industrial-kicker">Workspace</p>
-          <h2>Designed for steady, confident editing</h2>
-          <div className="reliability-list">
-            {infrastructure.map((item) => (
-              <article key={item.title}>
-                <FontAwesomeIcon icon={item.icon} />
-                <div>
-                  <h3>{item.title}</h3>
-                  <p>{item.copy}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-
-        <div
-          className="workspace-animated-mockup reveal-on-scroll"
-          aria-label="Animated workspace preview"
-          style={{ transitionDelay: "120ms" }}
-        >
-          <div className="system-window system-window--workspace" ref={mockupRef}>
-            <div className="system-window__chrome">
-              <span />
-              <span />
-              <span />
-              <small>Resume workspace</small>
-            </div>
-            <div className="system-window__screen">
-              <div className="screen-grid screen-grid--top">
-                <span />
-                <span />
-                <span />
-              </div>
-              <div className="screen-panel screen-panel--wide">
-                <strong>Candidate Signal</strong>
-                <div className="micro-bars">
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                </div>
-              </div>
-              <div className="screen-panel">
-                <strong>Role Match</strong>
-                <em>98%</em>
-              </div>
-              <div className="screen-panel">
-                <strong>Keyword Delta</strong>
-                <em>+42</em>
-              </div>
-              <div className="screen-graph">
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-              </div>
-              <div className="screen-core">
-                <FontAwesomeIcon icon={faFingerprint} />
-              </div>
             </div>
           </div>
         </div>
@@ -481,12 +576,6 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
           >
             Get started
           </Link>
-          <a
-            className="industrial-button industrial-button--light"
-            href="#platform"
-          >
-            View workflow
-          </a>
         </div>
       </section>
     </main>
