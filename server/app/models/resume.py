@@ -23,6 +23,15 @@ class ExperienceEntry(BaseModel):
     end_date: str | None = None
     bullets: list[str] = Field(default_factory=list)
 
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_role_aliases(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "role" not in data and "title" in data:
+            normalized = dict(data)
+            normalized["role"] = normalized["title"]
+            return normalized
+        return data
+
     @field_validator("company", "role", mode="before")
     @classmethod
     def none_to_empty_string(cls, value: Any) -> Any:
