@@ -9,12 +9,20 @@ export const flowSteps: FlowStep[] = [
 
 export const providerCards = [
   {
+    name: 'Google Gemini',
+    model: 'Gemini 3.1 Flash Lite',
+    description:
+      'High-throughput engine with a generous free tier and simple API key setup.',
+    badges: ['Preferred', 'Free tier', 'Easiest setup'],
+    selected: true,
+  },
+  {
     name: 'OpenAI',
     model: 'GPT-4o & GPT-3.5 Turbo',
     description:
       'Industry standard for high-precision entity extraction and complex formatting tasks.',
-    badges: ['Recommended', 'Fast'],
-    selected: true,
+    badges: ['Fast'],
+    selected: false,
   },
   {
     name: 'Anthropic',
@@ -22,14 +30,6 @@ export const providerCards = [
     description:
       'Exceptional at maintaining tone consistency and deep structural understanding.',
     badges: ['Accurate'],
-    selected: false,
-  },
-  {
-    name: 'Google Gemini',
-    model: 'Gemini 3.1 Flash Lite',
-    description:
-      'High-throughput engine with a generous free tier and simple API key setup.',
-    badges: ['Free tier', 'Easiest setup'],
     selected: false,
   },
   {

@@ -14,6 +14,7 @@ import {
   faKey,
   faShieldHalved,
   faSpinner,
+  faStar,
 } from "@fortawesome/free-solid-svg-icons";
 import { getApiErrorMessage } from "../api/client";
 import { validateAiKey } from "../api/resumeSync";
@@ -31,7 +32,6 @@ const providerIconMap = {
 const modelMappings: Record<string, { label: string; value: string }[]> = {
   OpenAI: [
     { label: "GPT-5.5 (Latest Flagship)", value: "gpt-5.5" },
-    { label: "GPT-5.4 Pro (High Performance)", value: "gpt-5.4-pro" },
     { label: "GPT-5.4 Mini (Cost Optimized)", value: "gpt-5.4-mini" },
     { label: "GPT-4o Mini (Legacy/Cheap)", value: "gpt-4o-mini" },
   ],
@@ -111,10 +111,10 @@ type ConfigStepProps = {
 };
 
 const getDefaultProvider = (provider: string | null) =>
-  provider && modelMappings[provider] ? provider : "OpenAI";
+  provider && modelMappings[provider] ? provider : "Google Gemini";
 
 const getDefaultModel = (provider: string) =>
-  modelMappings[provider]?.[0].value || modelMappings.OpenAI[0].value;
+  modelMappings[provider]?.[0].value || modelMappings["Google Gemini"][0].value;
 
 const getValidModelForProvider = (provider: string, model: string | null) => {
   if (
@@ -265,6 +265,15 @@ function ConfigStep({ onNext }: ConfigStepProps) {
                         ]
                       }
                     />
+                    {provider.name === "Google Gemini" ? (
+                      <span
+                        aria-label="Preferred provider"
+                        className="provider-card__preferred-star"
+                        title="Preferred provider"
+                      >
+                        <FontAwesomeIcon icon={faStar} />
+                      </span>
+                    ) : null}
                   </div>
                   <div>
                     <h3

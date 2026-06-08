@@ -38,6 +38,15 @@ const modules = [
   },
 ];
 
+function hasConfiguredApiKey() {
+  return Boolean(localStorage.getItem("ai_api_key")?.trim());
+}
+
+function getModulePath(mode: string) {
+  const step = hasConfiguredApiKey() ? "ingestion" : "config";
+  return `/process?step=${step}&mode=${mode}`;
+}
+
 const problemSolutions = [
   {
     painLabel: "Pain point 01",
@@ -541,7 +550,7 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
             <Link
               aria-label={`Start with ${module.title}`}
               className="industrial-card module-card reveal-on-scroll"
-              to={`/process?step=ingestion&mode=${module.mode}`}
+              to={getModulePath(module.mode)}
               key={module.title}
               style={{ transitionDelay: `${index * 100}ms` }}
             >

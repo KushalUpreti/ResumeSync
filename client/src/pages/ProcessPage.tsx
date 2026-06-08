@@ -11,13 +11,21 @@ import { useNotification } from "../context/useNotification";
 import { useWorkspace } from "../context/useWorkspace";
 import { deriveResumeFileBaseName } from "../lib/resumeFileName";
 
-function resolveStepFromQuery(stepParam: string | null, hasResumeId: boolean) {
+function hasConfiguredApiKey() {
+  return Boolean(localStorage.getItem("ai_api_key")?.trim());
+}
+
+function resolveStepFromQuery(
+  stepParam: string | null,
+  hasResumeId: boolean,
+  hasApiKey: boolean,
+) {
   if (stepParam === "config") {
     return 1;
   }
 
   if (stepParam === "ingestion") {
-    return 2;
+    return hasApiKey ? 2 : 1;
   }
 
   if (stepParam === "review") {
@@ -50,12 +58,22 @@ function ProcessPage() {
     setTailoringMode,
   } = useWorkspace();
   const [currentStep, setCurrentStep] = useState(() =>
-    resolveStepFromQuery(requestedStep, Boolean(resumeId || resumeKey)),
+    resolveStepFromQuery(
+      requestedStep,
+      Boolean(resumeId || resumeKey),
+      hasConfiguredApiKey(),
+    ),
   );
   const [isHydratingResume, setIsHydratingResume] = useState(Boolean(resumeId || resumeKey));
 
   useEffect(() => {
-    setCurrentStep(resolveStepFromQuery(requestedStep, Boolean(resumeId || resumeKey)));
+    setCurrentStep(
+      resolveStepFromQuery(
+        requestedStep,
+        Boolean(resumeId || resumeKey),
+        hasConfiguredApiKey(),
+      ),
+    );
   }, [requestedStep, resumeId, resumeKey]);
 
   useEffect(() => {

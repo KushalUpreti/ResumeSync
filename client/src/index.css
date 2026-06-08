@@ -1576,6 +1576,30 @@ strong {
   height: 1.8rem;
 }
 
+.provider-card__icon {
+  position: relative;
+}
+
+.provider-card__preferred-star {
+  position: absolute;
+  top: -7px;
+  left: -7px;
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--color-surface-card);
+  border-radius: 50%;
+  background: #f59e0b;
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.16);
+}
+
+.provider-card__preferred-star svg {
+  width: 0.62rem;
+  height: 0.62rem;
+}
+
 .field {
   display: grid;
   gap: var(--space-3);

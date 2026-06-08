@@ -30,7 +30,7 @@ from app.services.prompts import PromptRegistry, RenderedPrompt
 
 
 ALLOWED_AI_MODELS = {
-    "openai": {"gpt-5.5", "gpt-5.4-pro", "gpt-5.4-mini", "gpt-4o-mini"},
+    "openai": {"gpt-5.5", "gpt-5.4-mini", "gpt-4o-mini"},
     "anthropic": {
         "anthropic/claude-4-8-opus-latest",
         "anthropic/claude-4-6-sonnet-latest",
