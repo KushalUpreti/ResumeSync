@@ -316,6 +316,9 @@ class LLMResumeTailor(ResumeTailor):
 Only output the JSON. Do not include markdown, explanations, or extra keys.
 If no education, projects, certifications, or skills data exists in the source resume, return an empty array for those fields.
 For required string fields, return an empty string when the value is unknown. Use null only for fields shown as nullable dates, URLs, or roles.
+Every experience item must use "role" for the job title. Do not use "title", "position", or "job_title".
+The skills field must be an array of {"category": "...", "items": ["..."]} objects. Do not return skills as an object keyed by category names.
+Do not include aliases, alternate key names, or extra fields outside the schema.
 The ai_improvements array must summarize only AI-generated changes you actually made compared with the source resume JSON.
 Return 4-10 ai_improvements. If you made no meaningful change, return an empty array.
 Each ai_improvements item must use one category from: summary, experience, ats, skills, structure, clarity, keywords, metrics, projects, education, certifications, formatting.

@@ -182,6 +182,25 @@ class ResumeDocument(BaseModel):
             return data
 
         skills = data.get("skills")
+        if isinstance(skills, dict):
+            normalized_skills = []
+            for category, items in skills.items():
+                if isinstance(items, str):
+                    skill_items = [items.strip()] if items.strip() else []
+                elif isinstance(items, list):
+                    skill_items = [str(item).strip() for item in items if str(item).strip()]
+                else:
+                    skill_items = []
+                if skill_items:
+                    normalized_skills.append({"category": str(category).strip() or "Skills", "items": skill_items})
+
+            if normalized_skills:
+                normalized = dict(data)
+                normalized["skills"] = normalized_skills
+                return normalized
+
+            return data
+
         if not isinstance(skills, list):
             return data
 

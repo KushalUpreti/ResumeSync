@@ -562,7 +562,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
             </p>
             {selectedMode !== "sniper" ? (
               <p className="upload-optional-note">
-                Resume upload is optional in General Mode. You can continue
+                Resume upload is optional in Polisher Mode. You can continue
                 with notes only.
               </p>
             ) : null}
@@ -729,7 +729,9 @@ function IngestionStep({ onNext }: IngestionStepProps) {
                     <span className="resume-history__dot">
                       <FontAwesomeIcon
                         icon={
-                          useMasterResume && !selectedFile && !selectedHistoryKey
+                          useMasterResume &&
+                          !selectedFile &&
+                          !selectedHistoryKey
                             ? faCircleDot
                             : faCircle
                         }

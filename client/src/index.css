@@ -508,9 +508,11 @@ strong {
 }
 
 .profile-resume-row {
+  height: 80px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
+  align-content: center;
   gap: var(--space-3);
   padding: 10px;
   border: 1px solid rgba(15, 23, 42, 0.08);
@@ -5540,7 +5542,11 @@ strong {
   border: 1px solid rgba(16, 17, 20, 0.14);
   border-radius: 8px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.58)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.8),
+      rgba(255, 255, 255, 0.58)
+    ),
     rgba(255, 255, 255, 0.64);
   box-shadow: 0 16px 34px rgba(16, 17, 20, 0.05);
 }
