@@ -40,7 +40,6 @@ ALLOWED_AI_MODELS = {
     "gemini": {
         "gemini/gemini-3.1-flash-lite",
         "gemini/gemini-2.5-flash-lite",
-        "gemini/gemini-3-flash",
         "gemini/gemini-2.5-flash",
     },
     "bedrock": {

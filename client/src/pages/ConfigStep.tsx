@@ -63,10 +63,6 @@ const modelMappings: Record<string, { label: string; value: string }[]> = {
       value: "gemini/gemini-2.5-flash-lite",
     },
     {
-      label: "Gemini 3 Flash (High TPM bottleneck)",
-      value: "gemini/gemini-3-flash",
-    },
-    {
       label: "Gemini 2.5 Flash (Older version)",
       value: "gemini/gemini-2.5-flash",
     },
