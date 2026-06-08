@@ -4,9 +4,28 @@ import io
 from pathlib import Path
 
 from docxtpl import DocxTemplate
+from docx.oxml.ns import qn
 
 from app.models.resume import ResumeDocument
 from app.services.interfaces import DocumentRenderer
+
+
+def _remove_trailing_empty_paragraphs(doc: object) -> None:
+    body = doc.element.body
+    children = list(body)
+
+    if not children or children[-1].tag != qn("w:sectPr"):
+        return
+
+    for child in reversed(children[:-1]):
+        if child.tag != qn("w:p"):
+            break
+
+        text = "".join(text.text or "" for text in child.iter(qn("w:t")))
+        if text.strip():
+            break
+
+        body.remove(child)
 
 
 class DocxtplDocumentRenderer(DocumentRenderer):
@@ -102,6 +121,7 @@ class DocxtplDocumentRenderer(DocumentRenderer):
         try:
             doc = DocxTemplate(str(template_path))
             doc.render(context)
+            _remove_trailing_empty_paragraphs(doc.docx)
 
             target = io.BytesIO()
             doc.save(target)

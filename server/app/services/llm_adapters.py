@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import io
 import json
-import logging
 from typing import Any
 
 import litellm
@@ -29,8 +28,6 @@ from app.services.date_sorting import (
 from app.services.interfaces import ResumeParser, ResumeTailor
 from app.services.prompts import PromptRegistry, RenderedPrompt
 
-
-logger = logging.getLogger(__name__)
 
 ALLOWED_AI_MODELS = {
     "openai": {"gpt-5.5", "gpt-5.4-pro", "gpt-5.4-mini", "gpt-4o-mini"},
@@ -62,7 +59,7 @@ def _log_large_text(label: str, text: str) -> None:
     for index in range(total):
         start = index * LLM_LOG_CHUNK_SIZE
         chunk = text[start:start + LLM_LOG_CHUNK_SIZE]
-        logger.warning("LLM_IO %s chunk=%s/%s\n%s", label, index + 1, total, chunk)
+        print(f"LLM_IO {label} chunk={index + 1}/{total}\n{chunk}", flush=True)
 
 
 def _log_llm_messages(
