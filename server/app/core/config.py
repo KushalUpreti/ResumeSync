@@ -27,6 +27,18 @@ class Settings(BaseSettings):
     cognito_user_pool_id: str | None = None
     cognito_region: str | None = None
     cognito_app_client_id: str | None = None
+    cors_allowed_origins: str = (
+        "http://localhost:5173,"
+        "http://127.0.0.1:5173,"
+        "http://localhost:4173"
+    )
+
+    def cors_origins(self) -> list[str]:
+        return [
+            origin.strip()
+            for origin in self.cors_allowed_origins.split(",")
+            if origin.strip()
+        ]
 
 
 @lru_cache(maxsize=1)

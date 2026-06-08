@@ -264,6 +264,22 @@ The backend includes a Dockerfile and ECS Fargate task definition examples for s
 5. Use S3 for object storage and SQS for job dispatch.
 6. Use Cognito for authenticated user storage and history.
 
+For an HTTPS frontend such as Amplify, the API base URL must also be HTTPS.
+Do not set `VITE_API_BASE_URL` to an `http://` EC2 public IP for production
+builds; browsers block those requests as mixed content. Put the API behind an
+HTTPS entrypoint, such as an ALB with an ACM certificate, API Gateway, or
+CloudFront, then set the Amplify environment variable before rebuilding:
+
+```text
+VITE_API_BASE_URL=https://api.example.com
+```
+
+The backend also needs to allow the deployed frontend origin:
+
+```text
+RESUMESYNC_CORS_ALLOWED_ORIGINS=https://main.d2hvmjtqaaxjjx.amplifyapp.com
+```
+
 See `server/ecs/README.md` and `server/design.md` for more deployment detail.
 
 ## Development Status
