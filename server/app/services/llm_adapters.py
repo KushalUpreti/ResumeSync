@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import logging
 from typing import Any
 
 import litellm
@@ -29,6 +30,8 @@ from app.services.interfaces import ResumeParser, ResumeTailor
 from app.services.prompts import PromptRegistry, RenderedPrompt
 
 
+logger = logging.getLogger(__name__)
+
 ALLOWED_AI_MODELS = {
     "openai": {"gpt-5.5", "gpt-5.4-pro", "gpt-5.4-mini", "gpt-4o-mini"},
     "anthropic": {
@@ -50,6 +53,44 @@ ALLOWED_AI_MODELS = {
         "bedrock/converse/us.amazon.nova-micro-v1:0",
     },
 }
+
+LLM_LOG_CHUNK_SIZE = 24000
+
+
+def _log_large_text(label: str, text: str) -> None:
+    total = max(1, (len(text) + LLM_LOG_CHUNK_SIZE - 1) // LLM_LOG_CHUNK_SIZE)
+    for index in range(total):
+        start = index * LLM_LOG_CHUNK_SIZE
+        chunk = text[start:start + LLM_LOG_CHUNK_SIZE]
+        logger.warning("LLM_IO %s chunk=%s/%s\n%s", label, index + 1, total, chunk)
+
+
+def _log_llm_messages(
+    operation: str,
+    model: str,
+    messages: list[dict[str, str]],
+    rendered_prompt: RenderedPrompt | None = None,
+) -> None:
+    payload: dict[str, Any] = {
+        "operation": operation,
+        "model": model,
+        "messages": messages,
+    }
+    if rendered_prompt is not None:
+        payload["prompt_id"] = rendered_prompt.prompt_id
+        payload["prompt_version"] = rendered_prompt.version
+        payload["prompt_source"] = rendered_prompt.source
+
+    _log_large_text(f"{operation}.prompt", json.dumps(payload, ensure_ascii=False))
+
+
+def _log_llm_response(operation: str, model: str, content: str) -> None:
+    payload = {
+        "operation": operation,
+        "model": model,
+        "content": content,
+    }
+    _log_large_text(f"{operation}.response", json.dumps(payload, ensure_ascii=False))
 
 
 def normalize_provider(provider: str | None) -> str:
@@ -116,14 +157,17 @@ class LLMResumeParser(ResumeParser):
             {"raw_text": raw_text},
         )
 
+        model = self._get_model(ai_provider, ai_model)
+        _log_llm_messages("parse_resume", model, messages, rendered_prompt)
         response = litellm.completion(
-            model=self._get_model(ai_provider, ai_model),
+            model=model,
             messages=messages,
             response_format={"type": "json_object"} if normalize_provider(ai_provider) == "openai" else None,
             **litellm_completion_kwargs(ai_provider, ai_api_key),
         )
 
         content = response.choices[0].message.content
+        _log_llm_response("parse_resume", model, content)
         data = self._clean_json(content)
 
         experience_list = sort_experience_entries(
@@ -224,14 +268,18 @@ class LLMResumeTailor(ResumeTailor):
     ) -> ResumeDocument:
         prompt, rendered_prompt = self._build_prompt(document, mode=mode, context=context)
 
+        model = self._get_model(ai_provider, ai_model)
+        _log_llm_messages(f"tailor_resume.{mode}", model, prompt, rendered_prompt)
         response = litellm.completion(
-            model=self._get_model(ai_provider, ai_model),
+            model=model,
             messages=prompt,
             response_format={"type": "json_object"} if normalize_provider(ai_provider) == "openai" else None,
             **litellm_completion_kwargs(ai_provider, ai_api_key),
         )
 
-        data = self._clean_json(response.choices[0].message.content)
+        content = response.choices[0].message.content
+        _log_llm_response(f"tailor_resume.{mode}", model, content)
+        data = self._clean_json(content)
 
         return ResumeDocument(
             full_name=data.get("full_name", document.full_name),
@@ -362,12 +410,17 @@ Text:
 {text}
 </untrusted_text>"""
 
+        messages = [{"role": "user", "content": prompt}]
+        model = self._get_model(ai_provider, ai_model)
+        _log_llm_messages(f"rewrite_text.{mode}", model, messages)
         response = litellm.completion(
-            model=self._get_model(ai_provider, ai_model),
-            messages=[{"role": "user", "content": prompt}],
+            model=model,
+            messages=messages,
             **litellm_completion_kwargs(ai_provider, ai_api_key),
         )
-        return response.choices[0].message.content.strip()
+        content = response.choices[0].message.content
+        _log_llm_response(f"rewrite_text.{mode}", model, content)
+        return content.strip()
 
     def apply_rewrites(
         self,

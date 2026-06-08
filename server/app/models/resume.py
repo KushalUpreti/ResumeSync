@@ -194,12 +194,9 @@ class ResumeDocument(BaseModel):
                 if skill_items:
                     normalized_skills.append({"category": str(category).strip() or "Skills", "items": skill_items})
 
-            if normalized_skills:
-                normalized = dict(data)
-                normalized["skills"] = normalized_skills
-                return normalized
-
-            return data
+            normalized = dict(data)
+            normalized["skills"] = normalized_skills
+            return normalized
 
         if not isinstance(skills, list):
             return data
