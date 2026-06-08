@@ -20,17 +20,17 @@ const modules = [
     icon: faAsterisk,
     mode: "polisher",
     title: "THE POLISHER",
-    copy: "Synthesizes linguistic precision and tonal alignment. Optimized for executive clarity and semantic resonance across all ATS platforms.",
+    copy: "Delivers clear, precise language with a polished tone from rough career notes. Structured for executive readability and full compatibility with ATS systems.",
     stats: [
       ["+42%", "MATCH RATE"],
-      ["8.4s", "LATENCY"],
+      ["Sub 3s", "LATENCY"],
     ],
   },
   {
     icon: faBullseye,
     mode: "sniper",
     title: "THE SNIPER",
-    copy: "Targeted keyword extraction and role-specific calibration. Maps your trajectory directly onto job descriptions with lethal accuracy.",
+    copy: "Identifies the most relevant keywords and calibrates your resume for the specific role. Aligns your background to job descriptions with exceptional precision.",
     stats: [
       ["98%", "RELEVANCE"],
       ["INSTANT", "SYNTHESIS"],
@@ -129,7 +129,7 @@ const workflow = [
   {
     step: "05",
     title: "Export",
-    copy: "Download a polished resume when it is ready.",
+    copy: "Download a polished resume in different modern ATS friendly formats.",
     image: "/landing/export.png",
   },
 ];
@@ -147,13 +147,13 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
     if (metaDescription) {
       metaDescription.setAttribute(
         "content",
-        "Shape a polished, role-ready resume without fighting formatting or starting from scratch. Take control before you apply.",
+        "Shape a polished, role-ready resume without fighting formatting or starting from scratch. Take control of your career outcome.",
       );
     } else {
       const meta = document.createElement("meta");
       meta.name = "description";
       meta.content =
-        "Shape a polished, role-ready resume without fighting formatting or starting from scratch. Take control before you apply.";
+        "Shape a polished, role-ready resume without fighting formatting or starting from scratch. Take control of your career outcome.";
       document.head.appendChild(meta);
     }
   }, []);
@@ -191,6 +191,7 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
       return;
     }
 
+    let frame = 0;
     const particles = Array.from({ length: 70 }, () => ({
       x: 0,
       y: 0,
@@ -200,16 +201,18 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
     }));
 
     const resetParticle = (particle: (typeof particles)[number]) => {
-      particle.x = Math.random() * canvas.width;
-      particle.y = Math.random() * canvas.height;
+      particle.x = Math.random() * canvas.clientWidth;
+      particle.y = Math.random() * canvas.clientHeight;
       particle.size = Math.random() * 1.2 + 0.4;
       particle.speedX = (Math.random() - 0.5) * 0.28;
       particle.speedY = (Math.random() - 0.5) * 0.28;
     };
 
     const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(canvas.clientWidth * ratio);
+      canvas.height = Math.floor(canvas.clientHeight * ratio);
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
       particles.forEach(resetParticle);
     };
 
@@ -218,18 +221,68 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
 
     let animationFrame = 0;
     const animate = () => {
-      context.clearRect(0, 0, canvas.width, canvas.height);
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      frame += 1;
+
+      context.clearRect(0, 0, width, height);
+
+      context.lineWidth = 1;
+      for (let x = 0; x < width; x += 36) {
+        context.strokeStyle =
+          x % 72 === 0 ? "rgba(15, 23, 42, 0.1)" : "rgba(15, 23, 42, 0.045)";
+        context.beginPath();
+        context.moveTo(x, 0);
+        context.lineTo(x, height);
+        context.stroke();
+      }
+
+      for (let y = 0; y < height; y += 36) {
+        context.strokeStyle =
+          y % 72 === 0 ? "rgba(15, 23, 42, 0.1)" : "rgba(15, 23, 42, 0.045)";
+        context.beginPath();
+        context.moveTo(0, y);
+        context.lineTo(width, y);
+        context.stroke();
+      }
+
+      const beams = [
+        ["#f97316", 0.14, 0.78],
+        ["#06b6d4", 0.24, 0.56],
+        ["#84cc16", 0.38, 0.7],
+        ["#7c3aed", 0.18, 0.36],
+      ] as const;
+
+      beams.forEach(([color, yRatio, speed], index) => {
+        const y = height * yRatio + Math.sin((frame + index * 50) / 45) * 16;
+        const offset = ((frame * speed + index * 130) % (width + 180)) - 180;
+        const gradient = context.createLinearGradient(
+          offset,
+          y,
+          offset + 180,
+          y,
+        );
+        gradient.addColorStop(0, "transparent");
+        gradient.addColorStop(0.5, color);
+        gradient.addColorStop(1, "transparent");
+        context.strokeStyle = gradient;
+        context.lineWidth = 2;
+        context.beginPath();
+        context.moveTo(offset, y);
+        context.lineTo(offset + 180, y);
+        context.stroke();
+      });
 
       for (const particle of particles) {
         particle.x += particle.speedX;
         particle.y += particle.speedY;
 
-        if (particle.x > canvas.width) particle.x = 0;
-        if (particle.x < 0) particle.x = canvas.width;
-        if (particle.y > canvas.height) particle.y = 0;
-        if (particle.y < 0) particle.y = canvas.height;
+        if (particle.x > width) particle.x = 0;
+        if (particle.x < 0) particle.x = width;
+        if (particle.y > height) particle.y = 0;
+        if (particle.y < 0) particle.y = height;
 
-        context.fillStyle = "rgba(15, 23, 42, 0.11)";
+        context.fillStyle = "rgba(15, 23, 42, 0.07)";
         context.beginPath();
         context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         context.fill();
@@ -246,7 +299,9 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
           const distance = Math.sqrt(dx * dx + dy * dy);
 
           if (distance < 120) {
-            context.strokeStyle = `rgba(15, 23, 42, ${0.045 * (1 - distance / 120)})`;
+            context.strokeStyle = `rgba(15, 23, 42, ${
+              0.032 * (1 - distance / 120)
+            })`;
             context.lineWidth = 0.5;
             context.beginPath();
             context.moveTo(particles[index].x, particles[index].y);
@@ -369,17 +424,21 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
           <span />
         </div>
         <div className="industrial-hero__copy reveal-on-scroll">
+          <div className="hero-credit-pill" aria-label="Creator">
+            <span />
+            By Kushal Upreti
+          </div>
           <h1 id="landing-title">
             Engineered
             <span>results.</span>
           </h1>
           <p className="industrial-copy">
             Shape a polished, role-ready resume without fighting formatting or
-            starting from scratch. Take control before you apply.
+            starting from scratch. Take control of your career outcome.
           </p>
           <p className="industrial-copy-detail">
             Bring your own model key, add your resume or notes, review the
-            changes, and export a clean final document when it is ready.
+            changes, and export a clean ATS friendly document within seconds.
           </p>
           <div className="industrial-actions">
             <Link
@@ -399,8 +458,8 @@ function LandingPage({ isLoggedIn }: LandingPageProps) {
           <div className="landing-access-note" aria-label="Account access note">
             <span>No login required to export.</span>
             <p>
-              Sign in only when you want master resume storage and a history of
-              previous resumes.
+              Sign in only when you want to store your master resume and track
+              past versions.
             </p>
           </div>
           <div className="landing-signal-row" aria-hidden="true">

@@ -18,6 +18,9 @@ function AppHeader({ auth, onOpenAuthModal, onSignOut }: AppHeaderProps) {
           ResumeSync AI
         </Link>
         <div className="site-header__actions">
+          <Link className="site-header__nav-link" to="/architecture">
+            Architecture
+          </Link>
           {auth.status === "loading" ? (
             <span className="status-badge">Loading session...</span>
           ) : auth.status === "error" ? (

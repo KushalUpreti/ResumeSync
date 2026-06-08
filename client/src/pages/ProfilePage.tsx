@@ -83,6 +83,7 @@ function ProfilePage() {
     setLastRenderJob,
   } = useWorkspace();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [resumeHistory, setResumeHistory] = useState<ResumeHistoryItem[]>([]);
@@ -138,6 +139,147 @@ function ProfilePage() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.status]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return;
+    }
+
+    const context = canvas.getContext("2d");
+    if (!context) {
+      return;
+    }
+
+    let frame = 0;
+    const particles = Array.from({ length: 70 }, () => ({
+      x: 0,
+      y: 0,
+      size: 0,
+      speedX: 0,
+      speedY: 0,
+    }));
+
+    const resetParticle = (particle: (typeof particles)[number]) => {
+      particle.x = Math.random() * canvas.clientWidth;
+      particle.y = Math.random() * canvas.clientHeight;
+      particle.size = Math.random() * 1.2 + 0.4;
+      particle.speedX = (Math.random() - 0.5) * 0.28;
+      particle.speedY = (Math.random() - 0.5) * 0.28;
+    };
+
+    const resize = () => {
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(canvas.clientWidth * ratio);
+      canvas.height = Math.floor(canvas.clientHeight * ratio);
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      particles.forEach(resetParticle);
+    };
+
+    resize();
+    window.addEventListener("resize", resize);
+
+    let animationFrame = 0;
+    const animate = () => {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      frame += 1;
+
+      context.clearRect(0, 0, width, height);
+
+      context.lineWidth = 1;
+      for (let x = 0; x < width; x += 36) {
+        context.strokeStyle =
+          x % 72 === 0
+            ? "rgba(15, 23, 42, 0.1)"
+            : "rgba(15, 23, 42, 0.045)";
+        context.beginPath();
+        context.moveTo(x, 0);
+        context.lineTo(x, height);
+        context.stroke();
+      }
+
+      for (let y = 0; y < height; y += 36) {
+        context.strokeStyle =
+          y % 72 === 0
+            ? "rgba(15, 23, 42, 0.1)"
+            : "rgba(15, 23, 42, 0.045)";
+        context.beginPath();
+        context.moveTo(0, y);
+        context.lineTo(width, y);
+        context.stroke();
+      }
+
+      const beams = [
+        ["#f97316", 0.14, 0.78],
+        ["#06b6d4", 0.24, 0.56],
+        ["#84cc16", 0.38, 0.7],
+        ["#7c3aed", 0.18, 0.36],
+      ] as const;
+
+      beams.forEach(([color, yRatio, speed], index) => {
+        const y = height * yRatio + Math.sin((frame + index * 50) / 45) * 16;
+        const offset = ((frame * speed + index * 130) % (width + 180)) - 180;
+        const gradient = context.createLinearGradient(offset, y, offset + 180, y);
+        gradient.addColorStop(0, "transparent");
+        gradient.addColorStop(0.5, color);
+        gradient.addColorStop(1, "transparent");
+        context.strokeStyle = gradient;
+        context.lineWidth = 2;
+        context.beginPath();
+        context.moveTo(offset, y);
+        context.lineTo(offset + 180, y);
+        context.stroke();
+      });
+
+      for (const particle of particles) {
+        particle.x += particle.speedX;
+        particle.y += particle.speedY;
+
+        if (particle.x > width) particle.x = 0;
+        if (particle.x < 0) particle.x = width;
+        if (particle.y > height) particle.y = 0;
+        if (particle.y < 0) particle.y = height;
+
+        context.fillStyle = "rgba(15, 23, 42, 0.07)";
+        context.beginPath();
+        context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        context.fill();
+      }
+
+      for (let index = 0; index < particles.length; index += 1) {
+        for (
+          let nextIndex = index + 1;
+          nextIndex < particles.length;
+          nextIndex += 1
+        ) {
+          const dx = particles[index].x - particles[nextIndex].x;
+          const dy = particles[index].y - particles[nextIndex].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < 120) {
+            context.strokeStyle = `rgba(15, 23, 42, ${
+              0.032 * (1 - distance / 120)
+            })`;
+            context.lineWidth = 0.5;
+            context.beginPath();
+            context.moveTo(particles[index].x, particles[index].y);
+            context.lineTo(particles[nextIndex].x, particles[nextIndex].y);
+            context.stroke();
+          }
+        }
+      }
+
+      animationFrame = window.requestAnimationFrame(animate);
+    };
+
+    animationFrame = window.requestAnimationFrame(animate);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
 
   function handleFilePick(fileList: FileList | null) {
     const nextFile = fileList?.[0];
@@ -313,6 +455,7 @@ function ProfilePage() {
 
   return (
     <div className="page-stack profile-page">
+      <canvas aria-hidden="true" className="sync-node-canvas" ref={canvasRef} />
       {isUploading ? (
         <div
           className="generation-backdrop"

@@ -155,7 +155,7 @@ function ProcessPage() {
       return <ReviewStep onNext={handleNext} onBack={handleBack} />;
     }
 
-    return <ExportStep />;
+    return <ExportStep onBack={handleBack} />;
   };
 
   return (

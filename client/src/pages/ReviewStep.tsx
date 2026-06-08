@@ -218,7 +218,7 @@ function remapBulletHistoryAfterDelete(
   return nextHistory;
 }
 
-function ReviewStep({ onNext }: ReviewStepProps) {
+function ReviewStep({ onNext, onBack }: ReviewStepProps) {
   const { addNotification } = useNotification();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
@@ -1033,20 +1033,6 @@ function ReviewStep({ onNext }: ReviewStepProps) {
 
   return (
     <div className="page-stack">
-      {createPortal(
-        <div className="page-toolbar__actions">
-          <div style={{ width: "10px" }} />
-          <button
-            className="button button--primary"
-            disabled={isApproving}
-            onClick={() => void handleApproveAndContinue()}
-            type="button"
-          >
-            {isApproving ? "Saving..." : "Approve & Continue"}
-          </button>
-        </div>,
-        document.getElementById("header-actions-portal")!,
-      )}
       {isImprovementsModalOpen
         ? createPortal(
             <div
@@ -1294,6 +1280,34 @@ function ReviewStep({ onNext }: ReviewStepProps) {
           </div>
         </SectionCard>
       </div>
+
+      <section className="bottom-toolbar">
+        <div className="bottom-toolbar__summary">
+          <div className="bottom-toolbar__icon">RV</div>
+          <div>
+            <strong>Review edits</strong>
+            <p>Approve the current draft when it is ready for export.</p>
+          </div>
+        </div>
+        <div className="bottom-toolbar__actions">
+          <button
+            className="button button--ghost"
+            disabled={isApproving}
+            onClick={onBack}
+            type="button"
+          >
+            Back
+          </button>
+          <button
+            className="button button--primary"
+            disabled={isApproving}
+            onClick={() => void handleApproveAndContinue()}
+            type="button"
+          >
+            {isApproving ? "Saving..." : "Approve & Continue"}
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

@@ -134,8 +134,8 @@ function ConfigStep({ onNext }: ConfigStepProps) {
   const { addNotification } = useNotification();
   const [showApiKey, setShowApiKey] = useState(false);
   const [isTestingApiKey, setIsTestingApiKey] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState(
-    () => getDefaultProvider(localStorage.getItem("ai_provider_display")),
+  const [selectedProvider, setSelectedProvider] = useState(() =>
+    getDefaultProvider(localStorage.getItem("ai_provider_display")),
   );
   const [apiKey, setApiKey] = useState(
     () => localStorage.getItem("ai_api_key") || "",
@@ -360,7 +360,7 @@ function ConfigStep({ onNext }: ConfigStepProps) {
               </div>
             </label>
 
-            <label className="field">
+            <label className="field" style={{ marginTop: "52px" }}>
               <span>Target Model</span>
               <select
                 className="field__control"
@@ -389,17 +389,29 @@ function ConfigStep({ onNext }: ConfigStepProps) {
               />
               {isTestingApiKey ? "Testing API Key..." : "Test API Key"}
             </button>
-            <button
-              className="button button--primary button--full"
-              disabled={isTestingApiKey}
-              onClick={() => void handleSaveConfig()}
-              type="button"
-            >
-              Save Configuration &amp; Continue &rarr;
-            </button>
           </div>
         </SectionCard>
       </div>
+
+      <section className="bottom-toolbar">
+        <div className="bottom-toolbar__summary">
+          <div className="bottom-toolbar__icon">AI</div>
+          <div>
+            <strong>Engine configuration</strong>
+            <p>Choose a provider and save credentials before ingestion.</p>
+          </div>
+        </div>
+        <div className="bottom-toolbar__actions">
+          <button
+            className="button button--primary"
+            disabled={isTestingApiKey}
+            onClick={() => void handleSaveConfig()}
+            type="button"
+          >
+            Save Configuration &amp; Continue &rarr;
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

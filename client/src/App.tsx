@@ -5,6 +5,7 @@ import AppHeader from "./components/AppHeader";
 import "./App.css";
 import { useAuth } from "./context/useAuth";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
+import ArchitecturePage from "./pages/ArchitecturePage";
 import LandingPage from "./pages/LandingPage";
 import ProfilePage from "./pages/ProfilePage";
 import ProcessPage from "./pages/ProcessPage";
@@ -43,6 +44,7 @@ function App() {
       <main className="app-shell__main">
         <Routes>
           <Route path="/" element={<LandingPage isLoggedIn={isLoggedIn} />} />
+          <Route path="/architecture" element={<ArchitecturePage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route path="/process" element={<ProcessPage />} />

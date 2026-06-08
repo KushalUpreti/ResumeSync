@@ -16,8 +16,7 @@
 
 .app-shell__main {
   width: min(1280px, calc(100% - 48px));
-  margin: 0 auto;
-  padding: var(--space-2xl) 0 var(--space-3xl);
+  margin: 0 auto 50px auto;
 }
 
 .container {
@@ -38,6 +37,7 @@
   background: transparent;
   margin-bottom: var(--space-8);
   overflow: visible;
+  margin-top: var(--space-12);
 }
 
 .process-content {

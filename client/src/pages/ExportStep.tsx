@@ -9,10 +9,10 @@ import { downloadTemplate } from "../api/resumeSync";
 import { useNotification } from "../context/useNotification";
 
 type ExportStepProps = {
-  // Back navigation removed per request
+  onBack: () => void;
 };
 
-const ExportStep: FC<ExportStepProps> = () => {
+const ExportStep: FC<ExportStepProps> = ({ onBack }) => {
   const {
     selectedTemplateId,
     setSelectedTemplateId,
@@ -81,28 +81,38 @@ const ExportStep: FC<ExportStepProps> = () => {
         that do not break ATS compatibility.
       </p>
 
-      <div
-        className="page-intro__actions"
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          marginTop: "var(--space-4)",
-        }}
-      >
-        <button
-          className="button button--ghost"
-          disabled={isDownloading}
-          onClick={() => void handleExport()}
-          type="button"
-        >
-          {isDownloading ? (
-            <FontAwesomeIcon icon={faSpinner} spin />
-          ) : (
-            <FontAwesomeIcon icon={faFileArrowDown} />
-          )}
-          {isDownloading ? "Downloading..." : "Export .docx"}
-        </button>
-      </div>
+      <section className="bottom-toolbar">
+        <div className="bottom-toolbar__summary">
+          <div className="bottom-toolbar__icon">EX</div>
+          <div>
+            <strong>Final export</strong>
+            <p>Download the selected template as a .docx file.</p>
+          </div>
+        </div>
+        <div className="bottom-toolbar__actions">
+          <button
+            className="button button--ghost"
+            disabled={isDownloading}
+            onClick={onBack}
+            type="button"
+          >
+            Back
+          </button>
+          <button
+            className="button button--primary"
+            disabled={isDownloading}
+            onClick={() => void handleExport()}
+            type="button"
+          >
+            {isDownloading ? (
+              <FontAwesomeIcon icon={faSpinner} spin />
+            ) : (
+              <FontAwesomeIcon icon={faFileArrowDown} />
+            )}
+            {isDownloading ? "Downloading..." : "Export .docx"}
+          </button>
+        </div>
+      </section>
     </div>
   );
 };
