@@ -6,6 +6,7 @@ export type TailoringMode = 'polisher' | 'sniper'
 
 export type WorkspaceState = {
   masterResume: ResumeDocument | null
+  comparisonResume: ResumeDocument | null
   draftResume: ResumeDocument | null
   generatedResumeId: string | null
   generatedJsonKey: string | null
@@ -22,6 +23,7 @@ export type WorkspaceState = {
 export type WorkspaceContextValue = WorkspaceState & {
   resetWorkspace: () => void
   setMasterResume: (document: ResumeDocument | null) => void
+  setComparisonResume: (document: ResumeDocument | null) => void
   setDraftResume: (document: ResumeDocument | null) => void
   setGeneratedResume: (resumeId: string | null, jsonKey: string | null) => void
   setGeneratedFileBaseName: (value: string) => void

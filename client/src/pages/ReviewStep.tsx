@@ -241,7 +241,7 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
     draftResume,
     generatedResumeId,
     generatedFileBaseName,
-    masterResume,
+    comparisonResume,
     tailoringMode,
     targetRole,
     targetCompany,
@@ -253,8 +253,8 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
     lastGenerateJob,
   } = useWorkspace();
 
-  // Determine if we are in the single-resume scenario (no master resume present)
-  const singleResume = !masterResume && !!draftResume;
+  // Determine if we are in the single-resume scenario (no comparison source present)
+  const singleResume = !comparisonResume && !!draftResume;
   const undoSkillRemovalCategoryIndex =
     removedSkillsHistory.length > 0 && draftResume
       ? (() => {
@@ -984,7 +984,7 @@ function ReviewStep({ onNext, onBack }: ReviewStepProps) {
     });
   }
 
-  const originalDocument = masterResume;
+  const originalDocument = comparisonResume;
   const workingDocument = draftResume;
   const sourceFileName =
     originalDocument?.metadata?.source &&

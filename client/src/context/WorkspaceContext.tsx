@@ -14,6 +14,7 @@ const WORKSPACE_STORAGE_KEY = 'resumesync-workspace'
 
 const initialState: WorkspaceState = {
   masterResume: null,
+  comparisonResume: null,
   draftResume: null,
   generatedResumeId: null,
   generatedJsonKey: null,
@@ -40,6 +41,7 @@ function WorkspaceProvider({ children }: { children: ReactNode }) {
         ...initialState,
         ...parsed,
         masterResume: null,
+        comparisonResume: null,
         draftResume: null,
         generatedFileBaseName: typeof parsed.generatedFileBaseName === 'string' && parsed.generatedFileBaseName.trim()
           ? parsed.generatedFileBaseName
@@ -56,6 +58,7 @@ function WorkspaceProvider({ children }: { children: ReactNode }) {
     const persistentState = {
       ...state,
       masterResume: undefined,
+      comparisonResume: undefined,
       draftResume: undefined,
       jobDescription: undefined,
     }
@@ -66,6 +69,11 @@ function WorkspaceProvider({ children }: { children: ReactNode }) {
   const setMasterResume = useCallback(
     (document: ResumeDocument | null) =>
       setState((current) => ({ ...current, masterResume: document })),
+    [],
+  )
+  const setComparisonResume = useCallback(
+    (document: ResumeDocument | null) =>
+      setState((current) => ({ ...current, comparisonResume: document })),
     [],
   )
   const setDraftResume = useCallback(
@@ -130,6 +138,7 @@ function WorkspaceProvider({ children }: { children: ReactNode }) {
       ...state,
       resetWorkspace,
       setMasterResume,
+      setComparisonResume,
       setDraftResume,
       setGeneratedResume,
       setGeneratedFileBaseName,
@@ -145,6 +154,7 @@ function WorkspaceProvider({ children }: { children: ReactNode }) {
       state,
       resetWorkspace,
       setMasterResume,
+      setComparisonResume,
       setDraftResume,
       setGeneratedResume,
       setGeneratedFileBaseName,

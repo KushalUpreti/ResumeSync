@@ -41,6 +41,7 @@ function ProcessPage() {
   const {
     generatedResumeId,
     setMasterResume,
+    setComparisonResume,
     setDraftResume,
     setGeneratedResume,
     setGeneratedFileBaseName,
@@ -72,6 +73,7 @@ function ProcessPage() {
     let cancelled = false;
     setIsHydratingResume(true);
     setMasterResume(null);
+    setComparisonResume(null);
     setDraftResume(null);
     setGeneratedResume(null, null);
     setGeneratedFileBaseName("Tailored Resume");
@@ -88,6 +90,7 @@ function ProcessPage() {
         }
 
         setMasterResume(null);
+        setComparisonResume(null);
         setDraftResume(document);
         setGeneratedResume(document.resume_id, resumeKey ?? null);
         setGeneratedFileBaseName(deriveResumeFileBaseName(document));
@@ -99,6 +102,7 @@ function ProcessPage() {
         }
 
         setMasterResume(null);
+        setComparisonResume(null);
         setDraftResume(null);
         setGeneratedResume(null, null);
         setLastGenerateJob(null);
@@ -124,6 +128,7 @@ function ProcessPage() {
     resumeId,
     resumeKey,
     setDraftResume,
+    setComparisonResume,
     setGeneratedFileBaseName,
     setGeneratedResume,
     setLastGenerateJob,

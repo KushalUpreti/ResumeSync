@@ -14,6 +14,7 @@ import {
   createGenerateJob,
   getMasterResume,
   getResume,
+  getResumeByKey,
   getResumeHistory,
   requestUploadUrl,
   uploadFileToPresignedUrl,
@@ -31,6 +32,7 @@ import {
 } from "../lib/resumeFileName";
 import { useNotification } from "../context/useNotification";
 import type { ResumeHistoryItem } from "../types/api";
+import type { ResumeDocument } from "../types/resume";
 
 type IngestionStepProps = {
   onNext: () => void;
@@ -61,6 +63,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
   const { auth } = useAuth();
   const {
     masterResume,
+    setComparisonResume,
     setDraftResume,
     setGeneratedFileBaseName,
     setMasterResume,
@@ -96,6 +99,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
   useEffect(() => {
     if (auth.status !== "authenticated") {
       setMasterResume(null);
+      setComparisonResume(null);
       setDraftResume(null);
       setResumeHistory([]);
       setStatusMessage(
@@ -124,7 +128,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
         setResumeHistory(historyResponse.items);
       } catch {
         setMasterResume(null);
-        setDraftResume(null);
+        setComparisonResume(null);
         addNotification({
           type: "error",
           message: "Connection Failed",
@@ -149,6 +153,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     setUseMasterResume(false);
     setSelectedFile(nextFile);
     setSelectedHistoryKey(null);
+    setComparisonResume(null);
   }
 
   function handleModeChange(mode: SavedModeValue) {
@@ -166,18 +171,21 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     setSelectedHistoryKey(jsonKey);
     setSelectedFile(null);
     setUseMasterResume(false);
+    setComparisonResume(null);
   }
 
   function handleSelectMasterResume() {
     setUseMasterResume(true);
     setSelectedFile(null);
     setSelectedHistoryKey(null);
+    setComparisonResume(null);
   }
 
   function handleDeselectMasterResume() {
     setUseMasterResume(false);
     setSelectedFile(null);
     setSelectedHistoryKey(null);
+    setComparisonResume(null);
   }
 
   function truncateDisplayName(value: string, maxLength = 36) {
@@ -237,7 +245,9 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     async function generateAndLoadTailoredResume(source: {
       sourceType: "master" | "previous" | "notes_only";
       sourceJsonKey?: string | null;
+      comparisonDocument?: ResumeDocument | null;
     }) {
+      setComparisonResume(source.comparisonDocument ?? null);
       setStatusMessage("Starting tailoring job...");
       const generateJob = await createGenerateJob({
         job_type: "generate",
@@ -334,9 +344,13 @@ function IngestionStep({ onNext }: IngestionStepProps) {
       setIsPreparingReview(true);
       try {
         await preflightValidateAi();
+        const comparisonDocument = selectedHistoryKey
+          ? await getResumeByKey(selectedHistoryKey)
+          : null;
         await generateAndLoadTailoredResume({
           sourceType: "previous",
           sourceJsonKey: selectedHistoryKey,
+          comparisonDocument,
         });
         onNext();
       } catch (error) {
@@ -361,7 +375,10 @@ function IngestionStep({ onNext }: IngestionStepProps) {
       setIsPreparingReview(true);
       try {
         await preflightValidateAi();
-        await generateAndLoadTailoredResume({ sourceType: "master" });
+        await generateAndLoadTailoredResume({
+          sourceType: "master",
+          comparisonDocument: masterResume,
+        });
         onNext();
       } catch (error) {
         addNotification({
@@ -426,8 +443,10 @@ function IngestionStep({ onNext }: IngestionStepProps) {
       }
 
       setMasterResume(master.document);
-      setDraftResume(master.document);
-      await generateAndLoadTailoredResume({ sourceType: "master" });
+      await generateAndLoadTailoredResume({
+        sourceType: "master",
+        comparisonDocument: master.document,
+      });
       onNext();
     } catch (error) {
       addNotification({
@@ -448,6 +467,7 @@ function IngestionStep({ onNext }: IngestionStepProps) {
     setSelectedFile(null);
     setSelectedHistoryKey(null);
     setUseMasterResume(false);
+    setComparisonResume(null);
     navigate("/");
   }
 
