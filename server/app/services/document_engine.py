@@ -28,6 +28,11 @@ def _remove_trailing_empty_paragraphs(doc: object) -> None:
         body.remove(child)
 
 
+def _date_text(start_date: str | None, end_date: str | None) -> str:
+    parts = [part for part in [start_date or "", end_date or ""] if part]
+    return " - ".join(parts)
+
+
 class DocxtplDocumentRenderer(DocumentRenderer):
     def __init__(self, template_dir: str | Path | None = None) -> None:
         # Resolve templates relative to this module so exports work regardless
@@ -58,6 +63,8 @@ class DocxtplDocumentRenderer(DocumentRenderer):
                     "role": exp.role,
                     "start_date": exp.start_date or "",
                     "end_date": exp.end_date or "",
+                    "location": "",
+                    "context": "",
                     "bullets": exp.bullets,
                 }
                 for exp in document.experience
@@ -78,6 +85,7 @@ class DocxtplDocumentRenderer(DocumentRenderer):
                     "start_date": edu.start_date or "",
                     "end_date": edu.end_date or "",
                     "gpa": edu.gpa or "",
+                    "honors": "",
                     "description": edu.description or "",
                 }
                 for edu in document.education
@@ -92,6 +100,7 @@ class DocxtplDocumentRenderer(DocumentRenderer):
                     "url": proj.url or "",
                     "start_date": proj.start_date or "",
                     "end_date": proj.end_date or "",
+                    "date_text": _date_text(proj.start_date, proj.end_date),
                     "bullets": proj.bullets,
                 }
                 for proj in document.projects
